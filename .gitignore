@@ -1,0 +1,27 @@
+# Dependencias
+node_modules/
+
+# Build
+dist/
+build/
+
+# Entorno (nunca subir credenciales)
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Tests / cobertura
+coverage/
+.nyc_output/
+
+# IDEs y SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

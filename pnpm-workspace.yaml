@@ -1,0 +1,4 @@
+# Solo configuración de pnpm (este repo NO es un monorepo/workspace).
+# Dependencias con scripts de build nativos aprobados:
+allowBuilds:
+  unrs-resolver: true
