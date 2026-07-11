@@ -19,9 +19,11 @@ src/
 │   ├── usuarios/      ├── pecuaria/     ├── agricola/
 │   ├── inventario/    ├── reportes/     └── dashboard/
 │         (cada módulo: controllers/ services/ entities/ dto/ — placeholders)
-├── migrations/    (migraciones de TypeORM)
+├── database/
+│   ├── data-source.ts     (DataSource para la CLI de TypeORM)
+│   ├── database.config.ts (opciones de conexión compartidas app/CLI)
+│   └── migrations/        (migraciones de TypeORM)
 ├── schemas/       (esquemas Zod — mantener sincronizados con el frontend)
-├── data-source.ts (DataSource para la CLI de TypeORM)
 ├── app.module.ts
 └── main.ts
 ```
@@ -49,9 +51,19 @@ Copiar `.env.example` a `.env` y completar los valores:
 cp .env.example .env
 ```
 
-Variables: conexión a PostgreSQL (`DB_HOST`, `DB_PORT`, `DB_USERNAME`,
-`DB_PASSWORD`, `DB_NAME`), puerto de la API (`PORT`) y origen permitido para
-CORS (`CORS_ORIGIN`, la URL del frontend).
+Variables: conexión a PostgreSQL (`DATABASE_URL`, o bien `DB_HOST`, `DB_PORT`,
+`DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`), SSL (`DB_SSL`), puerto de la API
+(`PORT`) y origen permitido para CORS (`CORS_ORIGIN`, la URL del frontend).
+
+### Conexión con Supabase
+
+1. En el dashboard de Supabase: **Connect → Session pooler** (usar el pooler de
+   sesión, puerto 5432, compatible con IPv4 y con las migraciones de TypeORM).
+2. Copiar la cadena de conexión en `DATABASE_URL` (si la contraseña tiene
+   caracteres especiales como `%` o `@`, van URL-encoded).
+3. Dejar `DB_SSL=true` (Supabase exige SSL).
+
+Con `DATABASE_URL` definida, las variables `DB_HOST`/`DB_PORT`/etc. se ignoran.
 
 ## Comandos
 
@@ -63,8 +75,8 @@ pnpm lint               # lint
 pnpm test               # tests unitarios
 
 # Migraciones (requieren BD accesible y .env configurado)
-pnpm migration:generate src/migrations/NombreDeLaMigracion
-pnpm migration:create   src/migrations/NombreDeLaMigracion
+pnpm migration:generate src/database/migrations/NombreDeLaMigracion
+pnpm migration:create   src/database/migrations/NombreDeLaMigracion
 pnpm migration:run
 pnpm migration:revert
 ```

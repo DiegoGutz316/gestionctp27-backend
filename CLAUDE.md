@@ -9,7 +9,10 @@ Colegio Técnico Profesional. Repositorio independiente del frontend
 - Gestor de paquetes: **pnpm** exclusivamente.
 - TypeScript estricto; validación con Zod vía `nestjs-zod` (pipe global ya configurado).
 - TypeORM con `synchronize: false`; todo cambio de esquema va por migraciones
-  (`pnpm migration:generate src/migrations/Nombre`, `pnpm migration:run`).
+  (`pnpm migration:generate src/database/migrations/Nombre`, `pnpm migration:run`).
+- La configuración de BD vive en `src/database/` (`database.config.ts` comparte
+  las opciones entre la app y la CLI). La BD es PostgreSQL en Supabase: se
+  conecta con `DATABASE_URL` (session pooler) y `DB_SSL=true`.
 - Los esquemas Zod viven en `src/schemas/` y deben mantenerse **sincronizados
   manualmente** con los de `gestionctp27-frontend/src/schemas/` (mismo día/PR).
 - Arquitectura en capas por módulo: `controllers/`, `services/`, `entities/`, `dto/`
