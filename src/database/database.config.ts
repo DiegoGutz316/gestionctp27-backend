@@ -13,8 +13,7 @@ import { DataSourceOptions } from 'typeorm';
 export function buildDatabaseOptions(
   get: (key: string) => string | undefined,
 ): DataSourceOptions {
-  const ssl =
-    get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false;
+  const ssl = get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false;
   const url = get('DATABASE_URL');
 
   if (url) {
