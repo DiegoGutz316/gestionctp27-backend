@@ -1,4 +1,8 @@
 # Solo configuración de pnpm (este repo NO es un monorepo/workspace).
 # Dependencias con scripts de build nativos aprobados:
 allowBuilds:
+  # @scarf/scarf (dependencia de swagger-ui-dist, vía @nestjs/swagger) solo
+  # envía un ping de telemetría anónimo en el postinstall; no genera nada
+  # necesario para que Swagger funcione, así que se deja sin ejecutar.
+  '@scarf/scarf': false
   unrs-resolver: true
