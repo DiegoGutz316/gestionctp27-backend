@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { CategoriaInsumo } from './entities/categoria-insumo.entity';
+import { Insumo } from './entities/insumo.entity';
+import { InventarioController } from './controllers/inventario.controller';
+import { InventarioService } from './services/inventario.service';
 
-// Módulo placeholder: la lógica (controllers, services, entities, dto)
-// se implementará en etapas posteriores.
 @Module({
-  imports: [],
-  controllers: [],
-  providers: [],
+  imports: [TypeOrmModule.forFeature([CategoriaInsumo, Insumo])],
+  controllers: [InventarioController],
+  providers: [InventarioService],
 })
 export class InventarioModule {}
