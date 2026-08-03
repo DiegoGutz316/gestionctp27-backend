@@ -9,6 +9,7 @@ import { CategoriaInsumo } from '../entities/categoria-insumo.entity';
 import { Insumo } from '../entities/insumo.entity';
 import { CrearCategoriaInsumoDto } from '../dto/crear-categoria-insumo.dto';
 import { CrearInsumoDto } from '../dto/crear-insumo.dto';
+import { FiltrarInsumosDto } from '../dto/filtrar-insumos.dto';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -56,11 +57,28 @@ export class InventarioService {
     }
   }
 
-  listarInsumos(): Promise<Insumo[]> {
-    return this.insumosRepo.find({
-      where: { activo: true },
-      order: { nombre: 'ASC' },
-    });
+  listarInsumos(filtros: FiltrarInsumosDto = {}): Promise<Insumo[]> {
+    // QueryBuilder no aplica relaciones eager automáticamente (a diferencia
+    // de repo.find()); se hace el join explícito para incluir la categoría.
+    const consulta = this.insumosRepo
+      .createQueryBuilder('insumo')
+      .leftJoinAndSelect('insumo.categoria', 'categoria')
+      .where('insumo.activo = true')
+      .orderBy('insumo.nombre', 'ASC');
+
+    if (filtros.nombre) {
+      consulta.andWhere('lower(insumo.nombre) LIKE lower(:nombre)', {
+        nombre: `%${filtros.nombre}%`,
+      });
+    }
+
+    if (filtros.categoriaId) {
+      consulta.andWhere('insumo.categoria_id = :categoriaId', {
+        categoriaId: filtros.categoriaId,
+      });
+    }
+
+    return consulta.getMany();
   }
 
   async crearInsumo(dto: CrearInsumoDto): Promise<Insumo> {
