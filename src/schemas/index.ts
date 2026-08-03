@@ -100,3 +100,15 @@ export const insumoSchema = z.object({
 });
 
 export type InsumoRespuesta = z.infer<typeof insumoSchema>;
+
+// Filtros de búsqueda del listado de insumos (backlog 4.2). Todos opcionales:
+// ausentes en la query string, llegan como undefined y no filtran.
+export const filtrarInsumosSchema = z.object({
+  nombre: z.string().trim().min(1).optional(),
+  categoriaId: numeroDesdeInput('Categoría inválida')
+    .int()
+    .positive()
+    .optional(),
+});
+
+export type FiltrarInsumos = z.output<typeof filtrarInsumosSchema>;
