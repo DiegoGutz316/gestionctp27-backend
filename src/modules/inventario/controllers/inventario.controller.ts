@@ -38,3 +38,5 @@ export class InventarioController {
     return this.inventarioService.crearInsumo(dto);
   }
 }
+
+// hola 
