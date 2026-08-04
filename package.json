@@ -22,7 +22,8 @@
     "migration:create": "typeorm-ts-node-commonjs migration:create",
     "migration:generate": "pnpm typeorm migration:generate",
     "migration:run": "pnpm typeorm migration:run",
-    "migration:revert": "pnpm typeorm migration:revert"
+    "migration:revert": "pnpm typeorm migration:revert",
+    "seed:usuarios": "ts-node -r tsconfig-paths/register src/database/seeds/usuarios.seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
