@@ -38,6 +38,18 @@ export type UnidadMedida = (typeof UNIDADES_MEDIDA)[number];
 const numeroDesdeInput = (mensaje: string) =>
   z.coerce.number<number | string>({ error: mensaje });
 
+// z.coerce.number convierte '' (o solo espacios) en 0, ya que Number('') es 0.
+// Sin esto, un campo numérico obligatorio dejado vacío pasaría los límites
+// mínimos (p. ej. .min(0)) como si el usuario hubiera ingresado 0. Se
+// transforma a undefined antes de coercionar para que el chequeo de
+// obligatoriedad del campo lo rechace con su mensaje correspondiente.
+const sinVacios = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess(
+    (valor) =>
+      typeof valor === 'string' && valor.trim() === '' ? undefined : valor,
+    schema,
+  );
+
 export const crearCategoriaInsumoSchema = z.object({
   nombre: z
     .string({ error: 'El nombre de la categoría es obligatorio' })
@@ -54,18 +66,24 @@ export const crearInsumoSchema = z.object({
     .trim()
     .min(1, 'El nombre del insumo es obligatorio')
     .max(120, 'El nombre no puede superar 120 caracteres'),
-  categoriaId: numeroDesdeInput('Seleccione una categoría')
-    .int('Seleccione una categoría')
-    .positive('Seleccione una categoría'),
+  categoriaId: sinVacios(
+    numeroDesdeInput('Seleccione una categoría')
+      .int('Seleccione una categoría')
+      .positive('Seleccione una categoría'),
+  ),
   unidadMedida: z.enum(UNIDADES_MEDIDA, {
     error: 'Seleccione una unidad de medida válida',
   }),
-  cantidad: numeroDesdeInput('La cantidad inicial es obligatoria').positive(
-    'La cantidad inicial debe ser mayor que 0',
+  cantidad: sinVacios(
+    numeroDesdeInput('La cantidad inicial es obligatoria').positive(
+      'La cantidad inicial debe ser mayor que 0',
+    ),
   ),
-  nivelMinimo: numeroDesdeInput('El nivel mínimo es obligatorio').min(
-    0,
-    'El nivel mínimo debe ser 0 o mayor',
+  nivelMinimo: sinVacios(
+    numeroDesdeInput('El nivel mínimo es obligatorio').min(
+      0,
+      'El nivel mínimo debe ser 0 o mayor',
+    ),
   ),
 });
 
@@ -117,3 +135,30 @@ export const filtrarInsumosSchema = z.object({
 });
 
 export type FiltrarInsumos = z.output<typeof filtrarInsumosSchema>;
+
+// Edición de insumos (backlog 4.3). La cantidad actual queda fuera: solo
+// cambia mediante entradas y salidas de inventario (backlogs 4.4/4.6).
+export const editarInsumoSchema = z.object({
+  nombre: z
+    .string({ error: 'El nombre del insumo es obligatorio' })
+    .trim()
+    .min(1, 'El nombre del insumo es obligatorio')
+    .max(120, 'El nombre no puede superar 120 caracteres'),
+  categoriaId: sinVacios(
+    numeroDesdeInput('Seleccione una categoría')
+      .int('Seleccione una categoría')
+      .positive('Seleccione una categoría'),
+  ),
+  unidadMedida: z.enum(UNIDADES_MEDIDA, {
+    error: 'Seleccione una unidad de medida válida',
+  }),
+  nivelMinimo: sinVacios(
+    numeroDesdeInput('El nivel mínimo es obligatorio').min(
+      0,
+      'El nivel mínimo debe ser 0 o mayor',
+    ),
+  ),
+});
+
+export type EditarInsumo = z.output<typeof editarInsumoSchema>;
+export type EditarInsumoInput = z.input<typeof editarInsumoSchema>;
