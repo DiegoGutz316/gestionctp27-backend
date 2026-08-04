@@ -5,4 +5,5 @@ allowBuilds:
   # envía un ping de telemetría anónimo en el postinstall; no genera nada
   # necesario para que Swagger funcione, así que se deja sin ejecutar.
   '@scarf/scarf': false
+  bcrypt: true
   unrs-resolver: true

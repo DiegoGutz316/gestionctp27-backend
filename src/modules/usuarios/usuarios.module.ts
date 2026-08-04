@@ -1,10 +1,14 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UsuariosController } from './controllers/usuarios.controller';
+import { Rol } from './entities/rol.entity';
+import { Usuario } from './entities/usuario.entity';
+import { UsuariosService } from './services/usuarios.service';
 
-// Módulo placeholder: la lógica (controllers, services, entities, dto)
-// se implementará en etapas posteriores.
 @Module({
-  imports: [],
-  controllers: [],
-  providers: [],
+  imports: [TypeOrmModule.forFeature([Usuario, Rol])],
+  controllers: [UsuariosController],
+  providers: [UsuariosService],
+  exports: [UsuariosService],
 })
 export class UsuariosModule {}

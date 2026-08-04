@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export * from './crear-usuario.schema';
+
 /**
  * Esquemas Zod de validación del backend.
  *
