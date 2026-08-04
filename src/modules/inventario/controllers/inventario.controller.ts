@@ -1,8 +1,18 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { InventarioService } from '../services/inventario.service';
 import { CrearCategoriaInsumoDto } from '../dto/crear-categoria-insumo.dto';
 import { CrearInsumoDto } from '../dto/crear-insumo.dto';
+import { EditarInsumoDto } from '../dto/editar-insumo.dto';
 import { FiltrarInsumosDto } from '../dto/filtrar-insumos.dto';
 
 // TODO(Feature 1 - auth): proteger estas rutas con el guard de autenticación
@@ -37,6 +47,19 @@ export class InventarioController {
   crearInsumo(@Body() dto: CrearInsumoDto) {
     return this.inventarioService.crearInsumo(dto);
   }
-}
 
-// hola 
+  @ApiOperation({ summary: 'Consultar un insumo por id' })
+  @Get('insumos/:id')
+  obtenerInsumo(@Param('id', ParseIntPipe) id: number) {
+    return this.inventarioService.obtenerInsumo(id);
+  }
+
+  @ApiOperation({ summary: 'Editar un insumo existente' })
+  @Patch('insumos/:id')
+  editarInsumo(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: EditarInsumoDto,
+  ) {
+    return this.inventarioService.actualizarInsumo(id, dto);
+  }
+}

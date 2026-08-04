@@ -117,3 +117,26 @@ export const filtrarInsumosSchema = z.object({
 });
 
 export type FiltrarInsumos = z.output<typeof filtrarInsumosSchema>;
+
+// Edición de insumos (backlog 4.3). La cantidad actual queda fuera: solo
+// cambia mediante entradas y salidas de inventario (backlogs 4.4/4.6).
+export const editarInsumoSchema = z.object({
+  nombre: z
+    .string({ error: 'El nombre del insumo es obligatorio' })
+    .trim()
+    .min(1, 'El nombre del insumo es obligatorio')
+    .max(120, 'El nombre no puede superar 120 caracteres'),
+  categoriaId: numeroDesdeInput('Seleccione una categoría')
+    .int('Seleccione una categoría')
+    .positive('Seleccione una categoría'),
+  unidadMedida: z.enum(UNIDADES_MEDIDA, {
+    error: 'Seleccione una unidad de medida válida',
+  }),
+  nivelMinimo: numeroDesdeInput('El nivel mínimo es obligatorio').min(
+    0,
+    'El nivel mínimo debe ser 0 o mayor',
+  ),
+});
+
+export type EditarInsumo = z.output<typeof editarInsumoSchema>;
+export type EditarInsumoInput = z.input<typeof editarInsumoSchema>;

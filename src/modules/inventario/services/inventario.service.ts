@@ -9,6 +9,7 @@ import { CategoriaInsumo } from '../entities/categoria-insumo.entity';
 import { Insumo } from '../entities/insumo.entity';
 import { CrearCategoriaInsumoDto } from '../dto/crear-categoria-insumo.dto';
 import { CrearInsumoDto } from '../dto/crear-insumo.dto';
+import { EditarInsumoDto } from '../dto/editar-insumo.dto';
 import { FiltrarInsumosDto } from '../dto/filtrar-insumos.dto';
 
 const PG_UNIQUE_VIOLATION = '23505';
@@ -117,6 +118,61 @@ export class InventarioService {
         // TODO(Feature 1 - auth): asignar el usuario autenticado.
         creadoPor: null,
       });
+      return await this.insumosRepo.save(insumo);
+    } catch (error) {
+      this.relanzarSiEsDuplicado(
+        error,
+        `Ya existe un insumo llamado "${dto.nombre}" en la categoría "${categoria.nombre}".`,
+      );
+      throw error;
+    }
+  }
+
+  async obtenerInsumo(id: number): Promise<Insumo> {
+    const insumo = await this.insumosRepo.findOneBy({ id, activo: true });
+
+    if (!insumo) {
+      throw new NotFoundException('El insumo no existe.');
+    }
+
+    return insumo;
+  }
+
+  async actualizarInsumo(id: number, dto: EditarInsumoDto): Promise<Insumo> {
+    const insumo = await this.obtenerInsumo(id);
+
+    const categoria = await this.categoriasRepo.findOneBy({
+      id: dto.categoriaId,
+    });
+
+    if (!categoria || !categoria.activo) {
+      throw new NotFoundException(
+        'La categoría seleccionada no existe o está inactiva.',
+      );
+    }
+
+    const duplicado = await this.insumosRepo
+      .createQueryBuilder('insumo')
+      .where('lower(insumo.nombre) = lower(:nombre)', { nombre: dto.nombre })
+      .andWhere('insumo.categoria_id = :categoriaId', {
+        categoriaId: categoria.id,
+      })
+      .andWhere('insumo.activo = true')
+      .andWhere('insumo.id != :id', { id })
+      .getOne();
+
+    if (duplicado) {
+      throw new ConflictException(
+        `Ya existe un insumo llamado "${duplicado.nombre}" en la categoría "${categoria.nombre}".`,
+      );
+    }
+
+    insumo.nombre = dto.nombre;
+    insumo.categoria = categoria;
+    insumo.unidadMedida = dto.unidadMedida;
+    insumo.nivelMinimo = dto.nivelMinimo;
+
+    try {
       return await this.insumosRepo.save(insumo);
     } catch (error) {
       this.relanzarSiEsDuplicado(
