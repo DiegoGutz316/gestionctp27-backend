@@ -213,7 +213,7 @@ export const crearUsuarioSchema = z.object({
 
   rol: rolUsuarioSchema,
 
-  activo: z.boolean().optional().default(true),
+  activo: z.boolean().default(true),
 });
 
 export type CrearUsuarioInput = z.infer<typeof crearUsuarioSchema>;
