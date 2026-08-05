@@ -187,6 +187,37 @@ export type RolUsuario = (typeof ROLES_USUARIO)[number];
 
 export const rolUsuarioSchema = z.enum(ROLES_USUARIO);
 
+/**
+ * Datos permitidos para crear usuarios.
+ * El administrador responsable se obtiene del JWT,
+ * por eso creadoPor no se recibe en el body.
+ */
+export const crearUsuarioSchema = z.object({
+  nombre: z
+    .string({ error: 'El nombre es obligatorio' })
+    .trim()
+    .min(2, 'El nombre debe tener al menos 2 caracteres')
+    .max(120, 'El nombre no puede superar 120 caracteres'),
+
+  correo: z
+    .string({ error: 'El correo es obligatorio' })
+    .trim()
+    .toLowerCase()
+    .max(150, 'El correo no puede superar 150 caracteres')
+    .email('Debe ingresar un correo válido'),
+
+  contrasena: z
+    .string({ error: 'La contraseña es obligatoria' })
+    .min(8, 'La contraseña debe tener al menos 8 caracteres')
+    .max(72, 'La contraseña no puede superar 72 caracteres'),
+
+  rol: rolUsuarioSchema,
+
+  activo: z.boolean().default(true),
+});
+
+export type CrearUsuarioInput = z.infer<typeof crearUsuarioSchema>;
+
 /** Etiquetas legibles para mostrar en pantalla. */
 export const ETIQUETA_ROL: Record<RolUsuario, string> = {
   ADMINISTRADOR: 'Administrador',
