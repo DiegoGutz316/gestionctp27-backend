@@ -162,3 +162,71 @@ export const editarInsumoSchema = z.object({
 
 export type EditarInsumo = z.output<typeof editarInsumoSchema>;
 export type EditarInsumoInput = z.input<typeof editarInsumoSchema>;
+
+// ---------------------------------------------------------------------------
+// Autenticación (Backlog 1.1 / 1.6)
+// Adaptado desde _entrega-1.1/src/schemas/auth.fragmento.ts: el fragmento usa
+// `required_error` (API de Zod v3); este repo tiene Zod v4.4.3, que usa
+// `{ error: '...' }` como el resto de este archivo (ver crearCategoriaInsumoSchema).
+// ---------------------------------------------------------------------------
+
+/**
+ * Roles del sistema (Backlog 1.6).
+ * Fuente única de verdad: la entidad Usuario, el enum de PostgreSQL, los
+ * guards del backend y el menú del frontend se derivan de esta constante.
+ */
+export const ROLES_USUARIO = [
+  'ADMINISTRADOR',
+  'DIRECTORA',
+  'DOCENTE_PECUARIO',
+  'DOCENTE_AGRICOLA',
+  'ESTUDIANTE',
+] as const;
+
+export type RolUsuario = (typeof ROLES_USUARIO)[number];
+
+export const rolUsuarioSchema = z.enum(ROLES_USUARIO);
+
+/** Etiquetas legibles para mostrar en pantalla. */
+export const ETIQUETA_ROL: Record<RolUsuario, string> = {
+  ADMINISTRADOR: 'Administrador',
+  DIRECTORA: 'Dirección',
+  DOCENTE_PECUARIO: 'Docente pecuario',
+  DOCENTE_AGRICOLA: 'Docente agrícola',
+  ESTUDIANTE: 'Estudiante',
+};
+
+/** Entrada del login (Backlog 1.1). */
+export const loginSchema = z.object({
+  correo: z
+    .string({ error: 'El correo es obligatorio.' })
+    .trim()
+    .toLowerCase()
+    .max(150)
+    .email('El correo no tiene un formato válido.'),
+  contrasena: z
+    .string({ error: 'La contraseña es obligatoria.' })
+    .min(1, 'La contraseña es obligatoria.')
+    .max(72), // límite propio de bcrypt
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;
+
+/** Datos públicos del usuario en sesión. Nunca incluye el hash. */
+export const usuarioSesionSchema = z.object({
+  id: z.string().uuid(),
+  nombre: z.string(),
+  correo: z.string().email(),
+  rol: rolUsuarioSchema,
+});
+
+export type UsuarioSesion = z.infer<typeof usuarioSesionSchema>;
+
+/** Respuesta del endpoint POST /api/auth/login. */
+export const respuestaLoginSchema = z.object({
+  accessToken: z.string(),
+  expiraEn: z.string(),
+  usuario: usuarioSesionSchema,
+});
+
+export type RespuestaLogin = z.infer<typeof respuestaLoginSchema>;
