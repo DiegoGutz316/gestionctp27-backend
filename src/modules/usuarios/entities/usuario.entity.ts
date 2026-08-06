@@ -6,7 +6,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { ROLES_USUARIO, type RolUsuario } from '../../../schemas';
+import { RolUsuario } from '../enums/rol-usuario.enum';
 
 /**
  * Backlog 1.1 / Task de BD: tabla de usuarios con correo, contrasena, estado y rol.
@@ -44,7 +44,7 @@ export class Usuario {
   @Column({
     name: 'rol',
     type: 'enum',
-    enum: ROLES_USUARIO as unknown as string[],
+    enum: RolUsuario,
     enumName: 'rol_usuario',
   })
   rol!: RolUsuario;

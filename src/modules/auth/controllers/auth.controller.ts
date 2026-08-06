@@ -5,10 +5,9 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  UsePipes,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { ZodValidationPipe } from 'nestjs-zod';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 import { AuthService } from '../services/auth.service';
 import { LoginDto } from '../dto/login.dto';
@@ -17,9 +16,6 @@ import { UsuarioActual } from '../decorators/usuario-actual.decorator';
 import type { UsuarioAutenticado } from '../tipos/jwt-payload';
 
 @Controller('auth')
-// Pipe aplicado a nivel de controlador y no global, para no alterar el
-// comportamiento de los modulos de los demas companeros.
-@UsePipes(ZodValidationPipe)
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
@@ -41,6 +37,7 @@ export class AuthController {
    * probar el criterio "no se puede acceder a rutas privadas sin sesion".
    */
   @Get('perfil')
+  @ApiBearerAuth('jwt')
   perfil(@UsuarioActual() usuario: UsuarioAutenticado) {
     return usuario;
   }

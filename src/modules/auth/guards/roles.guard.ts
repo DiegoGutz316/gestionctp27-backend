@@ -7,8 +7,8 @@ import {
 import { Reflector } from '@nestjs/core';
 
 import { CLAVE_ROLES } from '../decorators/roles.decorator';
-import type { RolUsuario } from '../../../schemas';
-import type { UsuarioAutenticado } from '../tipos/jwt-payload';
+import type { RolUsuario } from '../../usuarios/enums/rol-usuario.enum';
+import type { SolicitudAutenticada } from '../tipos/jwt-payload';
 
 /**
  * Autorizacion por rol. Base del Backlog 1.6: el backend bloquea la accion
@@ -27,8 +27,8 @@ export class RolesGuard implements CanActivate {
     // Sin @Roles() el endpoint solo exige estar autenticado.
     if (!rolesPermitidos?.length) return true;
 
-    const usuario: UsuarioAutenticado | undefined =
-      context.switchToHttp().getRequest().user;
+    const solicitud = context.switchToHttp().getRequest<SolicitudAutenticada>();
+    const usuario = solicitud.user;
 
     if (!usuario || !rolesPermitidos.includes(usuario.rol)) {
       throw new ForbiddenException(

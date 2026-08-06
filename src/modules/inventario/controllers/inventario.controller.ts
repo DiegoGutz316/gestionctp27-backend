@@ -8,7 +8,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { InventarioService } from '../services/inventario.service';
 import { CrearCategoriaInsumoDto } from '../dto/crear-categoria-insumo.dto';
 import { CrearInsumoDto } from '../dto/crear-insumo.dto';
@@ -18,6 +18,7 @@ import { FiltrarInsumosDto } from '../dto/filtrar-insumos.dto';
 // TODO(Feature 1 - auth): proteger estas rutas con el guard de autenticación
 // y roles cuando exista el módulo de usuarios.
 @ApiTags('Inventario')
+@ApiBearerAuth('jwt')
 @Controller('inventario')
 export class InventarioController {
   constructor(private readonly inventarioService: InventarioService) {}

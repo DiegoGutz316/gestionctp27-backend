@@ -8,7 +8,8 @@ hay funcionalidad de negocio implementada.
 
 - [NestJS](https://nestjs.com/) con TypeScript estricto
 - [TypeORM](https://typeorm.io/) con PostgreSQL (migraciones, `synchronize: false`)
-- [nestjs-zod](https://github.com/BenLorantfy/nestjs-zod) + [Zod](https://zod.dev/) para validación
+- [class-validator](https://github.com/typestack/class-validator) y
+  [class-transformer](https://github.com/typestack/class-transformer) para validación
 - Gestor de paquetes: **pnpm**
 
 ## Estructura
@@ -18,18 +19,14 @@ src/
 ├── modules/
 │   ├── usuarios/      ├── pecuaria/     ├── agricola/
 │   ├── inventario/    ├── reportes/     └── dashboard/
-│         (cada módulo: controllers/ services/ entities/ dto/ — placeholders)
+│         (cada módulo: controllers/ services/ entities/ dto/ enums/)
 ├── database/
 │   ├── data-source.ts     (DataSource para la CLI de TypeORM)
 │   ├── database.config.ts (opciones de conexión compartidas app/CLI)
 │   └── migrations/        (migraciones de TypeORM)
-├── schemas/       (esquemas Zod — mantener sincronizados con el frontend)
 ├── app.module.ts
 └── main.ts
 ```
-
-> **Nota:** los esquemas de `src/schemas/` deben mantenerse sincronizados
-> manualmente con los del repositorio `gestionctp27-frontend`.
 
 ## Requisitos
 
