@@ -7,6 +7,14 @@ import { AppModule } from './../src/app.module';
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
 
+  beforeAll(() => {
+    // La prueba no debe depender de secretos locales ni de una BD disponible.
+    process.env.JWT_SECRET = 'secreto-exclusivo-para-pruebas-e2e';
+    process.env.DATABASE_URL =
+      'postgresql://e2e:e2e@127.0.0.1:1/gestionctp27_e2e';
+    process.env.DB_SSL = 'false';
+  });
+
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -24,6 +32,6 @@ describe('AppController (e2e)', () => {
   });
 
   afterEach(async () => {
-    await app.close();
+    await app?.close();
   });
 });

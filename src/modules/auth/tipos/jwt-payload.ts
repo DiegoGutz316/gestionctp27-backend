@@ -15,3 +15,8 @@ export interface UsuarioAutenticado {
   nombre: string;
   rol: RolUsuario;
 }
+
+/** Forma de la solicitud HTTP después de que Passport valida el JWT. */
+export interface SolicitudAutenticada {
+  user?: UsuarioAutenticado;
+}
