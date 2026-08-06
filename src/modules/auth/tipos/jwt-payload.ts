@@ -1,4 +1,4 @@
-import type { RolUsuario } from '../../../schemas';
+import type { RolUsuario } from '../../usuarios/enums/rol-usuario.enum';
 
 /** Contenido del JWT que se firma en el login. */
 export interface JwtPayload {
@@ -14,4 +14,9 @@ export interface UsuarioAutenticado {
   correo: string;
   nombre: string;
   rol: RolUsuario;
+}
+
+/** Forma de la solicitud HTTP después de que Passport valida el JWT. */
+export interface SolicitudAutenticada {
+  user?: UsuarioAutenticado;
 }

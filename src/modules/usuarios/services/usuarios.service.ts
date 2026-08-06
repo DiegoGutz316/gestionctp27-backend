@@ -38,10 +38,7 @@ export class UsuariosService {
    * La contraseña se recibe en texto plano únicamente durante esta operación
    * y se transforma inmediatamente en un hash bcrypt.
    */
-  async crear(
-    dto: CrearUsuarioDto,
-    creadoPor: string,
-  ): Promise<UsuarioCreadoRespuesta> {
+  async crear(dto: CrearUsuarioDto): Promise<UsuarioCreadoRespuesta> {
     const correoNormalizado = dto.correo.trim().toLowerCase();
 
     const usuarioExistente = await this.usuarios.findOne({
@@ -65,7 +62,6 @@ export class UsuariosService {
       rol: dto.rol,
       activo: dto.activo ?? true,
       ultimoAcceso: null,
-      creadoPor,
       actualizadoPor: null,
     });
 

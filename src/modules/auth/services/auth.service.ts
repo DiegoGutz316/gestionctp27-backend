@@ -9,8 +9,9 @@ import * as bcrypt from 'bcrypt';
 
 import { UsuariosService } from '../../usuarios/services/usuarios.service';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
-import type { LoginInput, RespuestaLogin } from '../../../schemas';
+import type { LoginDto } from '../dto/login.dto';
 import type { JwtPayload } from '../tipos/jwt-payload';
+import type { RespuestaLogin } from '../tipos/respuesta-login';
 
 /**
  * Mensaje unico para correo inexistente y contrasena incorrecta.
@@ -40,7 +41,7 @@ export class AuthService {
    * Orden intencional: primero la contrasena, despues el estado. Asi el mensaje
    * de cuenta desactivada nunca se muestra a quien no conoce la contrasena.
    */
-  private async validarCredenciales(datos: LoginInput): Promise<Usuario> {
+  private async validarCredenciales(datos: LoginDto): Promise<Usuario> {
     const usuario = await this.usuarios.buscarParaAutenticar(datos.correo);
 
     if (!usuario) {
@@ -69,7 +70,7 @@ export class AuthService {
   /**
    * Tasks: "Crear servicio de autenticacion" y "Generar token o sesion de acceso".
    */
-  async login(datos: LoginInput): Promise<RespuestaLogin> {
+  async login(datos: LoginDto): Promise<RespuestaLogin> {
     const usuario = await this.validarCredenciales(datos);
 
     const payload: JwtPayload = {

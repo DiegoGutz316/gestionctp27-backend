@@ -11,6 +11,7 @@ import {
   type ValueTransformer,
 } from 'typeorm';
 import { CategoriaInsumo } from './categoria-insumo.entity';
+import { UnidadMedida } from '../enums/unidad-medida.enum';
 
 // Postgres devuelve las columnas numeric como string; se exponen como number.
 const numericTransformer: ValueTransformer = {
@@ -43,7 +44,7 @@ export class Insumo {
   categoria: CategoriaInsumo;
 
   @Column({ name: 'unidad_medida', type: 'varchar', length: 10 })
-  unidadMedida: string;
+  unidadMedida: UnidadMedida;
 
   @Column({
     type: 'numeric',

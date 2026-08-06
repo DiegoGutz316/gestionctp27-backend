@@ -1,12 +1,14 @@
 import { Body, Controller, Post } from '@nestjs/common';
+// import { ApiBearerAuth } from '@nestjs/swagger';
 
-import { Roles } from '../../auth/decorators/roles.decorator';
-import { UsuarioActual } from '../../auth/decorators/usuario-actual.decorator';
-import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
+//import { Roles } from '../../auth/decorators/roles.decorator';
 import { CrearUsuarioDto } from '../dto/crear-usuario.dto';
+//import { RolUsuario } from '../enums/rol-usuario.enum';
 import { UsuariosService } from '../services/usuarios.service';
+import { Publico } from '../../auth/decorators/publico.decorator';
 
 @Controller('usuarios')
+// @ApiBearerAuth('jwt')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
@@ -18,11 +20,9 @@ export class UsuariosController {
    * automáticamente en creadoPor.
    */
   @Post()
-  @Roles('ADMINISTRADOR')
-  crear(
-    @Body() datos: CrearUsuarioDto,
-    @UsuarioActual() administrador: UsuarioAutenticado,
-  ) {
-    return this.usuariosService.crear(datos, administrador.id);
+  @Publico()
+  //@Roles(RolUsuario.ADMINISTRADOR)
+  crear(@Body() datos: CrearUsuarioDto) {
+    return this.usuariosService.crear(datos);
   }
 }
