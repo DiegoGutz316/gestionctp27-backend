@@ -9,6 +9,7 @@ import { QueryFailedError, Repository } from 'typeorm';
 
 import { CrearUsuarioDto } from '../dto/crear-usuario.dto';
 import { EditarUsuarioDto } from '../dto/editar-usuario.dto';
+import { FiltrarUsuariosDto } from '../dto/filtrar-usuarios.dto';
 import { Usuario } from '../entities/usuario.entity';
 
 const PG_UNIQUE_VIOLATION = '23505';
@@ -77,6 +78,30 @@ export class UsuariosService {
       this.relanzarSiCorreoDuplicado(error);
       throw error;
     }
+  }
+
+  async listar(filtros: FiltrarUsuariosDto = {}): Promise<UsuarioRespuesta[]> {
+    const query = this.usuarios
+      .createQueryBuilder('usuario')
+      .orderBy('usuario.nombre', 'ASC');
+
+    if (filtros.busqueda) {
+      query.andWhere(
+        '(LOWER(usuario.nombre) LIKE LOWER(:busqueda) OR LOWER(usuario.correo) LIKE LOWER(:busqueda))',
+        { busqueda: `%${filtros.busqueda}%` },
+      );
+    }
+
+    if (filtros.rol) {
+      query.andWhere('usuario.rol = :rol', { rol: filtros.rol });
+    }
+
+    if (typeof filtros.activo === 'boolean') {
+      query.andWhere('usuario.activo = :activo', { activo: filtros.activo });
+    }
+
+    const usuarios = await query.getMany();
+    return usuarios.map((usuario) => this.mapearRespuesta(usuario));
   }
 
   async obtenerPorId(id: string): Promise<UsuarioRespuesta> {
