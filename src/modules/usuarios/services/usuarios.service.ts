@@ -1,14 +1,19 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { QueryFailedError, Repository } from 'typeorm';
 
 import { CrearUsuarioDto } from '../dto/crear-usuario.dto';
+import { EditarUsuarioDto } from '../dto/editar-usuario.dto';
 import { Usuario } from '../entities/usuario.entity';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
-export interface UsuarioCreadoRespuesta {
+export interface UsuarioRespuesta {
   id: string;
   nombre: string;
   correo: string;
@@ -38,7 +43,7 @@ export class UsuariosService {
    * La contraseña se recibe en texto plano únicamente durante esta operación
    * y se transforma inmediatamente en un hash bcrypt.
    */
-  async crear(dto: CrearUsuarioDto): Promise<UsuarioCreadoRespuesta> {
+  async crear(dto: CrearUsuarioDto): Promise<UsuarioRespuesta> {
     const correoNormalizado = dto.correo.trim().toLowerCase();
 
     const usuarioExistente = await this.usuarios.findOne({
@@ -67,17 +72,55 @@ export class UsuariosService {
 
     try {
       const usuarioGuardado = await this.usuarios.save(usuario);
+      return this.mapearRespuesta(usuarioGuardado);
+    } catch (error) {
+      this.relanzarSiCorreoDuplicado(error);
+      throw error;
+    }
+  }
 
-      return {
-        id: usuarioGuardado.id,
-        nombre: usuarioGuardado.nombre,
-        correo: usuarioGuardado.correo,
-        rol: usuarioGuardado.rol,
-        activo: usuarioGuardado.activo,
-        creadoPor: usuarioGuardado.creadoPor,
-        creadoEn: usuarioGuardado.creadoEn,
-        actualizadoEn: usuarioGuardado.actualizadoEn,
-      };
+  async obtenerPorId(id: string): Promise<UsuarioRespuesta> {
+    const usuario = await this.usuarios.findOne({ where: { id } });
+
+    if (!usuario) {
+      throw new NotFoundException('El usuario no existe.');
+    }
+
+    return this.mapearRespuesta(usuario);
+  }
+
+  async actualizar(
+    id: string,
+    dto: EditarUsuarioDto,
+  ): Promise<UsuarioRespuesta> {
+    const usuario = await this.usuarios.findOne({ where: { id } });
+
+    if (!usuario) {
+      throw new NotFoundException('El usuario no existe.');
+    }
+
+    const correoNormalizado = dto.correo.trim().toLowerCase();
+
+    if (correoNormalizado !== usuario.correo) {
+      const duplicado = await this.usuarios.findOne({
+        where: { correo: correoNormalizado },
+      });
+
+      if (duplicado) {
+        throw new ConflictException(
+          'Ya existe un usuario registrado con ese correo.',
+        );
+      }
+    }
+
+    usuario.nombre = dto.nombre.trim();
+    usuario.correo = correoNormalizado;
+    usuario.rol = dto.rol;
+    usuario.activo = dto.activo;
+
+    try {
+      const guardado = await this.usuarios.save(usuario);
+      return this.mapearRespuesta(guardado);
     } catch (error) {
       this.relanzarSiCorreoDuplicado(error);
       throw error;
@@ -113,6 +156,19 @@ export class UsuariosService {
     await this.usuarios.update(id, {
       ultimoAcceso: new Date(),
     });
+  }
+
+  private mapearRespuesta(usuario: Usuario): UsuarioRespuesta {
+    return {
+      id: usuario.id,
+      nombre: usuario.nombre,
+      correo: usuario.correo,
+      rol: usuario.rol,
+      activo: usuario.activo,
+      creadoPor: usuario.creadoPor,
+      creadoEn: usuario.creadoEn,
+      actualizadoEn: usuario.actualizadoEn,
+    };
   }
 
   /**
