@@ -44,7 +44,7 @@ export class Usuario {
   @Column({
     name: 'rol',
     type: 'enum',
-    enum: ROLES_USUARIO as unknown as string[],
+    enum: ROLES_USUARIO,
     enumName: 'rol_usuario',
   })
   rol!: RolUsuario;
