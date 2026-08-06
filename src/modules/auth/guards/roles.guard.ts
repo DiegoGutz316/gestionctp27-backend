@@ -7,7 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 
 import { CLAVE_ROLES } from '../decorators/roles.decorator';
-import type { RolUsuario } from '../../../schemas';
+import type { RolUsuario } from '../../usuarios/enums/rol-usuario.enum';
 import type { SolicitudAutenticada } from '../tipos/jwt-payload';
 
 /**

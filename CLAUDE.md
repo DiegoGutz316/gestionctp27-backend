@@ -1,21 +1,22 @@
 # CLAUDE.md — gestionctp27-backend
 
-API (NestJS + TypeORM/PostgreSQL + nestjs-zod) del sistema de gestión para un
+API (NestJS + TypeORM/PostgreSQL + class-validator) del sistema de gestión para un
 Colegio Técnico Profesional. Repositorio independiente del frontend
 (`gestionctp27-frontend`).
 
 ## Reglas del proyecto
 
 - Gestor de paquetes: **pnpm** exclusivamente.
-- TypeScript estricto; validación con Zod vía `nestjs-zod` (pipe global ya configurado).
+- TypeScript estricto; validación con `class-validator` y transformación con
+  `class-transformer` mediante un pipe global.
 - TypeORM con `synchronize: false`; todo cambio de esquema va por migraciones
   (`pnpm migration:generate src/database/migrations/Nombre`, `pnpm migration:run`).
 - La configuración de BD vive en `src/database/` (`database.config.ts` comparte
   las opciones entre la app y la CLI). La BD es PostgreSQL en Supabase: se
   conecta con `DATABASE_URL` (session pooler) y `DB_SSL=true`.
-- Los esquemas Zod viven en `src/schemas/` y deben mantenerse **sincronizados
-  manualmente** con los de `gestionctp27-frontend/src/schemas/` (mismo día/PR).
-- Arquitectura en capas por módulo: `controllers/`, `services/`, `entities/`, `dto/`
+- Las validaciones de entrada viven en las clases de `dto/`; los enums de dominio
+  viven en la carpeta `enums/` de su módulo correspondiente.
+- Arquitectura en capas por módulo: `controllers/`, `services/`, `entities/`, `dto/`, `enums/`
   dentro de cada módulo en `src/modules/` (`usuarios`, `pecuaria`, `agricola`,
   `inventario`, `reportes`, `dashboard`).
 - No usar Docker en este proyecto.

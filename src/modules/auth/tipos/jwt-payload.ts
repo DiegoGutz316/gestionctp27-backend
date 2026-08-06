@@ -1,4 +1,4 @@
-import type { RolUsuario } from '../../../schemas';
+import type { RolUsuario } from '../../usuarios/enums/rol-usuario.enum';
 
 /** Contenido del JWT que se firma en el login. */
 export interface JwtPayload {

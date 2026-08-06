@@ -40,7 +40,6 @@ export class UsuariosService {
    */
   async crear(
     dto: CrearUsuarioDto,
-    creadoPor: string,
   ): Promise<UsuarioCreadoRespuesta> {
     const correoNormalizado = dto.correo.trim().toLowerCase();
 
@@ -65,7 +64,6 @@ export class UsuariosService {
       rol: dto.rol,
       activo: dto.activo ?? true,
       ultimoAcceso: null,
-      creadoPor,
       actualizadoPor: null,
     });
 

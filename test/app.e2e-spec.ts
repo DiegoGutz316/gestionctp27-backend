@@ -31,6 +31,17 @@ describe('AppController (e2e)', () => {
       .expect('Hello World!');
   });
 
+  it('/auth/login (POST) valida el DTO con class-validator', () => {
+    return request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ correo: 'correo-invalido', contrasena: '' })
+      .expect(400);
+  });
+
+  it('/usuarios (POST) exige autenticación', () => {
+    return request(app.getHttpServer()).post('/usuarios').send({}).expect(401);
+  });
+
   afterEach(async () => {
     await app?.close();
   });

@@ -1,4 +1,8 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import {
+  createParamDecorator,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import type {
   SolicitudAutenticada,
   UsuarioAutenticado,
@@ -8,9 +12,12 @@ import type {
 export const UsuarioActual = createParamDecorator(
   (_dato: unknown, ctx: ExecutionContext): UsuarioAutenticado => {
     const solicitud = ctx.switchToHttp().getRequest<SolicitudAutenticada>();
+    const usuario = solicitud.user;
 
-    // El guard JWT global se ejecuta antes que este decorador en todas las
-    // rutas privadas, por lo que Passport ya agregó el usuario.
-    return solicitud.user!;
+    if (!usuario) {
+      throw new UnauthorizedException('Debe iniciar sesión para continuar.');
+    }
+
+    return usuario;
   },
 );

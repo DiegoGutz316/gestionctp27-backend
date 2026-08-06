@@ -8,6 +8,7 @@
 import * as bcrypt from 'bcrypt';
 import AppDataSource from '../data-source';
 import { Usuario } from '../../modules/usuarios/entities/usuario.entity';
+import { RolUsuario } from '../../modules/usuarios/enums/rol-usuario.enum';
 
 const CONTRASENA_TEMPORAL = 'CTP27.admin2026';
 
@@ -22,7 +23,7 @@ async function sembrar() {
       nombre: 'Administrador del sistema',
       correo: 'admin@ctp27abril.ed.cr',
       contrasenaHash: hash,
-      rol: 'ADMINISTRADOR',
+      rol: RolUsuario.ADMINISTRADOR,
       activo: true,
     },
     {
@@ -30,7 +31,7 @@ async function sembrar() {
       nombre: 'Docente de prueba (inactivo)',
       correo: 'inactivo@ctp27abril.ed.cr',
       contrasenaHash: hash,
-      rol: 'DOCENTE_PECUARIO',
+      rol: RolUsuario.DOCENTE_PECUARIO,
       activo: false,
     },
   ];
