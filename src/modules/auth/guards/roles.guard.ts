@@ -27,8 +27,9 @@ export class RolesGuard implements CanActivate {
     // Sin @Roles() el endpoint solo exige estar autenticado.
     if (!rolesPermitidos?.length) return true;
 
-    const usuario: UsuarioAutenticado | undefined =
-      context.switchToHttp().getRequest().user;
+    const usuario: UsuarioAutenticado | undefined = context
+      .switchToHttp()
+      .getRequest().user;
 
     if (!usuario || !rolesPermitidos.includes(usuario.rol)) {
       throw new ForbiddenException(
