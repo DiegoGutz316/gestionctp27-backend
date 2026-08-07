@@ -123,13 +123,14 @@ export class UsuariosService {
       ]);
 
     if (filtros.busqueda) {
-      const texto = `%${filtros.busqueda}%`;
+      const textoBusqueda = filtros.busqueda.replace(/[\\%_]/g, '\\$&');
+      const texto = `%${textoBusqueda}%`;
       const rolesPorEtiqueta = this.rolesConEtiquetaQueCoincide(filtros.busqueda);
 
       consulta.andWhere(
         new Brackets((qb) => {
-          qb.where('usuario.nombre ILIKE :texto', { texto }).orWhere(
-            'usuario.correo ILIKE :texto',
+          qb.where("usuario.nombre ILIKE :texto ESCAPE '\\'", { texto }).orWhere(
+            "usuario.correo ILIKE :texto ESCAPE '\\'",
             { texto },
           );
 
