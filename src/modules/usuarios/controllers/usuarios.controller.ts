@@ -59,6 +59,18 @@ export class UsuariosController {
   }
 
   /**
+   * PATCH /usuarios/:id/desactivar
+   *
+   * Desactivación lógica (activo → false). El registro se conserva.
+   */
+  @Patch(':id/desactivar')
+  @Publico()
+  //@Roles(RolUsuario.ADMINISTRADOR)
+  desactivar(@Param('id', ParseUUIDPipe) id: string) {
+    return this.usuariosService.desactivar(id);
+  }
+
+  /**
    * PATCH /usuarios/:id
    */
   @Patch(':id')

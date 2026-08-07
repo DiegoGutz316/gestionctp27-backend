@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -161,6 +162,26 @@ export class UsuariosService {
       this.relanzarSiCorreoDuplicado(error);
       throw error;
     }
+  }
+
+  /**
+   * Backlog 1.5: desactivación lógica.
+   * Conserva el registro y bloquea el acceso (login / JWT).
+   */
+  async desactivar(id: string): Promise<UsuarioRespuesta> {
+    const usuario = await this.usuarios.findOne({ where: { id } });
+
+    if (!usuario) {
+      throw new NotFoundException('El usuario no existe.');
+    }
+
+    if (!usuario.activo) {
+      throw new BadRequestException('El usuario ya está desactivado.');
+    }
+
+    usuario.activo = false;
+    const guardado = await this.usuarios.save(usuario);
+    return this.mapearRespuesta(guardado);
   }
 
   /**
