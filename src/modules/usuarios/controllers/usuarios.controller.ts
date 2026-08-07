@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -36,5 +45,18 @@ export class UsuariosController {
   @Roles(RolUsuario.ADMINISTRADOR)
   listar(@Query() filtros: ConsultarUsuariosDto) {
     return this.usuariosService.listar(filtros);
+  }
+
+  /**
+   * PATCH /usuarios/:id/desactivar
+   *
+   * Backlog 1.5: solo ADMINISTRADOR puede desactivar usuarios. Baja logica
+   * (activo=false), nunca DELETE.
+   */
+  @Patch(':id/desactivar')
+  @ApiBearerAuth('jwt')
+  @Roles(RolUsuario.ADMINISTRADOR)
+  desactivar(@Param('id', ParseUUIDPipe) id: string) {
+    return this.usuariosService.desactivar(id);
   }
 }

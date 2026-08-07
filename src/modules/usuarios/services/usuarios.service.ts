@@ -1,4 +1,8 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { Brackets, QueryFailedError, Repository } from 'typeorm';
@@ -182,6 +186,39 @@ export class UsuariosService {
         id,
       },
     });
+  }
+
+  /**
+   * Backlog 1.5: desactivar un usuario (baja logica, sin DELETE fisico).
+   *
+   * Idempotente: si el usuario ya esta inactivo, no vuelve a escribir en la
+   * fila y devuelve su estado actual tal cual.
+   */
+  async desactivar(id: string): Promise<UsuarioListado> {
+    const usuario = await this.buscarPorId(id);
+
+    if (!usuario) {
+      throw new NotFoundException('El usuario no existe.');
+    }
+
+    if (!usuario.activo) {
+      return this.aListado(usuario);
+    }
+
+    await this.usuarios.update(id, { activo: false });
+    const desactivado = await this.buscarPorId(id);
+
+    return this.aListado(desactivado!);
+  }
+
+  private aListado(usuario: Usuario): UsuarioListado {
+    return {
+      id: usuario.id,
+      nombre: usuario.nombre,
+      correo: usuario.correo,
+      rol: usuario.rol,
+      activo: usuario.activo,
+    };
   }
 
   /**
