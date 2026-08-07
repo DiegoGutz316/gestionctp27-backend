@@ -151,10 +151,12 @@ export class UsuariosService {
 
     consulta.orderBy(`usuario.${filtros.ordenarPor}`, filtros.orden);
 
-    const usuarios = await consulta.getMany();
+    consulta.skip((filtros.pagina - 1) * filtros.limite).take(filtros.limite);
+
+    const [usuarios, total] = await consulta.getManyAndCount();
 
     return {
-      total: usuarios.length,
+      total,
       usuarios,
     };
   }

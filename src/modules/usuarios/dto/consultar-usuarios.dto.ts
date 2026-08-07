@@ -1,5 +1,5 @@
-import { Transform, type TransformFnParams } from 'class-transformer';
-import { IsEnum, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { Transform, Type, type TransformFnParams } from 'class-transformer';
+import { IsEnum, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { RolUsuario } from '../enums/rol-usuario.enum';
 
@@ -38,4 +38,19 @@ export class ConsultarUsuariosDto {
   @IsOptional()
   @IsIn(['ASC', 'DESC'], { message: 'El orden debe ser ASC o DESC' })
   orden: DireccionOrden = 'ASC';
+
+  @ApiPropertyOptional({ minimum: 1, default: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'La página debe ser un número entero' })
+  @Min(1, { message: 'La página mínima es 1' })
+  pagina: number = 1;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 100, default: 20 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'El límite debe ser un número entero' })
+  @Min(1, { message: 'El límite mínimo es 1' })
+  @Max(100, { message: 'El límite máximo es 100' })
+  limite: number = 20;
 }
