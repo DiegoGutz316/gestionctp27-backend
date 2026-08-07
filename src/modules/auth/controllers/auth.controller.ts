@@ -5,15 +5,19 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Res,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiCookieAuth, ApiOperation } from '@nestjs/swagger';
+import type { Response } from 'express';
 
 import { AuthService } from '../services/auth.service';
 import { LoginDto } from '../dto/login.dto';
 import { Publico } from '../decorators/publico.decorator';
 import { UsuarioActual } from '../decorators/usuario-actual.decorator';
 import type { UsuarioAutenticado } from '../tipos/jwt-payload';
+import type { RespuestaLogin } from '../tipos/respuesta-login';
+import { NOMBRE_COOKIE_ACCESO } from '../constantes/cookie-auth';
 
 @Controller('auth')
 export class AuthController {
@@ -22,13 +26,46 @@ export class AuthController {
   /**
    * POST /auth/login
    * Unica ruta publica del modulo. Maximo 5 intentos por minuto por IP.
+   * Emite la sesion en cookie httpOnly (el JWT no viaja en el body).
    */
   @Publico()
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @Post('login')
-  login(@Body() datos: LoginDto) {
-    return this.auth.login(datos);
+  @ApiOperation({ summary: 'Iniciar sesion (cookie httpOnly)' })
+  async login(
+    @Body() datos: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<RespuestaLogin> {
+    const resultado = await this.auth.login(datos);
+
+    res.cookie(
+      NOMBRE_COOKIE_ACCESO,
+      resultado.accessToken,
+      this.auth.opcionesParaSetCookie(),
+    );
+
+    return {
+      expiraEn: resultado.expiraEn,
+      usuario: resultado.usuario,
+    };
+  }
+
+  /**
+   * POST /auth/logout
+   * Limpia la cookie de sesion. Publica para que el cliente pueda cerrar
+   * sesion aunque el JWT ya este vencido.
+   */
+  @Publico()
+  @HttpCode(HttpStatus.OK)
+  @Post('logout')
+  @ApiOperation({ summary: 'Cerrar sesion (borra cookie)' })
+  logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie(
+      NOMBRE_COOKIE_ACCESO,
+      this.auth.opcionesParaClearCookie(),
+    );
+    return { ok: true };
   }
 
   /**
@@ -37,7 +74,7 @@ export class AuthController {
    * probar el criterio "no se puede acceder a rutas privadas sin sesion".
    */
   @Get('perfil')
-  @ApiBearerAuth('jwt')
+  @ApiCookieAuth('cookie')
   perfil(@UsuarioActual() usuario: UsuarioAutenticado) {
     return usuario;
   }
