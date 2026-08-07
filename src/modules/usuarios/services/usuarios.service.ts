@@ -1,10 +1,12 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
-import { QueryFailedError, Repository } from 'typeorm';
+import { Brackets, QueryFailedError, Repository } from 'typeorm';
 
+import { ConsultarUsuariosDto } from '../dto/consultar-usuarios.dto';
 import { CrearUsuarioDto } from '../dto/crear-usuario.dto';
 import { Usuario } from '../entities/usuario.entity';
+import { ETIQUETA_ROL, RolUsuario } from '../enums/rol-usuario.enum';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -17,6 +19,19 @@ export interface UsuarioCreadoRespuesta {
   creadoPor: string | null;
   creadoEn: Date;
   actualizadoEn: Date;
+}
+
+export interface UsuarioListado {
+  id: string;
+  nombre: string;
+  correo: string;
+  rol: RolUsuario;
+  activo: boolean;
+}
+
+export interface ListarUsuariosRespuesta {
+  total: number;
+  usuarios: UsuarioListado[];
 }
 
 /**
@@ -82,6 +97,69 @@ export class UsuariosService {
       this.relanzarSiCorreoDuplicado(error);
       throw error;
     }
+  }
+
+  /**
+   * Backlog 1.3: consultar usuarios registrados.
+   *
+   * `busqueda` coincide por nombre, correo o la etiqueta legible del rol
+   * (p. ej. "Docente pecuario"); `rol` filtra de forma exacta y es
+   * independiente de `busqueda`. La contraseña nunca se selecciona: el
+   * campo tiene `select: false` en la entidad.
+   */
+  async listar(filtros: ConsultarUsuariosDto): Promise<ListarUsuariosRespuesta> {
+    const consulta = this.usuarios
+      .createQueryBuilder('usuario')
+      .select([
+        'usuario.id',
+        'usuario.nombre',
+        'usuario.correo',
+        'usuario.rol',
+        'usuario.activo',
+      ]);
+
+    if (filtros.busqueda) {
+      const texto = `%${filtros.busqueda}%`;
+      const rolesPorEtiqueta = this.rolesConEtiquetaQueCoincide(filtros.busqueda);
+
+      consulta.andWhere(
+        new Brackets((qb) => {
+          qb.where('usuario.nombre ILIKE :texto', { texto }).orWhere(
+            'usuario.correo ILIKE :texto',
+            { texto },
+          );
+
+          // `rol` es un enum en Postgres: un IN con arreglo vacío o un
+          // valor centinela invalido rompe la consulta, asi que la
+          // condicion solo se agrega si hay roles que de verdad coinciden.
+          if (rolesPorEtiqueta.length) {
+            qb.orWhere('usuario.rol IN (:...rolesPorEtiqueta)', {
+              rolesPorEtiqueta,
+            });
+          }
+        }),
+      );
+    }
+
+    if (filtros.rol) {
+      consulta.andWhere('usuario.rol = :rol', { rol: filtros.rol });
+    }
+
+    consulta.orderBy(`usuario.${filtros.ordenarPor}`, filtros.orden);
+
+    const usuarios = await consulta.getMany();
+
+    return {
+      total: usuarios.length,
+      usuarios,
+    };
+  }
+
+  private rolesConEtiquetaQueCoincide(busqueda: string): RolUsuario[] {
+    const texto = busqueda.toLowerCase();
+    return (Object.keys(ETIQUETA_ROL) as RolUsuario[]).filter((rol) =>
+      ETIQUETA_ROL[rol].toLowerCase().includes(texto),
+    );
   }
 
   /**

@@ -1,14 +1,14 @@
-import { Body, Controller, Post } from '@nestjs/common';
-// import { ApiBearerAuth } from '@nestjs/swagger';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
-//import { Roles } from '../../auth/decorators/roles.decorator';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { ConsultarUsuariosDto } from '../dto/consultar-usuarios.dto';
 import { CrearUsuarioDto } from '../dto/crear-usuario.dto';
-//import { RolUsuario } from '../enums/rol-usuario.enum';
+import { RolUsuario } from '../enums/rol-usuario.enum';
 import { UsuariosService } from '../services/usuarios.service';
 import { Publico } from '../../auth/decorators/publico.decorator';
 
 @Controller('usuarios')
-// @ApiBearerAuth('jwt')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
@@ -24,5 +24,17 @@ export class UsuariosController {
   //@Roles(RolUsuario.ADMINISTRADOR)
   crear(@Body() datos: CrearUsuarioDto) {
     return this.usuariosService.crear(datos);
+  }
+
+  /**
+   * GET /usuarios
+   *
+   * Backlog 1.3: solo ADMINISTRADOR puede consultar la lista de usuarios.
+   */
+  @Get()
+  @ApiBearerAuth('jwt')
+  @Roles(RolUsuario.ADMINISTRADOR)
+  listar(@Query() filtros: ConsultarUsuariosDto) {
+    return this.usuariosService.listar(filtros);
   }
 }
