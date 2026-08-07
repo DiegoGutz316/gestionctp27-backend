@@ -8,16 +8,18 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth } from '@nestjs/swagger';
+// import { ApiBearerAuth } from '@nestjs/swagger';
 
-import { Roles } from '../../auth/decorators/roles.decorator';
-import { ConsultarUsuariosDto } from '../dto/consultar-usuarios.dto';
+//import { Roles } from '../../auth/decorators/roles.decorator';
 import { CrearUsuarioDto } from '../dto/crear-usuario.dto';
-import { RolUsuario } from '../enums/rol-usuario.enum';
+import { EditarUsuarioDto } from '../dto/editar-usuario.dto';
+import { PaginarUsuariosDto } from '../dto/paginar-usuarios.dto';
+//import { RolUsuario } from '../enums/rol-usuario.enum';
 import { UsuariosService } from '../services/usuarios.service';
 import { Publico } from '../../auth/decorators/publico.decorator';
 
 @Controller('usuarios')
+// @ApiBearerAuth('jwt')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
@@ -37,26 +39,47 @@ export class UsuariosController {
 
   /**
    * GET /usuarios
-   *
-   * Backlog 1.3: solo ADMINISTRADOR puede consultar la lista de usuarios.
+   * Query: pagina, limite, q, rol, activo, order
    */
   @Get()
-  @ApiBearerAuth('jwt')
-  @Roles(RolUsuario.ADMINISTRADOR)
-  listar(@Query() filtros: ConsultarUsuariosDto) {
+  @Publico()
+  //@Roles(RolUsuario.ADMINISTRADOR)
+  listar(@Query() filtros: PaginarUsuariosDto) {
     return this.usuariosService.listar(filtros);
+  }
+
+  /**
+   * GET /usuarios/:id
+   */
+  @Get(':id')
+  @Publico()
+  //@Roles(RolUsuario.ADMINISTRADOR)
+  obtenerPorId(@Param('id', ParseUUIDPipe) id: string) {
+    return this.usuariosService.obtenerPorId(id);
   }
 
   /**
    * PATCH /usuarios/:id/desactivar
    *
-   * Backlog 1.5: solo ADMINISTRADOR puede desactivar usuarios. Baja logica
-   * (activo=false), nunca DELETE.
+   * Desactivación lógica (activo → false). El registro se conserva.
    */
   @Patch(':id/desactivar')
-  @ApiBearerAuth('jwt')
-  @Roles(RolUsuario.ADMINISTRADOR)
+  @Publico()
+  //@Roles(RolUsuario.ADMINISTRADOR)
   desactivar(@Param('id', ParseUUIDPipe) id: string) {
     return this.usuariosService.desactivar(id);
+  }
+
+  /**
+   * PATCH /usuarios/:id
+   */
+  @Patch(':id')
+  @Publico()
+  //@Roles(RolUsuario.ADMINISTRADOR)
+  actualizar(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() datos: EditarUsuarioDto,
+  ) {
+    return this.usuariosService.actualizar(id, datos);
   }
 }

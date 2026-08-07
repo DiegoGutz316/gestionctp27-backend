@@ -11,7 +11,13 @@ import { UsuariosService } from '../../usuarios/services/usuarios.service';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
 import type { LoginDto } from '../dto/login.dto';
 import type { JwtPayload } from '../tipos/jwt-payload';
-import type { RespuestaLogin } from '../tipos/respuesta-login';
+import type { ResultadoLogin } from '../tipos/respuesta-login';
+import {
+  construirOpcionesCookie,
+  opcionesClearCookie,
+  opcionesSetCookie,
+  type OpcionesCookieAuth,
+} from '../constantes/cookie-auth';
 
 /**
  * Mensaje unico para correo inexistente y contrasena incorrecta.
@@ -29,11 +35,17 @@ const HASH_SENUELO =
 
 @Injectable()
 export class AuthService {
+  private readonly opcionesCookie: OpcionesCookieAuth;
+
   constructor(
     private readonly usuarios: UsuariosService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
-  ) {}
+  ) {
+    this.opcionesCookie = construirOpcionesCookie((key) =>
+      this.config.get<string>(key),
+    );
+  }
 
   /**
    * Tasks: "Validar credenciales del usuario" y "Validar que el usuario este activo".
@@ -69,8 +81,9 @@ export class AuthService {
 
   /**
    * Tasks: "Crear servicio de autenticacion" y "Generar token o sesion de acceso".
+   * El token se entrega al controlador para Set-Cookie; no se expone en el JSON.
    */
-  async login(datos: LoginDto): Promise<RespuestaLogin> {
+  async login(datos: LoginDto): Promise<ResultadoLogin> {
     const usuario = await this.validarCredenciales(datos);
 
     const payload: JwtPayload = {
@@ -93,6 +106,14 @@ export class AuthService {
         rol: usuario.rol,
       },
     };
+  }
+
+  opcionesParaSetCookie() {
+    return opcionesSetCookie(this.opcionesCookie);
+  }
+
+  opcionesParaClearCookie() {
+    return opcionesClearCookie(this.opcionesCookie);
   }
 
   /** Reutilizable por el Backlog 1.2 al registrar usuarios. */

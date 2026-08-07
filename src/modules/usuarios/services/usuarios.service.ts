@@ -1,20 +1,26 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
-import { Brackets, QueryFailedError, Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 
-import { ConsultarUsuariosDto } from '../dto/consultar-usuarios.dto';
+import {
+  crearResultadoPaginado,
+  paginarQueryBuilder,
+} from '../../../common/paginacion/helpers/paginar.helper';
+import type { ResultadoPaginado } from '../../../common/paginacion/tipos/resultado-paginado';
 import { CrearUsuarioDto } from '../dto/crear-usuario.dto';
+import { EditarUsuarioDto } from '../dto/editar-usuario.dto';
+import { PaginarUsuariosDto } from '../dto/paginar-usuarios.dto';
 import { Usuario } from '../entities/usuario.entity';
-import { ETIQUETA_ROL, RolUsuario } from '../enums/rol-usuario.enum';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
-export interface UsuarioCreadoRespuesta {
+export interface UsuarioRespuesta {
   id: string;
   nombre: string;
   correo: string;
@@ -23,19 +29,6 @@ export interface UsuarioCreadoRespuesta {
   creadoPor: string | null;
   creadoEn: Date;
   actualizadoEn: Date;
-}
-
-export interface UsuarioListado {
-  id: string;
-  nombre: string;
-  correo: string;
-  rol: RolUsuario;
-  activo: boolean;
-}
-
-export interface ListarUsuariosRespuesta {
-  total: number;
-  usuarios: UsuarioListado[];
 }
 
 /**
@@ -57,7 +50,7 @@ export class UsuariosService {
    * La contraseña se recibe en texto plano únicamente durante esta operación
    * y se transforma inmediatamente en un hash bcrypt.
    */
-  async crear(dto: CrearUsuarioDto): Promise<UsuarioCreadoRespuesta> {
+  async crear(dto: CrearUsuarioDto): Promise<UsuarioRespuesta> {
     const correoNormalizado = dto.correo.trim().toLowerCase();
 
     const usuarioExistente = await this.usuarios.findOne({
@@ -86,17 +79,85 @@ export class UsuariosService {
 
     try {
       const usuarioGuardado = await this.usuarios.save(usuario);
+      return this.mapearRespuesta(usuarioGuardado);
+    } catch (error) {
+      this.relanzarSiCorreoDuplicado(error);
+      throw error;
+    }
+  }
 
-      return {
-        id: usuarioGuardado.id,
-        nombre: usuarioGuardado.nombre,
-        correo: usuarioGuardado.correo,
-        rol: usuarioGuardado.rol,
-        activo: usuarioGuardado.activo,
-        creadoPor: usuarioGuardado.creadoPor,
-        creadoEn: usuarioGuardado.creadoEn,
-        actualizadoEn: usuarioGuardado.actualizadoEn,
-      };
+  async listar(
+    filtros: PaginarUsuariosDto,
+  ): Promise<ResultadoPaginado<UsuarioRespuesta>> {
+    const query = this.usuarios
+      .createQueryBuilder('usuario')
+      .orderBy('usuario.nombre', filtros.order ?? 'ASC');
+
+    if (filtros.q) {
+      query.andWhere(
+        '(LOWER(usuario.nombre) LIKE LOWER(:q) OR LOWER(usuario.correo) LIKE LOWER(:q))',
+        { q: `%${filtros.q}%` },
+      );
+    }
+
+    if (filtros.rol) {
+      query.andWhere('usuario.rol = :rol', { rol: filtros.rol });
+    }
+
+    if (typeof filtros.activo === 'boolean') {
+      query.andWhere('usuario.activo = :activo', { activo: filtros.activo });
+    }
+
+    const { entidades, total } = await paginarQueryBuilder(query, filtros);
+    return crearResultadoPaginado(
+      entidades.map((usuario) => this.mapearRespuesta(usuario)),
+      filtros,
+      total,
+    );
+  }
+
+  async obtenerPorId(id: string): Promise<UsuarioRespuesta> {
+    const usuario = await this.usuarios.findOne({ where: { id } });
+
+    if (!usuario) {
+      throw new NotFoundException('El usuario no existe.');
+    }
+
+    return this.mapearRespuesta(usuario);
+  }
+
+  async actualizar(
+    id: string,
+    dto: EditarUsuarioDto,
+  ): Promise<UsuarioRespuesta> {
+    const usuario = await this.usuarios.findOne({ where: { id } });
+
+    if (!usuario) {
+      throw new NotFoundException('El usuario no existe.');
+    }
+
+    const correoNormalizado = dto.correo.trim().toLowerCase();
+
+    if (correoNormalizado !== usuario.correo) {
+      const duplicado = await this.usuarios.findOne({
+        where: { correo: correoNormalizado },
+      });
+
+      if (duplicado) {
+        throw new ConflictException(
+          'Ya existe un usuario registrado con ese correo.',
+        );
+      }
+    }
+
+    usuario.nombre = dto.nombre.trim();
+    usuario.correo = correoNormalizado;
+    usuario.rol = dto.rol;
+    usuario.activo = dto.activo;
+
+    try {
+      const guardado = await this.usuarios.save(usuario);
+      return this.mapearRespuesta(guardado);
     } catch (error) {
       this.relanzarSiCorreoDuplicado(error);
       throw error;
@@ -104,69 +165,23 @@ export class UsuariosService {
   }
 
   /**
-   * Backlog 1.3: consultar usuarios registrados.
-   *
-   * `busqueda` coincide por nombre, correo o la etiqueta legible del rol
-   * (p. ej. "Docente pecuario"); `rol` filtra de forma exacta y es
-   * independiente de `busqueda`. La contraseña nunca se selecciona: el
-   * campo tiene `select: false` en la entidad.
+   * Backlog 1.5: desactivación lógica.
+   * Conserva el registro y bloquea el acceso (login / JWT).
    */
-  async listar(filtros: ConsultarUsuariosDto): Promise<ListarUsuariosRespuesta> {
-    const consulta = this.usuarios
-      .createQueryBuilder('usuario')
-      .select([
-        'usuario.id',
-        'usuario.nombre',
-        'usuario.correo',
-        'usuario.rol',
-        'usuario.activo',
-      ]);
+  async desactivar(id: string): Promise<UsuarioRespuesta> {
+    const usuario = await this.usuarios.findOne({ where: { id } });
 
-    if (filtros.busqueda) {
-      const textoBusqueda = filtros.busqueda.replace(/[\\%_]/g, '\\$&');
-      const texto = `%${textoBusqueda}%`;
-      const rolesPorEtiqueta = this.rolesConEtiquetaQueCoincide(filtros.busqueda);
-
-      consulta.andWhere(
-        new Brackets((qb) => {
-          qb.where("usuario.nombre ILIKE :texto ESCAPE '\\'", { texto }).orWhere(
-            "usuario.correo ILIKE :texto ESCAPE '\\'",
-            { texto },
-          );
-
-          // `rol` es un enum en Postgres: un IN con arreglo vacío o un
-          // valor centinela invalido rompe la consulta, asi que la
-          // condicion solo se agrega si hay roles que de verdad coinciden.
-          if (rolesPorEtiqueta.length) {
-            qb.orWhere('usuario.rol IN (:...rolesPorEtiqueta)', {
-              rolesPorEtiqueta,
-            });
-          }
-        }),
-      );
+    if (!usuario) {
+      throw new NotFoundException('El usuario no existe.');
     }
 
-    if (filtros.rol) {
-      consulta.andWhere('usuario.rol = :rol', { rol: filtros.rol });
+    if (!usuario.activo) {
+      throw new BadRequestException('El usuario ya está desactivado.');
     }
 
-    consulta.orderBy(`usuario.${filtros.ordenarPor}`, filtros.orden);
-
-    consulta.skip((filtros.pagina - 1) * filtros.limite).take(filtros.limite);
-
-    const [usuarios, total] = await consulta.getManyAndCount();
-
-    return {
-      total,
-      usuarios,
-    };
-  }
-
-  private rolesConEtiquetaQueCoincide(busqueda: string): RolUsuario[] {
-    const texto = busqueda.toLowerCase();
-    return (Object.keys(ETIQUETA_ROL) as RolUsuario[]).filter((rol) =>
-      ETIQUETA_ROL[rol].toLowerCase().includes(texto),
-    );
+    usuario.activo = false;
+    const guardado = await this.usuarios.save(usuario);
+    return this.mapearRespuesta(guardado);
   }
 
   /**
@@ -192,45 +207,25 @@ export class UsuariosService {
   }
 
   /**
-   * Backlog 1.5: desactivar un usuario (baja logica, sin DELETE fisico).
-   *
-   * Idempotente: si el usuario ya esta inactivo, no vuelve a escribir en la
-   * fila y devuelve su estado actual tal cual.
-   */
-  async desactivar(id: string): Promise<UsuarioListado> {
-    const usuario = await this.buscarPorId(id);
-
-    if (!usuario) {
-      throw new NotFoundException('El usuario no existe.');
-    }
-
-    if (!usuario.activo) {
-      return this.aListado(usuario);
-    }
-
-    await this.usuarios.update(id, { activo: false });
-    const desactivado = await this.buscarPorId(id);
-
-    return this.aListado(desactivado!);
-  }
-
-  private aListado(usuario: Usuario): UsuarioListado {
-    return {
-      id: usuario.id,
-      nombre: usuario.nombre,
-      correo: usuario.correo,
-      rol: usuario.rol,
-      activo: usuario.activo,
-    };
-  }
-
-  /**
    * Registra la fecha del último inicio de sesión exitoso.
    */
   async registrarUltimoAcceso(id: string): Promise<void> {
     await this.usuarios.update(id, {
       ultimoAcceso: new Date(),
     });
+  }
+
+  private mapearRespuesta(usuario: Usuario): UsuarioRespuesta {
+    return {
+      id: usuario.id,
+      nombre: usuario.nombre,
+      correo: usuario.correo,
+      rol: usuario.rol,
+      activo: usuario.activo,
+      creadoPor: usuario.creadoPor,
+      creadoEn: usuario.creadoEn,
+      actualizadoEn: usuario.actualizadoEn,
+    };
   }
 
   /**
