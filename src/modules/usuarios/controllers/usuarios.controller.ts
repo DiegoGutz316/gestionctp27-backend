@@ -13,7 +13,7 @@ import {
 //import { Roles } from '../../auth/decorators/roles.decorator';
 import { CrearUsuarioDto } from '../dto/crear-usuario.dto';
 import { EditarUsuarioDto } from '../dto/editar-usuario.dto';
-import { FiltrarUsuariosDto } from '../dto/filtrar-usuarios.dto';
+import { PaginarUsuariosDto } from '../dto/paginar-usuarios.dto';
 //import { RolUsuario } from '../enums/rol-usuario.enum';
 import { UsuariosService } from '../services/usuarios.service';
 import { Publico } from '../../auth/decorators/publico.decorator';
@@ -39,11 +39,12 @@ export class UsuariosController {
 
   /**
    * GET /usuarios
+   * Query: pagina, limite, q, rol, activo, order
    */
   @Get()
   @Publico()
   //@Roles(RolUsuario.ADMINISTRADOR)
-  listar(@Query() filtros: FiltrarUsuariosDto) {
+  listar(@Query() filtros: PaginarUsuariosDto) {
     return this.usuariosService.listar(filtros);
   }
 

@@ -7,9 +7,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { QueryFailedError, Repository } from 'typeorm';
 
+import {
+  crearResultadoPaginado,
+  paginarQueryBuilder,
+} from '../../../common/paginacion/helpers/paginar.helper';
+import type { ResultadoPaginado } from '../../../common/paginacion/tipos/resultado-paginado';
 import { CrearUsuarioDto } from '../dto/crear-usuario.dto';
 import { EditarUsuarioDto } from '../dto/editar-usuario.dto';
-import { FiltrarUsuariosDto } from '../dto/filtrar-usuarios.dto';
+import { PaginarUsuariosDto } from '../dto/paginar-usuarios.dto';
 import { Usuario } from '../entities/usuario.entity';
 
 const PG_UNIQUE_VIOLATION = '23505';
@@ -80,15 +85,17 @@ export class UsuariosService {
     }
   }
 
-  async listar(filtros: FiltrarUsuariosDto = {}): Promise<UsuarioRespuesta[]> {
+  async listar(
+    filtros: PaginarUsuariosDto,
+  ): Promise<ResultadoPaginado<UsuarioRespuesta>> {
     const query = this.usuarios
       .createQueryBuilder('usuario')
-      .orderBy('usuario.nombre', 'ASC');
+      .orderBy('usuario.nombre', filtros.order ?? 'ASC');
 
-    if (filtros.busqueda) {
+    if (filtros.q) {
       query.andWhere(
-        '(LOWER(usuario.nombre) LIKE LOWER(:busqueda) OR LOWER(usuario.correo) LIKE LOWER(:busqueda))',
-        { busqueda: `%${filtros.busqueda}%` },
+        '(LOWER(usuario.nombre) LIKE LOWER(:q) OR LOWER(usuario.correo) LIKE LOWER(:q))',
+        { q: `%${filtros.q}%` },
       );
     }
 
@@ -100,8 +107,12 @@ export class UsuariosService {
       query.andWhere('usuario.activo = :activo', { activo: filtros.activo });
     }
 
-    const usuarios = await query.getMany();
-    return usuarios.map((usuario) => this.mapearRespuesta(usuario));
+    const { entidades, total } = await paginarQueryBuilder(query, filtros);
+    return crearResultadoPaginado(
+      entidades.map((usuario) => this.mapearRespuesta(usuario)),
+      filtros,
+      total,
+    );
   }
 
   async obtenerPorId(id: string): Promise<UsuarioRespuesta> {

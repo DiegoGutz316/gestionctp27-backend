@@ -1,6 +1,5 @@
 import { Type } from 'class-transformer';
 import {
-  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -39,15 +38,6 @@ export class PaginarDto {
   @Min(1, { message: 'El límite debe ser al menos 1' })
   @Max(100, { message: 'El límite no puede superar 100' })
   limite: number = 10;
-
-  @ApiPropertyOptional({
-    enum: ['ASC', 'DESC'],
-    default: 'ASC',
-    description: 'Dirección del ordenamiento',
-  })
-  @IsOptional()
-  @IsIn(['ASC', 'DESC'], { message: 'El orden debe ser ASC o DESC' })
-  orderBy: 'ASC' | 'DESC' = 'ASC';
 
   @ApiPropertyOptional({
     minLength: 1,
