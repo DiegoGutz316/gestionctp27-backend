@@ -8,33 +8,47 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-// import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiCookieAuth, ApiOperation } from '@nestjs/swagger';
 
-//import { Roles } from '../../auth/decorators/roles.decorator';
+import { RequierePermiso } from '../../auth/decorators/requiere-permiso.decorator';
+import { UsuarioActual } from '../../auth/decorators/usuario-actual.decorator';
+import { ModuloSistema } from '../../auth/enums/modulo-sistema.enum';
+import { NivelPermiso } from '../../auth/enums/nivel-permiso.enum';
+import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { CrearUsuarioDto } from '../dto/crear-usuario.dto';
 import { EditarUsuarioDto } from '../dto/editar-usuario.dto';
 import { PaginarUsuariosDto } from '../dto/paginar-usuarios.dto';
-//import { RolUsuario } from '../enums/rol-usuario.enum';
 import { UsuariosService } from '../services/usuarios.service';
-import { Publico } from '../../auth/decorators/publico.decorator';
 
+/**
+ * Backlog 1.6: el modulo completo exige permiso sobre USUARIOS, que en la
+ * matriz sembrada solo tiene el rol ADMINISTRADOR. Antes de este backlog los
+ * endpoints estaban marcados @Publico() y cualquiera podia crear usuarios o
+ * cambiar roles sin sesion.
+ *
+ * El permiso se afina por metodo: consultar exige LECTURA, y crear/editar/
+ * desactivar exigen COMPLETO.
+ */
 @Controller('usuarios')
-// @ApiBearerAuth('jwt')
+@ApiCookieAuth('cookie')
+@RequierePermiso(ModuloSistema.USUARIOS, NivelPermiso.COMPLETO)
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
   /**
    * POST /usuarios
    *
-   * Solo un usuario con rol ADMINISTRADOR puede registrar usuarios.
-   * El identificador del administrador se obtiene del JWT y se almacena
-   * automáticamente en creadoPor.
+   * Solo un usuario con permiso COMPLETO sobre USUARIOS (rol ADMINISTRADOR)
+   * puede registrar usuarios. El identificador del administrador se obtiene del
+   * JWT y se almacena en creadoPor.
    */
   @Post()
-  @Publico()
-  //@Roles(RolUsuario.ADMINISTRADOR)
-  crear(@Body() datos: CrearUsuarioDto) {
-    return this.usuariosService.crear(datos);
+  @ApiOperation({ summary: 'Registrar un usuario' })
+  crear(
+    @Body() datos: CrearUsuarioDto,
+    @UsuarioActual() actor: UsuarioAutenticado,
+  ) {
+    return this.usuariosService.crear(datos, actor);
   }
 
   /**
@@ -42,8 +56,8 @@ export class UsuariosController {
    * Query: pagina, limite, q, rol, activo, order
    */
   @Get()
-  @Publico()
-  //@Roles(RolUsuario.ADMINISTRADOR)
+  @RequierePermiso(ModuloSistema.USUARIOS, NivelPermiso.LECTURA)
+  @ApiOperation({ summary: 'Listar usuarios (paginado)' })
   listar(@Query() filtros: PaginarUsuariosDto) {
     return this.usuariosService.listar(filtros);
   }
@@ -52,8 +66,8 @@ export class UsuariosController {
    * GET /usuarios/:id
    */
   @Get(':id')
-  @Publico()
-  //@Roles(RolUsuario.ADMINISTRADOR)
+  @RequierePermiso(ModuloSistema.USUARIOS, NivelPermiso.LECTURA)
+  @ApiOperation({ summary: 'Consultar un usuario por id' })
   obtenerPorId(@Param('id', ParseUUIDPipe) id: string) {
     return this.usuariosService.obtenerPorId(id);
   }
@@ -64,22 +78,27 @@ export class UsuariosController {
    * Desactivación lógica (activo → false). El registro se conserva.
    */
   @Patch(':id/desactivar')
-  @Publico()
-  //@Roles(RolUsuario.ADMINISTRADOR)
-  desactivar(@Param('id', ParseUUIDPipe) id: string) {
-    return this.usuariosService.desactivar(id);
+  @ApiOperation({ summary: 'Desactivar un usuario (eliminación lógica)' })
+  desactivar(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UsuarioActual() actor: UsuarioAutenticado,
+  ) {
+    return this.usuariosService.desactivar(id, actor);
   }
 
   /**
    * PATCH /usuarios/:id
+   *
+   * Incluye la asignación de rol (Backlog 1.6). El servicio valida que el
+   * administrador no se quite a sí mismo el acceso.
    */
   @Patch(':id')
-  @Publico()
-  //@Roles(RolUsuario.ADMINISTRADOR)
+  @ApiOperation({ summary: 'Editar un usuario (incluye su rol)' })
   actualizar(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() datos: EditarUsuarioDto,
+    @UsuarioActual() actor: UsuarioAutenticado,
   ) {
-    return this.usuariosService.actualizar(id, datos);
+    return this.usuariosService.actualizar(id, datos, actor);
   }
 }

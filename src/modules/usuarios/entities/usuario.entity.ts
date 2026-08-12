@@ -49,6 +49,13 @@ export class Usuario {
   })
   rol!: RolUsuario;
 
+  /**
+   * Backlog 1.6 - Task de BD: "Registrar fecha de asignacion o modificacion
+   * del rol". Se actualiza solo cuando el rol cambia, no en cada edicion.
+   */
+  @Column({ name: 'rol_asignado_en', type: 'timestamptz', nullable: true })
+  rolAsignadoEn!: Date | null;
+
   /** Desactivacion logica (Backlog 1.5): el registro se conserva. */
   @Index('usuarios_activo_idx')
   @Column({ name: 'activo', type: 'boolean', default: true })

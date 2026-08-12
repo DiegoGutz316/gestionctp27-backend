@@ -54,9 +54,7 @@ export function construirOpcionesCookie(
   };
 }
 
-export function opcionesSetCookie(
-  opciones: OpcionesCookieAuth,
-): CookieOptions {
+export function opcionesSetCookie(opciones: OpcionesCookieAuth): CookieOptions {
   return {
     httpOnly: true,
     secure: opciones.secure,
