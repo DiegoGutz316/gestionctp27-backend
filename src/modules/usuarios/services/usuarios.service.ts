@@ -163,17 +163,13 @@ export class UsuariosService {
 
     const rolCambia = dto.rol !== usuario.rol;
 
-    if (rolCambia) {
-      await this.validarCambioDeRol(usuario, dto.rol, actor);
-    }
-
-    // Backlog 1.5/1.6: desactivarse a si mismo tendria el mismo efecto que
-    // quitarse el rol, asi que se bloquea por el mismo motivo.
-    if (actor?.id === usuario.id && !dto.activo) {
-      throw new BadRequestException(
-        'No puede desactivar su propia cuenta. Solicítelo a otro administrador.',
-      );
-    }
+    // Cubre tanto el cambio de rol como la desactivacion, que llegan juntos en
+    // este DTO y producen el mismo efecto sobre el acceso administrativo.
+    await this.validarNoPerderAccesoAdministrativo(
+      usuario,
+      { rol: dto.rol, activo: dto.activo },
+      actor,
+    );
 
     usuario.nombre = dto.nombre.trim();
     usuario.correo = correoNormalizado;
@@ -198,29 +194,44 @@ export class UsuariosService {
    * Backlog 1.6 - Task: "Validar cambios de rol realizados por el
    * administrador".
    *
-   * Dos salvaguardas contra quedarse sin acceso administrativo:
-   *  1. Un administrador no puede quitarse a si mismo el rol (se autobloquearia
-   *     y el cambio recien tendria efecto en su siguiente sesion, dejandolo con
-   *     un token que ya no corresponde a sus permisos).
-   *  2. No se puede degradar al ultimo administrador activo del sistema, porque
+   * Un usuario pierde su acceso administrativo por dos caminos distintos que
+   * tienen el mismo efecto: que le quiten el rol de administrador, o que le
+   * desactiven la cuenta. Ambos pasan por aqui para que las salvaguardas no
+   * dependan de por cual endpoint entro el cambio (antes la comprobacion del
+   * "ultimo administrador" solo cubria el cambio de rol, asi que un PATCH que
+   * solo bajaba `activo` se la saltaba).
+   *
+   * Salvaguardas:
+   *  1. Nadie puede quitarse a si mismo el acceso (se autobloquearia).
+   *  2. No se puede dejar al sistema sin ningun administrador activo, porque
    *     nadie podria volver a administrar usuarios ni reasignar roles.
    */
-  private async validarCambioDeRol(
+  private async validarNoPerderAccesoAdministrativo(
     usuario: Usuario,
-    rolNuevo: RolUsuario,
+    cambios: { rol: RolUsuario; activo: boolean },
     actor?: UsuarioAutenticado,
   ): Promise<void> {
-    const perdeAdministrador =
+    const pierdeRolAdministrador =
       usuario.rol === RolUsuario.ADMINISTRADOR &&
-      rolNuevo !== RolUsuario.ADMINISTRADOR;
+      cambios.rol !== RolUsuario.ADMINISTRADOR;
+    const seDesactiva = usuario.activo && !cambios.activo;
 
-    if (!perdeAdministrador) return;
+    if (!pierdeRolAdministrador && !seDesactiva) return;
 
     if (actor?.id === usuario.id) {
       throw new BadRequestException(
-        'No puede cambiar su propio rol de administrador. Solicítelo a otro administrador.',
+        pierdeRolAdministrador
+          ? 'No puede cambiar su propio rol de administrador. Solicítelo a otro administrador.'
+          : 'No puede desactivar su propia cuenta. Solicítelo a otro administrador.',
       );
     }
+
+    // Solo se puede dejar al sistema sin administradores si el afectado era uno
+    // activo; degradar o desactivar a un administrador ya inactivo no resta.
+    const eraAdministradorActivo =
+      usuario.rol === RolUsuario.ADMINISTRADOR && usuario.activo;
+
+    if (!eraAdministradorActivo) return;
 
     const administradoresActivos = await this.usuarios.count({
       where: { rol: RolUsuario.ADMINISTRADOR, activo: true },
@@ -228,7 +239,9 @@ export class UsuariosService {
 
     if (administradoresActivos <= 1) {
       throw new BadRequestException(
-        'No se puede quitar el rol al único administrador activo del sistema.',
+        pierdeRolAdministrador
+          ? 'No se puede quitar el rol al único administrador activo del sistema.'
+          : 'No se puede desactivar al único administrador activo del sistema.',
       );
     }
   }
@@ -251,25 +264,13 @@ export class UsuariosService {
       throw new BadRequestException('El usuario ya está desactivado.');
     }
 
-    // Mismas salvaguardas que el cambio de rol: no dejar al sistema sin
-    // administrador ni permitir que alguien se bloquee a si mismo.
-    if (actor?.id === usuario.id) {
-      throw new BadRequestException(
-        'No puede desactivar su propia cuenta. Solicítelo a otro administrador.',
-      );
-    }
-
-    if (usuario.rol === RolUsuario.ADMINISTRADOR) {
-      const administradoresActivos = await this.usuarios.count({
-        where: { rol: RolUsuario.ADMINISTRADOR, activo: true },
-      });
-
-      if (administradoresActivos <= 1) {
-        throw new BadRequestException(
-          'No se puede desactivar al único administrador activo del sistema.',
-        );
-      }
-    }
+    // Misma validacion que usa actualizar(), para que ambas rutas hacia el
+    // mismo cambio de estado se comporten igual.
+    await this.validarNoPerderAccesoAdministrativo(
+      usuario,
+      { rol: usuario.rol, activo: false },
+      actor,
+    );
 
     usuario.activo = false;
     usuario.actualizadoPor = actor?.id ?? null;
