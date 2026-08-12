@@ -11,6 +11,7 @@ import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
+import { PermisosGuard } from './modules/auth/guards/permisos.guard';
 import { PecuariaModule } from './modules/pecuaria/pecuaria.module';
 import { AgricolaModule } from './modules/agricola/agricola.module';
 import { InventarioModule } from './modules/inventario/inventario.module';
@@ -72,6 +73,9 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    // Backlog 1.6: autorizacion por matriz de permisos. Va despues de
+    // JwtAuthGuard para que request.user ya tenga el rol.
+    { provide: APP_GUARD, useClass: PermisosGuard },
   ],
 })
 export class AppModule {}

@@ -2,9 +2,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule, type JwtSignOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AuthController } from './controllers/auth.controller';
+import { PermisoRol } from './entities/permiso-rol.entity';
 import { AuthService } from './services/auth.service';
+import { PermisosService } from './services/permisos.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsuariosModule } from '../usuarios/usuarios.module';
 
@@ -48,6 +51,8 @@ function resolverExpiracion(config: ConfigService): StringValue {
   imports: [
     UsuariosModule,
     PassportModule,
+    // Backlog 1.6: matriz de permisos por rol.
+    TypeOrmModule.forFeature([PermisoRol]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -61,7 +66,9 @@ function resolverExpiracion(config: ConfigService): StringValue {
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, PermisosService, JwtStrategy],
+  // PermisosService se exporta porque PermisosGuard esta registrado como guard
+  // global en AppModule y necesita resolverlo desde ese inyector.
+  exports: [AuthService, PermisosService],
 })
 export class AuthModule {}

@@ -1,5 +1,15 @@
 import { Transform, Type, type TransformFnParams } from 'class-transformer';
-import { IsEnum, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import {
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { RolUsuario } from '../enums/rol-usuario.enum';
 

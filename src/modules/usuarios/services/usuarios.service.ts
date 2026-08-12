@@ -13,10 +13,12 @@ import {
   paginarQueryBuilder,
 } from '../../../common/paginacion/helpers/paginar.helper';
 import type { ResultadoPaginado } from '../../../common/paginacion/tipos/resultado-paginado';
+import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { CrearUsuarioDto } from '../dto/crear-usuario.dto';
 import { EditarUsuarioDto } from '../dto/editar-usuario.dto';
 import { PaginarUsuariosDto } from '../dto/paginar-usuarios.dto';
 import { Usuario } from '../entities/usuario.entity';
+import { RolUsuario } from '../enums/rol-usuario.enum';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -29,6 +31,7 @@ export interface UsuarioRespuesta {
   creadoPor: string | null;
   creadoEn: Date;
   actualizadoEn: Date;
+  rolAsignadoEn: Date | null;
 }
 
 /**
@@ -50,7 +53,10 @@ export class UsuariosService {
    * La contraseña se recibe en texto plano únicamente durante esta operación
    * y se transforma inmediatamente en un hash bcrypt.
    */
-  async crear(dto: CrearUsuarioDto): Promise<UsuarioRespuesta> {
+  async crear(
+    dto: CrearUsuarioDto,
+    actor?: UsuarioAutenticado,
+  ): Promise<UsuarioRespuesta> {
     const correoNormalizado = dto.correo.trim().toLowerCase();
 
     const usuarioExistente = await this.usuarios.findOne({
@@ -74,7 +80,11 @@ export class UsuariosService {
       rol: dto.rol,
       activo: dto.activo ?? true,
       ultimoAcceso: null,
+      // Auditoria: el administrador que ejecuta la operacion sale del JWT.
+      creadoPor: actor?.id ?? null,
       actualizadoPor: null,
+      // Backlog 1.6: el rol se asigna en este momento.
+      rolAsignadoEn: new Date(),
     });
 
     try {
@@ -129,6 +139,7 @@ export class UsuariosService {
   async actualizar(
     id: string,
     dto: EditarUsuarioDto,
+    actor?: UsuarioAutenticado,
   ): Promise<UsuarioRespuesta> {
     const usuario = await this.usuarios.findOne({ where: { id } });
 
@@ -150,10 +161,29 @@ export class UsuariosService {
       }
     }
 
+    const rolCambia = dto.rol !== usuario.rol;
+
+    if (rolCambia) {
+      await this.validarCambioDeRol(usuario, dto.rol, actor);
+    }
+
+    // Backlog 1.5/1.6: desactivarse a si mismo tendria el mismo efecto que
+    // quitarse el rol, asi que se bloquea por el mismo motivo.
+    if (actor?.id === usuario.id && !dto.activo) {
+      throw new BadRequestException(
+        'No puede desactivar su propia cuenta. Solicítelo a otro administrador.',
+      );
+    }
+
     usuario.nombre = dto.nombre.trim();
     usuario.correo = correoNormalizado;
     usuario.rol = dto.rol;
     usuario.activo = dto.activo;
+    usuario.actualizadoPor = actor?.id ?? null;
+
+    if (rolCambia) {
+      usuario.rolAsignadoEn = new Date();
+    }
 
     try {
       const guardado = await this.usuarios.save(usuario);
@@ -165,10 +195,52 @@ export class UsuariosService {
   }
 
   /**
+   * Backlog 1.6 - Task: "Validar cambios de rol realizados por el
+   * administrador".
+   *
+   * Dos salvaguardas contra quedarse sin acceso administrativo:
+   *  1. Un administrador no puede quitarse a si mismo el rol (se autobloquearia
+   *     y el cambio recien tendria efecto en su siguiente sesion, dejandolo con
+   *     un token que ya no corresponde a sus permisos).
+   *  2. No se puede degradar al ultimo administrador activo del sistema, porque
+   *     nadie podria volver a administrar usuarios ni reasignar roles.
+   */
+  private async validarCambioDeRol(
+    usuario: Usuario,
+    rolNuevo: RolUsuario,
+    actor?: UsuarioAutenticado,
+  ): Promise<void> {
+    const perdeAdministrador =
+      usuario.rol === RolUsuario.ADMINISTRADOR &&
+      rolNuevo !== RolUsuario.ADMINISTRADOR;
+
+    if (!perdeAdministrador) return;
+
+    if (actor?.id === usuario.id) {
+      throw new BadRequestException(
+        'No puede cambiar su propio rol de administrador. Solicítelo a otro administrador.',
+      );
+    }
+
+    const administradoresActivos = await this.usuarios.count({
+      where: { rol: RolUsuario.ADMINISTRADOR, activo: true },
+    });
+
+    if (administradoresActivos <= 1) {
+      throw new BadRequestException(
+        'No se puede quitar el rol al único administrador activo del sistema.',
+      );
+    }
+  }
+
+  /**
    * Backlog 1.5: desactivación lógica.
    * Conserva el registro y bloquea el acceso (login / JWT).
    */
-  async desactivar(id: string): Promise<UsuarioRespuesta> {
+  async desactivar(
+    id: string,
+    actor?: UsuarioAutenticado,
+  ): Promise<UsuarioRespuesta> {
     const usuario = await this.usuarios.findOne({ where: { id } });
 
     if (!usuario) {
@@ -179,7 +251,28 @@ export class UsuariosService {
       throw new BadRequestException('El usuario ya está desactivado.');
     }
 
+    // Mismas salvaguardas que el cambio de rol: no dejar al sistema sin
+    // administrador ni permitir que alguien se bloquee a si mismo.
+    if (actor?.id === usuario.id) {
+      throw new BadRequestException(
+        'No puede desactivar su propia cuenta. Solicítelo a otro administrador.',
+      );
+    }
+
+    if (usuario.rol === RolUsuario.ADMINISTRADOR) {
+      const administradoresActivos = await this.usuarios.count({
+        where: { rol: RolUsuario.ADMINISTRADOR, activo: true },
+      });
+
+      if (administradoresActivos <= 1) {
+        throw new BadRequestException(
+          'No se puede desactivar al único administrador activo del sistema.',
+        );
+      }
+    }
+
     usuario.activo = false;
+    usuario.actualizadoPor = actor?.id ?? null;
     const guardado = await this.usuarios.save(usuario);
     return this.mapearRespuesta(guardado);
   }
@@ -225,6 +318,7 @@ export class UsuariosService {
       creadoPor: usuario.creadoPor,
       creadoEn: usuario.creadoEn,
       actualizadoEn: usuario.actualizadoEn,
+      rolAsignadoEn: usuario.rolAsignadoEn,
     };
   }
 

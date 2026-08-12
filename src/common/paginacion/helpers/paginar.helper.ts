@@ -13,13 +13,9 @@ export function resolverOpcionesPaginacion(
   opciones: Partial<OpcionesPaginacion> = {},
 ): OpcionesPaginacion {
   const pagina =
-    opciones.pagina && opciones.pagina > 0
-      ? Math.trunc(opciones.pagina)
-      : 1;
+    opciones.pagina && opciones.pagina > 0 ? Math.trunc(opciones.pagina) : 1;
   const limite =
-    opciones.limite && opciones.limite > 0
-      ? Math.trunc(opciones.limite)
-      : 10;
+    opciones.limite && opciones.limite > 0 ? Math.trunc(opciones.limite) : 10;
 
   return { pagina, limite };
 }
@@ -48,8 +44,7 @@ export function crearMetaPaginacion(
   const { pagina, limite } = resolverOpcionesPaginacion(opciones);
   const totalSeguro = Math.max(0, Math.trunc(total));
   const totalPaginas = totalSeguro === 0 ? 0 : Math.ceil(totalSeguro / limite);
-  const paginaActual =
-    totalPaginas === 0 ? 1 : Math.min(pagina, totalPaginas);
+  const paginaActual = totalPaginas === 0 ? 1 : Math.min(pagina, totalPaginas);
 
   return {
     pagina: paginaActual,

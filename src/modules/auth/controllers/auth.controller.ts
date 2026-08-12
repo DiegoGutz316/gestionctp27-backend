@@ -12,6 +12,7 @@ import { ApiCookieAuth, ApiOperation } from '@nestjs/swagger';
 import type { Response } from 'express';
 
 import { AuthService } from '../services/auth.service';
+import { PermisosService } from '../services/permisos.service';
 import { LoginDto } from '../dto/login.dto';
 import { Publico } from '../decorators/publico.decorator';
 import { UsuarioActual } from '../decorators/usuario-actual.decorator';
@@ -21,7 +22,10 @@ import { NOMBRE_COOKIE_ACCESO } from '../constantes/cookie-auth';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly permisos: PermisosService,
+  ) {}
 
   /**
    * POST /auth/login
@@ -61,10 +65,7 @@ export class AuthController {
   @Post('logout')
   @ApiOperation({ summary: 'Cerrar sesion (borra cookie)' })
   logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie(
-      NOMBRE_COOKIE_ACCESO,
-      this.auth.opcionesParaClearCookie(),
-    );
+    res.clearCookie(NOMBRE_COOKIE_ACCESO, this.auth.opcionesParaClearCookie());
     return { ok: true };
   }
 
@@ -77,5 +78,23 @@ export class AuthController {
   @ApiCookieAuth('cookie')
   perfil(@UsuarioActual() usuario: UsuarioAutenticado) {
     return usuario;
+  }
+
+  /**
+   * GET /auth/permisos
+   *
+   * Backlog 1.6: devuelve la matriz de permisos del rol de la sesion actual.
+   * El frontend la usa para ocultar las opciones del menu y mostrar el aviso de
+   * acceso denegado; el backend aplica la misma matriz en PermisosGuard, asi
+   * que ocultar la opcion es una ayuda visual, no el control de seguridad.
+   */
+  @Get('permisos')
+  @ApiCookieAuth('cookie')
+  @ApiOperation({ summary: 'Permisos del rol de la sesion actual' })
+  async permisosDeLaSesion(@UsuarioActual() usuario: UsuarioAutenticado) {
+    return {
+      rol: usuario.rol,
+      permisos: await this.permisos.matrizDe(usuario.rol),
+    };
   }
 }
