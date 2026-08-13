@@ -11,12 +11,15 @@ import {
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { InventarioService } from '../services/inventario.service';
 import { RequierePermiso } from '../../auth/decorators/requiere-permiso.decorator';
+import { UsuarioActual } from '../../auth/decorators/usuario-actual.decorator';
 import { ModuloSistema } from '../../auth/enums/modulo-sistema.enum';
 import { NivelPermiso } from '../../auth/enums/nivel-permiso.enum';
+import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { CrearCategoriaInsumoDto } from '../dto/crear-categoria-insumo.dto';
 import { CrearInsumoDto } from '../dto/crear-insumo.dto';
 import { EditarInsumoDto } from '../dto/editar-insumo.dto';
 import { FiltrarInsumosDto } from '../dto/filtrar-insumos.dto';
+import { RegistrarEntradaDto } from '../dto/registrar-entrada.dto';
 
 /**
  * Backlog 1.6: cierra el TODO(Feature 1 - auth) que quedó abierto en los
@@ -75,5 +78,21 @@ export class InventarioController {
     @Body() dto: EditarInsumoDto,
   ) {
     return this.inventarioService.actualizarInsumo(id, dto);
+  }
+
+  /**
+   * Backlog 4.4: registrar una entrada de inventario. Hereda el permiso
+   * COMPLETO del controlador, porque modifica el stock. El usuario responsable
+   * sale del JWT, no del cuerpo de la petición.
+   */
+  @ApiOperation({
+    summary: 'Registrar una entrada de inventario (suma al stock)',
+  })
+  @Post('entradas')
+  registrarEntrada(
+    @Body() dto: RegistrarEntradaDto,
+    @UsuarioActual() actor: UsuarioAutenticado,
+  ) {
+    return this.inventarioService.registrarEntrada(dto, actor);
   }
 }

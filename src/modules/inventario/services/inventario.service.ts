@@ -4,13 +4,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
+import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { CategoriaInsumo } from '../entities/categoria-insumo.entity';
 import { Insumo } from '../entities/insumo.entity';
+import { MovimientoInventario } from '../entities/movimiento-inventario.entity';
+import { TipoMovimiento } from '../enums/tipo-movimiento.enum';
 import { CrearCategoriaInsumoDto } from '../dto/crear-categoria-insumo.dto';
 import { CrearInsumoDto } from '../dto/crear-insumo.dto';
 import { EditarInsumoDto } from '../dto/editar-insumo.dto';
 import { FiltrarInsumosDto } from '../dto/filtrar-insumos.dto';
+import { RegistrarEntradaDto } from '../dto/registrar-entrada.dto';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -21,6 +25,7 @@ export class InventarioService {
     private readonly categoriasRepo: Repository<CategoriaInsumo>,
     @InjectRepository(Insumo)
     private readonly insumosRepo: Repository<Insumo>,
+    private readonly dataSource: DataSource,
   ) {}
 
   listarCategorias(): Promise<CategoriaInsumo[]> {
@@ -181,6 +186,64 @@ export class InventarioService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Backlog 4.4: registra una entrada y suma la cantidad al stock del insumo.
+   *
+   * Va en una transacción con bloqueo pesimista sobre la fila del insumo: el
+   * movimiento y el nuevo stock tienen que cuajar juntos o no aplicarse, y dos
+   * entradas simultáneas sobre el mismo insumo deben sumarse ambas en lugar de
+   * pisarse.
+   */
+  async registrarEntrada(
+    dto: RegistrarEntradaDto,
+    actor: UsuarioAutenticado,
+  ): Promise<MovimientoInventario> {
+    return this.dataSource.transaction(async (manager) => {
+      // Se usa QueryBuilder a propósito: `findOne` aplicaría el LEFT JOIN de la
+      // relación eager `categoria`, y Postgres no admite FOR UPDATE sobre el
+      // lado externo de un outer join.
+      const insumo = await manager
+        .createQueryBuilder(Insumo, 'insumo')
+        .setLock('pessimistic_write')
+        .where('insumo.id = :id', { id: dto.insumoId })
+        .getOne();
+
+      if (!insumo || !insumo.activo) {
+        throw new NotFoundException(
+          'El insumo seleccionado no existe o está inactivo.',
+        );
+      }
+
+      const movimiento = await manager.save(
+        manager.create(MovimientoInventario, {
+          insumo,
+          tipo: TipoMovimiento.ENTRADA,
+          cantidad: dto.cantidad,
+          fecha: dto.fecha,
+          origen: dto.origen ?? null,
+          motivo: null,
+          responsableId: actor.id,
+        }),
+      );
+
+      // La suma se hace en SQL (cantidad = cantidad + :n) para que la aritmética
+      // decimal la resuelva Postgres y no el redondeo de coma flotante de JS.
+      await manager.increment(
+        Insumo,
+        { id: insumo.id },
+        'cantidad',
+        dto.cantidad,
+      );
+
+      // Se relee para devolver el insumo con su stock ya actualizado.
+      movimiento.insumo = (await manager.findOneBy(Insumo, {
+        id: insumo.id,
+      })) as Insumo;
+
+      return movimiento;
+    });
   }
 
   // Red de seguridad ante condiciones de carrera: si dos peticiones pasan la
