@@ -7,12 +7,18 @@ import {
   IsNumber,
   IsPositive,
   IsString,
+  Max,
   MaxLength,
   Min,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { UnidadMedida } from '../enums/unidad-medida.enum';
 import { transformarNumero } from './transformar-numero';
+import {
+  DECIMALES_PERMITIDOS,
+  VALOR_MAXIMO,
+  VALOR_MAXIMO_TEXTO,
+} from './limites-numericos';
 
 function normalizarTexto({ value }: TransformFnParams): unknown {
   const valor: unknown = value;
@@ -40,10 +46,16 @@ export class EditarInsumoDto {
   })
   unidadMedida!: UnidadMedida;
 
-  @ApiProperty({ type: Number, minimum: 0 })
+  @ApiProperty({ type: Number, minimum: 0, maximum: VALOR_MAXIMO })
   @Transform(transformarNumero)
   @IsDefined({ message: 'El nivel mínimo es obligatorio' })
-  @IsNumber({}, { message: 'El nivel mínimo es obligatorio' })
+  @IsNumber(
+    { maxDecimalPlaces: DECIMALES_PERMITIDOS },
+    { message: 'El nivel mínimo admite como máximo 2 decimales' },
+  )
   @Min(0, { message: 'El nivel mínimo debe ser 0 o mayor' })
+  @Max(VALOR_MAXIMO, {
+    message: `El nivel mínimo no puede superar ${VALOR_MAXIMO_TEXTO}`,
+  })
   nivelMinimo!: number;
 }

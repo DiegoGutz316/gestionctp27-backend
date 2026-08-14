@@ -7,12 +7,18 @@ import {
   IsNumber,
   IsPositive,
   IsString,
+  Max,
   MaxLength,
   Min,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { UnidadMedida } from '../enums/unidad-medida.enum';
 import { transformarNumero } from './transformar-numero';
+import {
+  DECIMALES_PERMITIDOS,
+  VALOR_MAXIMO,
+  VALOR_MAXIMO_TEXTO,
+} from './limites-numericos';
 
 function normalizarTexto({ value }: TransformFnParams): unknown {
   const valor: unknown = value;
@@ -40,17 +46,34 @@ export class CrearInsumoDto {
   })
   unidadMedida!: UnidadMedida;
 
-  @ApiProperty({ type: Number, minimum: 0, exclusiveMinimum: true })
+  @ApiProperty({
+    type: Number,
+    minimum: 0,
+    exclusiveMinimum: true,
+    maximum: VALOR_MAXIMO,
+  })
   @Transform(transformarNumero)
   @IsDefined({ message: 'La cantidad inicial es obligatoria' })
-  @IsNumber({}, { message: 'La cantidad inicial es obligatoria' })
+  @IsNumber(
+    { maxDecimalPlaces: DECIMALES_PERMITIDOS },
+    { message: 'La cantidad inicial admite como máximo 2 decimales' },
+  )
   @IsPositive({ message: 'La cantidad inicial debe ser mayor que 0' })
+  @Max(VALOR_MAXIMO, {
+    message: `La cantidad inicial no puede superar ${VALOR_MAXIMO_TEXTO}`,
+  })
   cantidad!: number;
 
-  @ApiProperty({ type: Number, minimum: 0 })
+  @ApiProperty({ type: Number, minimum: 0, maximum: VALOR_MAXIMO })
   @Transform(transformarNumero)
   @IsDefined({ message: 'El nivel mínimo es obligatorio' })
-  @IsNumber({}, { message: 'El nivel mínimo es obligatorio' })
+  @IsNumber(
+    { maxDecimalPlaces: DECIMALES_PERMITIDOS },
+    { message: 'El nivel mínimo admite como máximo 2 decimales' },
+  )
   @Min(0, { message: 'El nivel mínimo debe ser 0 o mayor' })
+  @Max(VALOR_MAXIMO, {
+    message: `El nivel mínimo no puede superar ${VALOR_MAXIMO_TEXTO}`,
+  })
   nivelMinimo!: number;
 }
