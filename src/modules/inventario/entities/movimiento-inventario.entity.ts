@@ -9,6 +9,7 @@ import {
   type ValueTransformer,
 } from 'typeorm';
 import { Insumo } from './insumo.entity';
+import { Usuario } from '../../usuarios/entities/usuario.entity';
 import { TipoMovimiento } from '../enums/tipo-movimiento.enum';
 
 // Postgres devuelve las columnas numeric como string; se exponen como number.
@@ -85,6 +86,20 @@ export class MovimientoInventario {
    */
   @Column({ name: 'responsable_id', type: 'uuid' })
   responsableId: string;
+
+  /**
+   * Backlog 4.5: la consulta debe mostrar el responsable con nombre, no con su
+   * uuid. Se resuelve con este join porque el frontend no puede consultarlo por
+   * su cuenta: quien tiene permiso de inventario no necesariamente lo tiene
+   * sobre el módulo de usuarios.
+   *
+   * `eager: false` a propósito: solo se carga en los listados que lo muestran.
+   * La columna y su clave foránea ya existen desde la migración del 4.4, así
+   * que declarar la relación no requiere una migración nueva.
+   */
+  @ManyToOne(() => Usuario, { nullable: false, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'responsable_id' })
+  responsable: Usuario;
 
   @CreateDateColumn({ name: 'creado_en', type: 'timestamptz' })
   creadoEn: Date;

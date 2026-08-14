@@ -16,9 +16,33 @@ import { CrearInsumoDto } from '../dto/crear-insumo.dto';
 import { EditarInsumoDto } from '../dto/editar-insumo.dto';
 import { FiltrarInsumosDto } from '../dto/filtrar-insumos.dto';
 import { RegistrarEntradaDto } from '../dto/registrar-entrada.dto';
+import { ConsultarEntradasDto } from '../dto/consultar-entradas.dto';
 import { VALOR_MAXIMO, VALOR_MAXIMO_TEXTO } from '../dto/limites-numericos';
+import {
+  crearResultadoPaginado,
+  paginarQueryBuilder,
+} from '../../../common/paginacion/helpers/paginar.helper';
+import type { ResultadoPaginado } from '../../../common/paginacion/tipos/resultado-paginado';
+import type { UnidadMedida } from '../enums/unidad-medida.enum';
 
 const PG_UNIQUE_VIOLATION = '23505';
+
+/**
+ * Forma de una entrada en el historial (backlog 4.5).
+ *
+ * Se mapea a mano en lugar de devolver la entidad para no exponer del usuario
+ * responsable más que su nombre: quien consulta el inventario no necesa­riamente
+ * tiene permiso sobre el módulo de usuarios.
+ */
+export interface EntradaRespuesta {
+  id: number;
+  cantidad: number;
+  fecha: string;
+  origen: string | null;
+  creadoEn: Date;
+  insumo: { id: number; nombre: string; unidadMedida: UnidadMedida };
+  responsable: { id: string; nombre: string };
+}
 
 @Injectable()
 export class InventarioService {
@@ -27,6 +51,8 @@ export class InventarioService {
     private readonly categoriasRepo: Repository<CategoriaInsumo>,
     @InjectRepository(Insumo)
     private readonly insumosRepo: Repository<Insumo>,
+    @InjectRepository(MovimientoInventario)
+    private readonly movimientosRepo: Repository<MovimientoInventario>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -261,6 +287,76 @@ export class InventarioService {
 
       return movimiento;
     });
+  }
+
+  /**
+   * Backlog 4.5: historial de entradas, paginado y filtrable.
+   *
+   * Solo devuelve movimientos de tipo ENTRADA. Aprovecha el índice
+   * (tipo, fecha) creado en la migración del 4.4.
+   */
+  async listarEntradas(
+    filtros: ConsultarEntradasDto,
+  ): Promise<ResultadoPaginado<EntradaRespuesta>> {
+    // Se seleccionan solo las columnas necesarias; del responsable se trae
+    // únicamente id y nombre, nunca su correo ni el hash de contraseña.
+    const consulta = this.movimientosRepo
+      .createQueryBuilder('movimiento')
+      .innerJoin('movimiento.insumo', 'insumo')
+      .innerJoin('movimiento.responsable', 'responsable')
+      .select([
+        'movimiento.id',
+        'movimiento.cantidad',
+        'movimiento.fecha',
+        'movimiento.origen',
+        'movimiento.creadoEn',
+        'insumo.id',
+        'insumo.nombre',
+        'insumo.unidadMedida',
+        'responsable.id',
+        'responsable.nombre',
+      ])
+      .where('movimiento.tipo = :tipo', { tipo: TipoMovimiento.ENTRADA })
+      // Lo más reciente primero; el id desempata dos movimientos del mismo día.
+      .orderBy('movimiento.fecha', 'DESC')
+      .addOrderBy('movimiento.id', 'DESC');
+
+    if (filtros.insumoId) {
+      consulta.andWhere('movimiento.insumo_id = :insumoId', {
+        insumoId: filtros.insumoId,
+      });
+    }
+
+    if (filtros.desde) {
+      consulta.andWhere('movimiento.fecha >= :desde', { desde: filtros.desde });
+    }
+
+    if (filtros.hasta) {
+      consulta.andWhere('movimiento.fecha <= :hasta', { hasta: filtros.hasta });
+    }
+
+    const { entidades, total } = await paginarQueryBuilder(consulta, filtros);
+
+    return crearResultadoPaginado(
+      entidades.map((movimiento) => ({
+        id: movimiento.id,
+        cantidad: movimiento.cantidad,
+        fecha: movimiento.fecha,
+        origen: movimiento.origen,
+        creadoEn: movimiento.creadoEn,
+        insumo: {
+          id: movimiento.insumo.id,
+          nombre: movimiento.insumo.nombre,
+          unidadMedida: movimiento.insumo.unidadMedida,
+        },
+        responsable: {
+          id: movimiento.responsable.id,
+          nombre: movimiento.responsable.nombre,
+        },
+      })),
+      filtros,
+      total,
+    );
   }
 
   // Red de seguridad ante condiciones de carrera: si dos peticiones pasan la
