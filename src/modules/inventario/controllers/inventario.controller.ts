@@ -20,6 +20,7 @@ import { CrearInsumoDto } from '../dto/crear-insumo.dto';
 import { EditarInsumoDto } from '../dto/editar-insumo.dto';
 import { FiltrarInsumosDto } from '../dto/filtrar-insumos.dto';
 import { RegistrarEntradaDto } from '../dto/registrar-entrada.dto';
+import { ConsultarEntradasDto } from '../dto/consultar-entradas.dto';
 
 /**
  * Backlog 1.6: cierra el TODO(Feature 1 - auth) que quedó abierto en los
@@ -94,5 +95,18 @@ export class InventarioController {
     @UsuarioActual() actor: UsuarioAutenticado,
   ) {
     return this.inventarioService.registrarEntrada(dto, actor);
+  }
+
+  /**
+   * Backlog 4.5: historial de entradas. Es una consulta, así que basta con
+   * LECTURA sobre inventario (los roles de solo lectura también pueden verlo).
+   */
+  @ApiOperation({
+    summary: 'Consultar el historial de entradas (paginado y filtrable)',
+  })
+  @Get('entradas')
+  @RequierePermiso(ModuloSistema.INVENTARIO, NivelPermiso.LECTURA)
+  listarEntradas(@Query() filtros: ConsultarEntradasDto) {
+    return this.inventarioService.listarEntradas(filtros);
   }
 }
