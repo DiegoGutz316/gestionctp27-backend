@@ -12,11 +12,8 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { transformarNumero } from './transformar-numero';
-import {
-  DECIMALES_PERMITIDOS,
-  VALOR_MAXIMO,
-  VALOR_MAXIMO_TEXTO,
-} from './limites-numericos';
+import { TieneDecimalesPermitidos } from './dos-decimales.validator';
+import { VALOR_MAXIMO, VALOR_MAXIMO_TEXTO } from './limites-numericos';
 
 /** Deja el texto sin espacios sobrantes y convierte "" en undefined. */
 function textoOpcional({ value }: TransformFnParams): unknown {
@@ -43,10 +40,10 @@ export class RegistrarEntradaDto {
   })
   @Transform(transformarNumero)
   @IsDefined({ message: 'La cantidad es obligatoria' })
-  @IsNumber(
-    { maxDecimalPlaces: DECIMALES_PERMITIDOS },
-    { message: 'La cantidad admite como máximo 2 decimales' },
-  )
+  @IsNumber({}, { message: 'La cantidad debe ser un número válido' })
+  @TieneDecimalesPermitidos({
+    message: 'La cantidad admite como máximo 2 decimales',
+  })
   @IsPositive({ message: 'La cantidad debe ser mayor que 0' })
   @Max(VALOR_MAXIMO, {
     message: `La cantidad no puede superar ${VALOR_MAXIMO_TEXTO}`,
