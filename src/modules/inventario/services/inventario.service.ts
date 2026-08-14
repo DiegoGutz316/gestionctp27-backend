@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -15,6 +16,7 @@ import { CrearInsumoDto } from '../dto/crear-insumo.dto';
 import { EditarInsumoDto } from '../dto/editar-insumo.dto';
 import { FiltrarInsumosDto } from '../dto/filtrar-insumos.dto';
 import { RegistrarEntradaDto } from '../dto/registrar-entrada.dto';
+import { VALOR_MAXIMO, VALOR_MAXIMO_TEXTO } from '../dto/limites-numericos';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -213,6 +215,21 @@ export class InventarioService {
       if (!insumo || !insumo.activo) {
         throw new NotFoundException(
           'El insumo seleccionado no existe o está inactivo.',
+        );
+      }
+
+      // El DTO ya acota la cantidad al rango de numeric(12,2), pero la suma con
+      // la existencia actual puede desbordar la columna igual. Se comprueba en
+      // céntimos para que la comparación sea exacta y no dependa de la coma
+      // flotante; de lo contrario Postgres respondería con un error 22003 y la
+      // petición terminaría en un 500.
+      const enCentimos = (valor: number) => Math.round(valor * 100);
+      if (
+        enCentimos(insumo.cantidad) + enCentimos(dto.cantidad) >
+        enCentimos(VALOR_MAXIMO)
+      ) {
+        throw new BadRequestException(
+          `La entrada dejaría la existencia por encima del máximo registrable (${VALOR_MAXIMO_TEXTO}).`,
         );
       }
 
