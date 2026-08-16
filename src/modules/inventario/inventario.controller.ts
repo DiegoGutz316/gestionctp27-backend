@@ -9,18 +9,18 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { InventarioService } from '../services/inventario.service';
-import { RequierePermiso } from '../../auth/decorators/requiere-permiso.decorator';
-import { UsuarioActual } from '../../auth/decorators/usuario-actual.decorator';
-import { ModuloSistema } from '../../auth/enums/modulo-sistema.enum';
-import { NivelPermiso } from '../../auth/enums/nivel-permiso.enum';
-import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
-import { CrearCategoriaInsumoDto } from '../dto/crear-categoria-insumo.dto';
-import { CrearInsumoDto } from '../dto/crear-insumo.dto';
-import { EditarInsumoDto } from '../dto/editar-insumo.dto';
-import { FiltrarInsumosDto } from '../dto/filtrar-insumos.dto';
-import { RegistrarEntradaDto } from '../dto/registrar-entrada.dto';
-import { ConsultarEntradasDto } from '../dto/consultar-entradas.dto';
+import { InventarioService } from './inventario.service';
+import { RequierePermiso } from '../auth/decorators/requiere-permiso.decorator';
+import { UsuarioActual } from '../auth/decorators/usuario-actual.decorator';
+import { ModuloSistema } from '../auth/enums/modulo-sistema.enum';
+import { NivelPermiso } from '../auth/enums/nivel-permiso.enum';
+import type { UsuarioAutenticado } from '../auth/tipos/jwt-payload';
+import { CrearCategoriaInsumoDto } from './dto/crear-categoria-insumo.dto';
+import { CrearInsumoDto } from './dto/crear-insumo.dto';
+import { EditarInsumoDto } from './dto/editar-insumo.dto';
+import { FiltrarInsumosDto } from './dto/filtrar-insumos.dto';
+import { RegistrarEntradaDto } from './dto/registrar-entrada.dto';
+import { ConsultarEntradasDto } from './dto/consultar-entradas.dto';
 
 /**
  * Backlog 1.6: cierra el TODO(Feature 1 - auth) que quedó abierto en los

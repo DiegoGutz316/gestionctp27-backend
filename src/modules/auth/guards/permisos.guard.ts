@@ -11,7 +11,7 @@ import {
   type PermisoRequerido,
 } from '../decorators/requiere-permiso.decorator';
 import { ETIQUETA_MODULO } from '../enums/modulo-sistema.enum';
-import { PermisosService } from '../services/permisos.service';
+import { PermisosService } from '../permisos.service';
 import type { SolicitudAutenticada } from '../tipos/jwt-payload';
 
 /**

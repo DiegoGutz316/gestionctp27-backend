@@ -2,10 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { RolUsuario } from '../../usuarios/enums/rol-usuario.enum';
-import { PermisoRol } from '../entities/permiso-rol.entity';
-import { ModuloSistema } from '../enums/modulo-sistema.enum';
-import { NivelPermiso, cubre } from '../enums/nivel-permiso.enum';
+import { RolUsuario } from '../usuarios/enums/rol-usuario.enum';
+import { PermisoRol } from './entities/permiso-rol.entity';
+import { ModuloSistema } from './enums/modulo-sistema.enum';
+import { NivelPermiso, cubre } from './enums/nivel-permiso.enum';
 
 /** Permisos de un rol: nivel asignado en cada modulo del sistema. */
 export type MatrizPermisos = Record<ModuloSistema, NivelPermiso>;

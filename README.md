@@ -19,7 +19,7 @@ src/
 ├── modules/
 │   ├── usuarios/      ├── pecuaria/     ├── agricola/
 │   ├── inventario/    ├── reportes/     └── dashboard/
-│         (cada módulo: controllers/ services/ entities/ dto/ enums/)
+│         (cada módulo: *.controller.ts *.service.ts entities/ dto/ enums/)
 ├── database/
 │   ├── data-source.ts     (DataSource para la CLI de TypeORM)
 │   ├── database.config.ts (opciones de conexión compartidas app/CLI)

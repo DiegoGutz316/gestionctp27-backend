@@ -3,8 +3,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CategoriaInsumo } from './entities/categoria-insumo.entity';
 import { Insumo } from './entities/insumo.entity';
 import { MovimientoInventario } from './entities/movimiento-inventario.entity';
-import { InventarioController } from './controllers/inventario.controller';
-import { InventarioService } from './services/inventario.service';
+import { InventarioController } from './inventario.controller';
+import { InventarioService } from './inventario.service';
 
 @Module({
   imports: [

@@ -11,14 +11,14 @@ import { Throttle } from '@nestjs/throttler';
 import { ApiCookieAuth, ApiOperation } from '@nestjs/swagger';
 import type { Response } from 'express';
 
-import { AuthService } from '../services/auth.service';
-import { PermisosService } from '../services/permisos.service';
-import { LoginDto } from '../dto/login.dto';
-import { Publico } from '../decorators/publico.decorator';
-import { UsuarioActual } from '../decorators/usuario-actual.decorator';
-import type { UsuarioAutenticado } from '../tipos/jwt-payload';
-import type { RespuestaLogin } from '../tipos/respuesta-login';
-import { NOMBRE_COOKIE_ACCESO } from '../constantes/cookie-auth';
+import { AuthService } from './auth.service';
+import { PermisosService } from './permisos.service';
+import { LoginDto } from './dto/login.dto';
+import { Publico } from './decorators/publico.decorator';
+import { UsuarioActual } from './decorators/usuario-actual.decorator';
+import type { UsuarioAutenticado } from './tipos/jwt-payload';
+import type { RespuestaLogin } from './tipos/respuesta-login';
+import { NOMBRE_COOKIE_ACCESO } from './constantes/cookie-auth';
 
 @Controller('auth')
 export class AuthController {

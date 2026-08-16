@@ -11,14 +11,14 @@ import { QueryFailedError, Repository } from 'typeorm';
 import {
   crearResultadoPaginado,
   paginarQueryBuilder,
-} from '../../../common/paginacion/helpers/paginar.helper';
-import type { ResultadoPaginado } from '../../../common/paginacion/tipos/resultado-paginado';
-import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
-import { CrearUsuarioDto } from '../dto/crear-usuario.dto';
-import { EditarUsuarioDto } from '../dto/editar-usuario.dto';
-import { PaginarUsuariosDto } from '../dto/paginar-usuarios.dto';
-import { Usuario } from '../entities/usuario.entity';
-import { RolUsuario } from '../enums/rol-usuario.enum';
+} from '../../common/paginacion/helpers/paginar.helper';
+import type { ResultadoPaginado } from '../../common/paginacion/tipos/resultado-paginado';
+import type { UsuarioAutenticado } from '../auth/tipos/jwt-payload';
+import { CrearUsuarioDto } from './dto/crear-usuario.dto';
+import { EditarUsuarioDto } from './dto/editar-usuario.dto';
+import { PaginarUsuariosDto } from './dto/paginar-usuarios.dto';
+import { Usuario } from './entities/usuario.entity';
+import { RolUsuario } from './enums/rol-usuario.enum';
 
 const PG_UNIQUE_VIOLATION = '23505';
 

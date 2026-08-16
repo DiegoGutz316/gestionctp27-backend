@@ -16,7 +16,7 @@ Colegio Técnico Profesional. Repositorio independiente del frontend
   conecta con `DATABASE_URL` (session pooler) y `DB_SSL=true`.
 - Las validaciones de entrada viven en las clases de `dto/`; los enums de dominio
   viven en la carpeta `enums/` de su módulo correspondiente.
-- Arquitectura en capas por módulo: `controllers/`, `services/`, `entities/`, `dto/`, `enums/`
+- Arquitectura en capas por módulo: controllers y services en la raíz del módulo; `entities/`, `dto/`, `enums/`
   dentro de cada módulo en `src/modules/` (`usuarios`, `pecuaria`, `agricola`,
   `inventario`, `reportes`, `dashboard`).
 - No usar Docker en este proyecto.

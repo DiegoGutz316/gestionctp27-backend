@@ -6,24 +6,24 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, QueryFailedError, Repository } from 'typeorm';
-import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
-import { CategoriaInsumo } from '../entities/categoria-insumo.entity';
-import { Insumo } from '../entities/insumo.entity';
-import { MovimientoInventario } from '../entities/movimiento-inventario.entity';
-import { TipoMovimiento } from '../enums/tipo-movimiento.enum';
-import { CrearCategoriaInsumoDto } from '../dto/crear-categoria-insumo.dto';
-import { CrearInsumoDto } from '../dto/crear-insumo.dto';
-import { EditarInsumoDto } from '../dto/editar-insumo.dto';
-import { FiltrarInsumosDto } from '../dto/filtrar-insumos.dto';
-import { RegistrarEntradaDto } from '../dto/registrar-entrada.dto';
-import { ConsultarEntradasDto } from '../dto/consultar-entradas.dto';
-import { VALOR_MAXIMO, VALOR_MAXIMO_TEXTO } from '../dto/limites-numericos';
+import type { UsuarioAutenticado } from '../auth/tipos/jwt-payload';
+import { CategoriaInsumo } from './entities/categoria-insumo.entity';
+import { Insumo } from './entities/insumo.entity';
+import { MovimientoInventario } from './entities/movimiento-inventario.entity';
+import { TipoMovimiento } from './enums/tipo-movimiento.enum';
+import { CrearCategoriaInsumoDto } from './dto/crear-categoria-insumo.dto';
+import { CrearInsumoDto } from './dto/crear-insumo.dto';
+import { EditarInsumoDto } from './dto/editar-insumo.dto';
+import { FiltrarInsumosDto } from './dto/filtrar-insumos.dto';
+import { RegistrarEntradaDto } from './dto/registrar-entrada.dto';
+import { ConsultarEntradasDto } from './dto/consultar-entradas.dto';
+import { VALOR_MAXIMO, VALOR_MAXIMO_TEXTO } from './dto/limites-numericos';
 import {
   crearResultadoPaginado,
   paginarQueryBuilder,
-} from '../../../common/paginacion/helpers/paginar.helper';
-import type { ResultadoPaginado } from '../../../common/paginacion/tipos/resultado-paginado';
-import type { UnidadMedida } from '../enums/unidad-medida.enum';
+} from '../../common/paginacion/helpers/paginar.helper';
+import type { ResultadoPaginado } from '../../common/paginacion/tipos/resultado-paginado';
+import type { UnidadMedida } from './enums/unidad-medida.enum';
 
 const PG_UNIQUE_VIOLATION = '23505';
 

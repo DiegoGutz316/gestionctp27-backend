@@ -7,17 +7,17 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
-import { UsuariosService } from '../../usuarios/services/usuarios.service';
-import { Usuario } from '../../usuarios/entities/usuario.entity';
-import type { LoginDto } from '../dto/login.dto';
-import type { JwtPayload } from '../tipos/jwt-payload';
-import type { ResultadoLogin } from '../tipos/respuesta-login';
+import { UsuariosService } from '../usuarios/usuarios.service';
+import { Usuario } from '../usuarios/entities/usuario.entity';
+import type { LoginDto } from './dto/login.dto';
+import type { JwtPayload } from './tipos/jwt-payload';
+import type { ResultadoLogin } from './tipos/respuesta-login';
 import {
   construirOpcionesCookie,
   opcionesClearCookie,
   opcionesSetCookie,
   type OpcionesCookieAuth,
-} from '../constantes/cookie-auth';
+} from './constantes/cookie-auth';
 
 /**
  * Mensaje unico para correo inexistente y contrasena incorrecta.

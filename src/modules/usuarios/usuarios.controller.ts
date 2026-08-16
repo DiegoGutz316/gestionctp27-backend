@@ -10,15 +10,15 @@ import {
 } from '@nestjs/common';
 import { ApiCookieAuth, ApiOperation } from '@nestjs/swagger';
 
-import { RequierePermiso } from '../../auth/decorators/requiere-permiso.decorator';
-import { UsuarioActual } from '../../auth/decorators/usuario-actual.decorator';
-import { ModuloSistema } from '../../auth/enums/modulo-sistema.enum';
-import { NivelPermiso } from '../../auth/enums/nivel-permiso.enum';
-import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
-import { CrearUsuarioDto } from '../dto/crear-usuario.dto';
-import { EditarUsuarioDto } from '../dto/editar-usuario.dto';
-import { PaginarUsuariosDto } from '../dto/paginar-usuarios.dto';
-import { UsuariosService } from '../services/usuarios.service';
+import { RequierePermiso } from '../auth/decorators/requiere-permiso.decorator';
+import { UsuarioActual } from '../auth/decorators/usuario-actual.decorator';
+import { ModuloSistema } from '../auth/enums/modulo-sistema.enum';
+import { NivelPermiso } from '../auth/enums/nivel-permiso.enum';
+import type { UsuarioAutenticado } from '../auth/tipos/jwt-payload';
+import { CrearUsuarioDto } from './dto/crear-usuario.dto';
+import { EditarUsuarioDto } from './dto/editar-usuario.dto';
+import { PaginarUsuariosDto } from './dto/paginar-usuarios.dto';
+import { UsuariosService } from './usuarios.service';
 
 /**
  * Backlog 1.6: el modulo completo exige permiso sobre USUARIOS, que en la

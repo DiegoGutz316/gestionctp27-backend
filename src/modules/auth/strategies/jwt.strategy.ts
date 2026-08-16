@@ -4,7 +4,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
-import { UsuariosService } from '../../usuarios/services/usuarios.service';
+import { UsuariosService } from '../../usuarios/usuarios.service';
 import type { JwtPayload, UsuarioAutenticado } from '../tipos/jwt-payload';
 import { NOMBRE_COOKIE_ACCESO } from '../constantes/cookie-auth';
 
