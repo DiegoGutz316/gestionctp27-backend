@@ -18,15 +18,15 @@ import { RolUsuario } from '../enums/rol-usuario.enum';
 @Entity({ name: 'usuarios' })
 export class Usuario {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
   @Column({ name: 'nombre', type: 'varchar', length: 120 })
-  nombre!: string;
+  nombre: string;
 
   /** Siempre en minusculas (se normaliza en el servicio) para que UNIQUE funcione. */
   @Index('usuarios_correo_unico', { unique: true })
   @Column({ name: 'correo', type: 'varchar', length: 150, unique: true })
-  correo!: string;
+  correo: string;
 
   /**
    * Hash bcrypt. select: false evita que salga en consultas normales, asi el
@@ -39,7 +39,7 @@ export class Usuario {
     length: 255,
     select: false,
   })
-  contrasenaHash!: string;
+  contrasenaHash: string;
 
   @Column({
     name: 'rol',
@@ -47,33 +47,33 @@ export class Usuario {
     enum: RolUsuario,
     enumName: 'rol_usuario',
   })
-  rol!: RolUsuario;
+  rol: RolUsuario;
 
   /**
    * Backlog 1.6 - Task de BD: "Registrar fecha de asignacion o modificacion
    * del rol". Se actualiza solo cuando el rol cambia, no en cada edicion.
    */
   @Column({ name: 'rol_asignado_en', type: 'timestamptz', nullable: true })
-  rolAsignadoEn!: Date | null;
+  rolAsignadoEn: Date | null;
 
   /** Desactivacion logica (Backlog 1.5): el registro se conserva. */
   @Index('usuarios_activo_idx')
   @Column({ name: 'activo', type: 'boolean', default: true })
-  activo!: boolean;
+  activo: boolean;
 
   @Column({ name: 'ultimo_acceso', type: 'timestamptz', nullable: true })
-  ultimoAcceso!: Date | null;
+  ultimoAcceso: Date | null;
 
   // --- Auditoria transversal a todo el sistema -----------------------------
   @CreateDateColumn({ name: 'creado_en', type: 'timestamptz' })
-  creadoEn!: Date;
+  creadoEn: Date;
 
   @UpdateDateColumn({ name: 'actualizado_en', type: 'timestamptz' })
-  actualizadoEn!: Date;
+  actualizadoEn: Date;
 
   @Column({ name: 'creado_por', type: 'uuid', nullable: true })
-  creadoPor!: string | null;
+  creadoPor: string | null;
 
   @Column({ name: 'actualizado_por', type: 'uuid', nullable: true })
-  actualizadoPor!: string | null;
+  actualizadoPor: string | null;
 }

@@ -30,10 +30,10 @@ const numericTransformer: ValueTransformer = {
 } as IndexOptions)
 export class Insumo {
   @PrimaryGeneratedColumn()
-  id!: number;
+  id: number;
 
   @Column({ type: 'varchar', length: 120 })
-  nombre!: string;
+  nombre: string;
 
   @ManyToOne(() => CategoriaInsumo, {
     nullable: false,
@@ -41,10 +41,10 @@ export class Insumo {
     onDelete: 'RESTRICT',
   })
   @JoinColumn({ name: 'categoria_id' })
-  categoria!: CategoriaInsumo;
+  categoria: CategoriaInsumo;
 
   @Column({ name: 'unidad_medida', type: 'varchar', length: 10 })
-  unidadMedida!: UnidadMedida;
+  unidadMedida: UnidadMedida;
 
   @Column({
     type: 'numeric',
@@ -52,7 +52,7 @@ export class Insumo {
     scale: 2,
     transformer: numericTransformer,
   })
-  cantidad!: number;
+  cantidad: number;
 
   @Column({
     name: 'nivel_minimo',
@@ -62,19 +62,19 @@ export class Insumo {
     default: 0,
     transformer: numericTransformer,
   })
-  nivelMinimo!: number;
+  nivelMinimo: number;
 
   @Column({ type: 'boolean', default: true })
-  activo!: boolean;
+  activo: boolean;
 
   // TODO(Feature 1 - auth): volver NOT NULL + FK a usuarios y llenar desde el
   // usuario autenticado cuando exista el módulo de autenticación.
   @Column({ name: 'creado_por', type: 'uuid', nullable: true })
-  creadoPor!: string | null;
+  creadoPor: string | null;
 
   @CreateDateColumn({ name: 'creado_en', type: 'timestamptz' })
-  creadoEn!: Date;
+  creadoEn: Date;
 
   @UpdateDateColumn({ name: 'actualizado_en', type: 'timestamptz' })
-  actualizadoEn!: Date;
+  actualizadoEn: Date;
 }
