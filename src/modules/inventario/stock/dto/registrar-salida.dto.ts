@@ -2,7 +2,6 @@ import { Transform, type TransformFnParams } from 'class-transformer';
 import {
   IsDateString,
   IsDefined,
-  IsInt,
   IsNumber,
   IsOptional,
   IsPositive,
@@ -15,7 +14,6 @@ import { transformarNumero } from './transformar-numero';
 import { TieneDecimalesPermitidos } from './dos-decimales.validator';
 import { VALOR_MAXIMO, VALOR_MAXIMO_TEXTO } from './limites-numericos';
 
-/** Deja el texto sin espacios sobrantes y convierte "" en undefined. */
 function textoOpcional({ value }: TransformFnParams): unknown {
   const valor: unknown = value;
   if (typeof valor !== 'string') return valor;
@@ -23,20 +21,13 @@ function textoOpcional({ value }: TransformFnParams): unknown {
   return limpio === '' ? undefined : limpio;
 }
 
-export class RegistrarEntradaDto {
-  @ApiProperty({ type: Number, minimum: 1, description: 'Id del insumo' })
-  @Transform(transformarNumero)
-  @IsDefined({ message: 'Seleccione un insumo' })
-  @IsInt({ message: 'Seleccione un insumo' })
-  @IsPositive({ message: 'Seleccione un insumo' })
-  insumoId!: number;
-
+export class RegistrarSalidaDto {
   @ApiProperty({
     type: Number,
     minimum: 0,
     exclusiveMinimum: true,
     maximum: VALOR_MAXIMO,
-    description: 'Máximo 2 decimales (la columna es numeric(12,2))',
+    description: 'Máximo 2 decimales; entero si el producto es por unidad',
   })
   @Transform(transformarNumero)
   @IsDefined({ message: 'La cantidad es obligatoria' })
@@ -59,12 +50,12 @@ export class RegistrarEntradaDto {
   fecha!: string;
 
   @ApiPropertyOptional({
-    maxLength: 150,
-    description: 'Procedencia del insumo: compra, donación, proveedor…',
+    maxLength: 200,
+    description: 'Motivo de la salida: consumo, merma, traslado…',
   })
   @Transform(textoOpcional)
   @IsOptional()
-  @IsString({ message: 'El origen debe ser un texto' })
-  @MaxLength(150, { message: 'El origen no puede superar 150 caracteres' })
-  origen?: string;
+  @IsString({ message: 'El motivo debe ser un texto' })
+  @MaxLength(200, { message: 'El motivo no puede superar 200 caracteres' })
+  motivo?: string;
 }
