@@ -11,6 +11,8 @@ import { ConfiguracionStock } from './stock/entities/configuracion-stock.entity'
 import { IdempotenciaMovimiento } from './stock/entities/idempotencia-movimiento.entity';
 import { AuditoriaInventario } from './entities/auditoria-inventario.entity';
 import { InventarioPolicy } from './inventario.policy';
+import { StockNotificacionesService } from './stock/stock-notificaciones.service';
+import { Usuario } from '../usuarios/entities/usuario.entity';
 
 @Module({
   imports: [
@@ -21,9 +23,15 @@ import { InventarioPolicy } from './inventario.policy';
       MovimientoStock,
       IdempotenciaMovimiento,
       AuditoriaInventario,
+      Usuario,
     ]),
   ],
   controllers: [ProductoController, StockController],
-  providers: [ProductoService, StockService, InventarioPolicy],
+  providers: [
+    ProductoService,
+    StockService,
+    InventarioPolicy,
+    StockNotificacionesService,
+  ],
 })
 export class InventarioModule {}

@@ -18,6 +18,7 @@ import { InventarioModule } from './modules/inventario/inventario.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { OriginCsrfGuard } from './common/http/origin-csrf.guard';
+import { MailModule } from './common/mail/mail.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { OriginCsrfGuard } from './common/http/origin-csrf.guard';
         return dataSource;
       },
     }),
+    MailModule,
     UsuariosModule,
     AuthModule,
     PecuariaModule,

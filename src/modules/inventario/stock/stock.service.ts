@@ -3,6 +3,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -46,6 +47,7 @@ import { IdempotenciaMovimiento } from './entities/idempotencia-movimiento.entit
 import { Inventario } from './entities/inventario.entity';
 import { MovimientoStock } from './entities/movimiento-stock.entity';
 import { TipoMovimiento } from './enums/tipo-movimiento.enum';
+import { StockNotificacionesService } from './stock-notificaciones.service';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -76,6 +78,8 @@ export function crearHuellaMovimiento(
 
 @Injectable()
 export class StockService {
+  private readonly logger = new Logger(StockService.name);
+
   constructor(
     @InjectRepository(ConfiguracionStock)
     private readonly configuracionesRepo: Repository<ConfiguracionStock>,
@@ -85,6 +89,7 @@ export class StockService {
     private readonly movimientosRepo: Repository<MovimientoStock>,
     private readonly dataSource: DataSource,
     private readonly policy: InventarioPolicy,
+    private readonly notificaciones: StockNotificacionesService,
   ) {}
 
   async crearConfiguracion(
@@ -360,7 +365,14 @@ export class StockService {
     clave: string,
   ): Promise<MovimientoRespuesta> {
     const huella = crearHuellaMovimiento(id, tipo, dto);
-    return this.dataSource.transaction(async (manager) => {
+    let avisoStockBajo: {
+      productoNombre: string;
+      unidadMedida: string;
+      cantidadActual: number;
+      stockMinimo: number;
+    } | null = null;
+
+    const resultado = await this.dataSource.transaction(async (manager) => {
       await manager
         .createQueryBuilder()
         .insert()
@@ -424,6 +436,23 @@ export class StockService {
       this.validarSaldo(tipo, inventario.cantidadActual, dto.cantidad);
 
       const configuracion = inventario.producto.configuracionStock;
+      const cantidadAnterior = inventario.cantidadActual;
+      const cantidadNueva =
+        tipo === TipoMovimiento.ENTRADA
+          ? cantidadAnterior + dto.cantidad
+          : cantidadAnterior - dto.cantidad;
+      if (
+        cantidadNueva <= configuracion.stockMinimo &&
+        cantidadAnterior > configuracion.stockMinimo
+      ) {
+        avisoStockBajo = {
+          productoNombre: inventario.producto.nombre,
+          unidadMedida: inventario.producto.unidadMedida,
+          cantidadActual: cantidadNueva,
+          stockMinimo: configuracion.stockMinimo,
+        };
+      }
+
       const movimiento = await manager.save(
         manager.create(MovimientoStock, {
           inventario,
@@ -446,6 +475,19 @@ export class StockService {
         await this.buscarMovimiento(manager, movimiento.id),
       );
     });
+
+    if (avisoStockBajo) {
+      await this.notificaciones
+        .notificarStockBajo(avisoStockBajo)
+        .catch((error: unknown) =>
+          this.logger.error(
+            `Falló el envío de la notificación de stock bajo: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          ),
+        );
+    }
+    return resultado;
   }
 
   private async buscarInventario(id: number): Promise<Inventario> {
