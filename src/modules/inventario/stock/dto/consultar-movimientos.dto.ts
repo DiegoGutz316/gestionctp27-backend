@@ -1,14 +1,20 @@
 import { Transform } from 'class-transformer';
-import { IsDateString, IsInt, IsOptional, IsPositive } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsPositive } from 'class-validator';
 import { ApiPropertyOptional, OmitType } from '@nestjs/swagger';
 import { PaginarDto } from '../../../../common/paginacion/dto/paginar.dto';
 import { transformarNumero } from './transformar-numero';
+import {
+  EsFechaInventario,
+  RangoFechasValido,
+} from './fecha-inventario.validator';
+import { TipoMovimiento } from '../enums/tipo-movimiento.enum';
 
 /**
  * Filtros del historial de movimientos. Hereda `pagina`/`limite` de
  * `PaginarDto` pero omite `q`: este listado no admite búsqueda por texto
  * libre, se filtra por registro de inventario y por fechas.
  */
+@RangoFechasValido()
 export class ConsultarMovimientosDto extends OmitType(PaginarDto, [
   'q',
 ] as const) {
@@ -28,10 +34,7 @@ export class ConsultarMovimientosDto extends OmitType(PaginarDto, [
     description: 'Incluye los movimientos de esta fecha en adelante',
   })
   @IsOptional()
-  @IsDateString(
-    { strict: true },
-    { message: 'Ingrese una fecha de inicio válida (AAAA-MM-DD)' },
-  )
+  @EsFechaInventario()
   desde?: string;
 
   @ApiPropertyOptional({
@@ -39,9 +42,11 @@ export class ConsultarMovimientosDto extends OmitType(PaginarDto, [
     description: 'Incluye los movimientos hasta esta fecha',
   })
   @IsOptional()
-  @IsDateString(
-    { strict: true },
-    { message: 'Ingrese una fecha de fin válida (AAAA-MM-DD)' },
-  )
+  @EsFechaInventario()
   hasta?: string;
+
+  @ApiPropertyOptional({ enum: TipoMovimiento, enumName: 'TipoMovimiento' })
+  @IsOptional()
+  @IsEnum(TipoMovimiento, { message: 'Tipo de movimiento inválido' })
+  tipo?: TipoMovimiento;
 }

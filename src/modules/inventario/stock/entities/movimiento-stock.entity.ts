@@ -3,6 +3,7 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  type IndexOptions,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -11,6 +12,8 @@ import {
 import { Inventario } from './inventario.entity';
 import { Usuario } from '../../../usuarios/entities/usuario.entity';
 import { TipoMovimiento } from '../enums/tipo-movimiento.enum';
+import { UnidadMedida } from '../../producto/enums/unidad-medida.enum';
+import { Departamento } from '../../producto/enums/departamento.enum';
 
 const numericTransformer: ValueTransformer = {
   to: (value: number) => value,
@@ -20,11 +23,17 @@ const numericTransformer: ValueTransformer = {
 /**
  * Historial inmutable de entradas/salidas de un registro de stock: un
  * movimiento no se edita ni se borra, corrige un error registrando el
- * movimiento contrario. `Inventario.cantidad` solo cambia a través de estos
+ * movimiento contrario. `Inventario.cantidadActual` solo cambia a través de estos
  * movimientos (ver `StockService.registrarEntrada`/`registrarSalida`).
  */
 @Entity('movimientos_stock')
-@Index('movimientos_stock_inventario_idx', ['inventario'])
+@Index(
+  'movimientos_stock_inventario_fecha_idx',
+  ['inventario', 'fecha', 'id'],
+  {
+    synchronize: false,
+  } as IndexOptions,
+)
 @Index('movimientos_stock_tipo_fecha_idx', ['tipo', 'fecha'])
 export class MovimientoStock {
   @PrimaryGeneratedColumn()
@@ -65,12 +74,30 @@ export class MovimientoStock {
   @Column({ type: 'varchar', length: 200, nullable: true })
   motivo: string | null;
 
-  @Column({ name: 'responsable_id', type: 'uuid' })
-  responsableId: string;
+  @Column({ name: 'producto_nombre', type: 'varchar', length: 120 })
+  productoNombre: string;
 
-  @ManyToOne(() => Usuario, { nullable: false, onDelete: 'RESTRICT' })
+  @Column({ name: 'unidad_medida_snapshot', type: 'varchar', length: 20 })
+  unidadMedida: UnidadMedida;
+
+  @Column({ name: 'departamento_snapshot', type: 'varchar', length: 20 })
+  departamento: Departamento;
+
+  @Column({
+    name: 'precio_unitario',
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    transformer: numericTransformer,
+  })
+  precioUnitario: number;
+
+  @Column({ name: 'responsable_id', type: 'uuid', nullable: true })
+  responsableId: string | null;
+
+  @ManyToOne(() => Usuario, { nullable: true, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'responsable_id' })
-  responsable: Usuario;
+  responsable: Usuario | null;
 
   @CreateDateColumn({ name: 'creado_en', type: 'timestamptz' })
   creadoEn: Date;

@@ -1,162 +1,169 @@
-import { ConflictException } from '@nestjs/common';
 import type { DataSource, EntityManager, Repository } from 'typeorm';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
+import { RolUsuario } from '../../usuarios/enums/rol-usuario.enum';
+import { AuditoriaInventario } from '../entities/auditoria-inventario.entity';
+import { InventarioPolicy } from '../inventario.policy';
 import { Producto } from '../producto/entities/producto.entity';
+import { Departamento } from '../producto/enums/departamento.enum';
+import { TipoProducto } from '../producto/enums/tipo-producto.enum';
+import { Ubicacion } from '../producto/enums/ubicacion.enum';
 import { UnidadMedida } from '../producto/enums/unidad-medida.enum';
+import { ConfiguracionStock } from './entities/configuracion-stock.entity';
+import { IdempotenciaMovimiento } from './entities/idempotencia-movimiento.entity';
 import { Inventario } from './entities/inventario.entity';
 import { MovimientoStock } from './entities/movimiento-stock.entity';
 import { TipoMovimiento } from './enums/tipo-movimiento.enum';
-import { StockService } from './stock.service';
+import { crearHuellaMovimiento, StockService } from './stock.service';
 
 describe('StockService', () => {
+  const actor: UsuarioAutenticado = {
+    id: 'b62082bb-17b7-49c1-994b-538d77bc814a',
+    correo: 'admin@ctp.test',
+    nombre: 'Admin',
+    rol: RolUsuario.ADMINISTRADOR,
+  };
   const producto = {
     id: 7,
     nombre: 'Concentrado',
+    tipoProducto: TipoProducto.INSUMO,
     unidadMedida: UnidadMedida.GRANEL,
+    departamento: Departamento.PECUARIO,
+    ubicacion: Ubicacion.BODEGA_PECUARIA,
     activo: true,
+    creadoEn: new Date('2026-01-01T00:00:00Z'),
+    actualizadoEn: new Date('2026-01-01T00:00:00Z'),
   } as Producto;
 
-  const actor = { id: 'usuario-1' } as UsuarioAutenticado;
+  const policy = new InventarioPolicy();
 
-  let productosRepo: {
-    findOneBy: jest.Mock;
-  };
-  let inventarioRepo: {
-    findOne: jest.Mock;
-    findOneBy: jest.Mock;
-    create: jest.Mock;
-    save: jest.Mock;
-  };
-  let dataSource: {
-    transaction: jest.Mock;
-  };
-  let service: StockService;
-
-  beforeEach(() => {
-    productosRepo = { findOneBy: jest.fn() };
-    inventarioRepo = {
-      findOne: jest.fn(),
-      findOneBy: jest.fn(),
-      create: jest.fn((valor: Inventario) => valor),
-      save: jest.fn((valor: Inventario) => Promise.resolve(valor)),
+  it('crea configuración e inventario cero en una única transacción', async () => {
+    const productoQuery = {
+      setLock: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue(producto),
     };
-    dataSource = { transaction: jest.fn() };
+    const manager = {
+      createQueryBuilder: jest.fn().mockReturnValue(productoQuery),
+      findOne: jest.fn().mockResolvedValue(null),
+      create: jest.fn((_entidad: unknown, valor: object) => valor),
+      save: jest.fn((valor: Record<string, unknown>) => {
+        if ('stockMinimo' in valor) return Promise.resolve({ id: 3, ...valor });
+        if ('cantidadActual' in valor)
+          return Promise.resolve({ id: 3, ...valor });
+        return Promise.resolve({ id: 1, ...valor });
+      }),
+    };
+    const dataSource = {
+      transaction: jest.fn((operacion: (m: EntityManager) => unknown) =>
+        operacion(manager as unknown as EntityManager),
+      ),
+    };
+    const service = crearServicio(dataSource);
 
-    service = new StockService(
-      productosRepo as unknown as Repository<Producto>,
-      inventarioRepo as unknown as Repository<Inventario>,
+    const resultado = await service.crearConfiguracion(
+      { productoId: 7, stockMinimo: 5, precio: 1250 },
+      actor,
+    );
+
+    expect(resultado.stockMinimo).toBe(5);
+    expect(manager.save).toHaveBeenCalledWith(
+      expect.objectContaining({ cantidadActual: 0, producto }),
+    );
+    expect(manager.create).toHaveBeenCalledWith(
+      AuditoriaInventario,
+      expect.objectContaining({ recursoId: 3, actorId: actor.id }),
+    );
+    expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('devuelve el movimiento reservado sin volver a aplicar el trigger', async () => {
+    const inventario = {
+      id: 3,
+      producto,
+      cantidadActual: 8,
+      activo: true,
+      creadoEn: new Date('2026-01-01T00:00:00Z'),
+      actualizadoEn: new Date('2026-01-02T00:00:00Z'),
+    } as Inventario;
+    const movimiento = {
+      id: 12,
+      tipo: TipoMovimiento.ENTRADA,
+      cantidad: 8,
+      fecha: '2026-08-15',
+      origen: 'Compra',
+      motivo: null,
+      productoNombre: producto.nombre,
+      unidadMedida: producto.unidadMedida,
+      departamento: producto.departamento,
+      precioUnitario: 100,
+      creadoEn: new Date('2026-08-15T12:00:00Z'),
+      inventario,
+      responsable: { id: actor.id, nombre: actor.nombre },
+    } as MovimientoStock;
+    const dto = { cantidad: 8, fecha: '2026-08-15', origen: 'Compra' };
+    const huella = crearHuellaMovimiento(
+      inventario.id,
+      TipoMovimiento.ENTRADA,
+      dto,
+    );
+    const insertar = {
+      insert: jest.fn().mockReturnThis(),
+      into: jest.fn().mockReturnThis(),
+      values: jest.fn().mockReturnThis(),
+      orIgnore: jest.fn().mockReturnThis(),
+      execute: jest.fn().mockResolvedValue({}),
+    };
+    const reservaQuery = {
+      setLock: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue({
+        id: 2,
+        huella,
+        movimientoId: movimiento.id,
+      }),
+    };
+    const movimientoQuery = {
+      innerJoinAndSelect: jest.fn().mockReturnThis(),
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue(movimiento),
+    };
+    const manager = {
+      createQueryBuilder: jest.fn((entidad?: unknown) => {
+        if (!entidad) return insertar;
+        if (entidad === IdempotenciaMovimiento) return reservaQuery;
+        if (entidad === MovimientoStock) return movimientoQuery;
+        throw new Error('No debía consultar otra entidad');
+      }),
+      save: jest.fn(),
+    };
+    const dataSource = {
+      transaction: jest.fn((operacion: (m: EntityManager) => unknown) =>
+        operacion(manager as unknown as EntityManager),
+      ),
+    };
+    const service = crearServicio(dataSource);
+    const resultado = await service.registrarEntrada(
+      inventario.id,
+      dto,
+      actor,
+      '550e8400-e29b-41d4-a716-446655440000',
+    );
+
+    expect(resultado.id).toBe(movimiento.id);
+    expect(resultado.inventario.cantidadActual).toBe(8);
+    expect(manager.save).not.toHaveBeenCalled();
+  });
+
+  function crearServicio(dataSource: { transaction: jest.Mock }): StockService {
+    return new StockService(
+      {} as Repository<ConfiguracionStock>,
+      {} as Repository<Inventario>,
       {} as Repository<MovimientoStock>,
       dataSource as unknown as DataSource,
+      policy,
     );
-  });
-
-  it('crea una única configuración con existencia inicial en cero', async () => {
-    productosRepo.findOneBy.mockResolvedValue(producto);
-    inventarioRepo.findOne.mockResolvedValue(null);
-
-    const resultado = await service.crear({
-      productoId: producto.id,
-      stockMinimo: 5,
-      precio: 1250,
-    });
-
-    expect(resultado.cantidad).toBe(0);
-    expect(resultado.producto).toBe(producto);
-    expect(inventarioRepo.save).toHaveBeenCalledTimes(1);
-  });
-
-  it('rechaza una segunda configuración para el mismo producto', async () => {
-    productosRepo.findOneBy.mockResolvedValue(producto);
-    inventarioRepo.findOne.mockResolvedValue({ id: 3 });
-
-    await expect(
-      service.crear({
-        productoId: producto.id,
-        stockMinimo: 5,
-        precio: 1250,
-      }),
-    ).rejects.toBeInstanceOf(ConflictException);
-
-    expect(inventarioRepo.save).not.toHaveBeenCalled();
-  });
-
-  it('registra la entrada y obtiene la cantidad aplicada por la BD', async () => {
-    const inventario = {
-      id: 3,
-      cantidad: 0,
-      activo: true,
-      producto,
-    } as Inventario;
-    const actualizado = { ...inventario, cantidad: 4 };
-    inventarioRepo.findOne.mockResolvedValue(inventario);
-
-    const queryBuilder = {
-      setLock: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      getOne: jest.fn().mockResolvedValue(inventario),
-    };
-    const manager = {
-      createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
-      create: jest.fn(
-        (_entidad: typeof MovimientoStock, valor: MovimientoStock) => valor,
-      ),
-      save: jest.fn((valor: MovimientoStock) => Promise.resolve(valor)),
-      findOneBy: jest.fn().mockResolvedValue(actualizado),
-    };
-    dataSource.transaction.mockImplementation(
-      (operacion: (manager: EntityManager) => unknown) =>
-        operacion(manager as unknown as EntityManager),
-    );
-
-    const movimiento = await service.registrarEntrada(
-      inventario.id,
-      { cantidad: 4, fecha: '2026-08-16' },
-      actor,
-    );
-
-    expect(movimiento.tipo).toBe(TipoMovimiento.ENTRADA);
-    expect(movimiento.inventario.cantidad).toBe(4);
-    expect(manager.save).toHaveBeenCalledTimes(1);
-    expect(manager).not.toHaveProperty('increment');
-  });
-
-  it('registra la salida y obtiene la cantidad aplicada por la BD', async () => {
-    const inventario = {
-      id: 3,
-      cantidad: 10,
-      activo: true,
-      producto,
-    } as Inventario;
-    const actualizado = { ...inventario, cantidad: 7 };
-    inventarioRepo.findOne.mockResolvedValue(inventario);
-
-    const queryBuilder = {
-      setLock: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      getOne: jest.fn().mockResolvedValue(inventario),
-    };
-    const manager = {
-      createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
-      create: jest.fn(
-        (_entidad: typeof MovimientoStock, valor: MovimientoStock) => valor,
-      ),
-      save: jest.fn((valor: MovimientoStock) => Promise.resolve(valor)),
-      findOneBy: jest.fn().mockResolvedValue(actualizado),
-    };
-    dataSource.transaction.mockImplementation(
-      (operacion: (manager: EntityManager) => unknown) =>
-        operacion(manager as unknown as EntityManager),
-    );
-
-    const movimiento = await service.registrarSalida(
-      inventario.id,
-      { cantidad: 3, fecha: '2026-08-16', motivo: 'Consumo' },
-      actor,
-    );
-
-    expect(movimiento.tipo).toBe(TipoMovimiento.SALIDA);
-    expect(movimiento.inventario.cantidad).toBe(7);
-    expect(manager.save).toHaveBeenCalledTimes(1);
-    expect(manager).not.toHaveProperty('decrement');
-  });
+  }
 });

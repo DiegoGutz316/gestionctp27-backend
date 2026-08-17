@@ -9,7 +9,9 @@ import type { JwtPayload, UsuarioAutenticado } from '../tipos/jwt-payload';
 import { NOMBRE_COOKIE_ACCESO } from '../constantes/cookie-auth';
 
 function jwtDesdeCookie(req: Request): string | null {
-  const token = req.cookies?.[NOMBRE_COOKIE_ACCESO];
+  const cookies: unknown = req.cookies;
+  if (!cookies || typeof cookies !== 'object') return null;
+  const token = (cookies as Record<string, unknown>)[NOMBRE_COOKIE_ACCESO];
   return typeof token === 'string' && token.length > 0 ? token : null;
 }
 

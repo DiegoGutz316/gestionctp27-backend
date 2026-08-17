@@ -17,6 +17,7 @@ import { AgricolaModule } from './modules/agricola/agricola.module';
 import { InventarioModule } from './modules/inventario/inventario.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { OriginCsrfGuard } from './common/http/origin-csrf.guard';
 
 @Module({
   imports: [
@@ -71,6 +72,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
       }),
     },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: OriginCsrfGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     // Backlog 1.6: autorizacion por matriz de permisos. Va despues de

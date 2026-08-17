@@ -6,17 +6,18 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional, OmitType } from '@nestjs/swagger';
 import { TipoProducto } from '../enums/tipo-producto.enum';
 import { Departamento } from '../enums/departamento.enum';
 import { Ubicacion } from '../enums/ubicacion.enum';
+import { PaginarDto } from '../../../../common/paginacion/dto/paginar.dto';
 
 function normalizarTexto({ value }: TransformFnParams): unknown {
   const valor: unknown = value;
   return typeof valor === 'string' ? valor.trim() : valor;
 }
 
-export class FiltrarProductosDto {
+export class FiltrarProductosDto extends OmitType(PaginarDto, ['q'] as const) {
   @ApiPropertyOptional({ minLength: 1, maxLength: 120 })
   @Transform(normalizarTexto)
   @IsOptional()

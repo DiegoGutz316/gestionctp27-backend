@@ -1,6 +1,6 @@
 import { Transform } from 'class-transformer';
-import { IsDefined, IsNumber, Max, Min } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsBoolean, IsNumber, IsOptional, Max, Min } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { transformarNumero } from './transformar-numero';
 import { TieneDecimalesPermitidos } from './dos-decimales.validator';
 import { VALOR_MAXIMO, VALOR_MAXIMO_TEXTO } from './limites-numericos';
@@ -8,9 +8,9 @@ import { VALOR_MAXIMO, VALOR_MAXIMO_TEXTO } from './limites-numericos';
 // La cantidad no se edita directo: solo cambia registrando entradas/salidas
 // (ver RegistrarEntradaDto/RegistrarSalidaDto), que quedan en el historial.
 export class EditarInventarioDto {
-  @ApiProperty({ type: Number, minimum: 0, maximum: VALOR_MAXIMO })
+  @ApiPropertyOptional({ type: Number, minimum: 0, maximum: VALOR_MAXIMO })
   @Transform(transformarNumero)
-  @IsDefined({ message: 'El stock mínimo es obligatorio' })
+  @IsOptional()
   @IsNumber({}, { message: 'El stock mínimo debe ser un número válido' })
   @TieneDecimalesPermitidos({
     message: 'El stock mínimo admite como máximo 2 decimales',
@@ -19,11 +19,11 @@ export class EditarInventarioDto {
   @Max(VALOR_MAXIMO, {
     message: `El stock mínimo no puede superar ${VALOR_MAXIMO_TEXTO}`,
   })
-  stockMinimo!: number;
+  stockMinimo?: number;
 
-  @ApiProperty({ type: Number, minimum: 0, maximum: VALOR_MAXIMO })
+  @ApiPropertyOptional({ type: Number, minimum: 0, maximum: VALOR_MAXIMO })
   @Transform(transformarNumero)
-  @IsDefined({ message: 'El precio es obligatorio' })
+  @IsOptional()
   @IsNumber({}, { message: 'El precio debe ser un número válido' })
   @TieneDecimalesPermitidos({
     message: 'El precio admite como máximo 2 decimales',
@@ -32,5 +32,10 @@ export class EditarInventarioDto {
   @Max(VALOR_MAXIMO, {
     message: `El precio no puede superar ${VALOR_MAXIMO_TEXTO}`,
   })
-  precio!: number;
+  precio?: number;
+
+  @ApiPropertyOptional({ type: Boolean })
+  @IsOptional()
+  @IsBoolean({ message: 'El estado activo debe ser booleano' })
+  activo?: boolean;
 }

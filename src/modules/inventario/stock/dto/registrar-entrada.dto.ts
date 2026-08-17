@@ -1,18 +1,18 @@
 import { Transform, type TransformFnParams } from 'class-transformer';
 import {
-  IsDateString,
   IsDefined,
+  IsNotEmpty,
   IsNumber,
-  IsOptional,
   IsPositive,
   IsString,
   Max,
   MaxLength,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { transformarNumero } from './transformar-numero';
 import { TieneDecimalesPermitidos } from './dos-decimales.validator';
 import { VALOR_MAXIMO, VALOR_MAXIMO_TEXTO } from './limites-numericos';
+import { EsFechaInventario } from './fecha-inventario.validator';
 
 function textoOpcional({ value }: TransformFnParams): unknown {
   const valor: unknown = value;
@@ -43,19 +43,17 @@ export class RegistrarEntradaDto {
 
   @ApiProperty({ example: '2026-08-12', description: 'Fecha del movimiento' })
   @IsDefined({ message: 'La fecha es obligatoria' })
-  @IsDateString(
-    { strict: true },
-    { message: 'Ingrese una fecha válida (AAAA-MM-DD)' },
-  )
+  @EsFechaInventario()
   fecha!: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     maxLength: 150,
     description: 'Procedencia del stock: compra, donación, proveedor…',
   })
   @Transform(textoOpcional)
-  @IsOptional()
+  @IsDefined({ message: 'El origen es obligatorio' })
   @IsString({ message: 'El origen debe ser un texto' })
+  @IsNotEmpty({ message: 'El origen es obligatorio' })
   @MaxLength(150, { message: 'El origen no puede superar 150 caracteres' })
-  origen?: string;
+  origen!: string;
 }

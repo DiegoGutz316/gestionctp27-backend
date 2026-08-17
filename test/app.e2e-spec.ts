@@ -38,8 +38,8 @@ describe('AppController (e2e)', () => {
       .expect(400);
   });
 
-  it('/usuarios (POST) valida el DTO sin autenticación', () => {
-    return request(app.getHttpServer()).post('/usuarios').send({}).expect(400);
+  it('/usuarios (POST) exige autenticación antes de validar el DTO', () => {
+    return request(app.getHttpServer()).post('/usuarios').send({}).expect(401);
   });
 
   afterEach(async () => {

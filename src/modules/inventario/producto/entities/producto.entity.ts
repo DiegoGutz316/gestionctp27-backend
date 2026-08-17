@@ -13,6 +13,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Inventario } from '../../stock/entities/inventario.entity';
+import { ConfiguracionStock } from '../../stock/entities/configuracion-stock.entity';
 
 // El índice único real es de expresión (lower(nombre) WHERE activo = true) y
 // se crea a mano en la migración; synchronize:false evita que la CLI lo toque.
@@ -53,16 +54,21 @@ export class Producto {
   @Column({ type: 'boolean', default: true })
   activo: boolean;
 
-  /**
-   * Configuración y existencia actual del producto. La relación es opcional
-   * mientras el producto todavía no haya sido configurado en inventario.
-   */
+  @OneToOne(() => ConfiguracionStock, (configuracion) => configuracion.producto)
+  configuracionStock?: ConfiguracionStock | null;
+
   @OneToOne(() => Inventario, (inventario) => inventario.producto)
-  stock?: Inventario | null;
+  inventario?: Inventario | null;
 
   @CreateDateColumn({ name: 'creado_en', type: 'timestamptz' })
   creadoEn: Date;
 
   @UpdateDateColumn({ name: 'actualizado_en', type: 'timestamptz' })
   actualizadoEn: Date;
+
+  @Column({ name: 'creado_por', type: 'uuid', nullable: true })
+  creadoPor: string | null;
+
+  @Column({ name: 'actualizado_por', type: 'uuid', nullable: true })
+  actualizadoPor: string | null;
 }

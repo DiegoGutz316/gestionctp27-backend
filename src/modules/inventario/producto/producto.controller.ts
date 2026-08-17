@@ -16,6 +16,8 @@ import { NivelPermiso } from '../../auth/enums/nivel-permiso.enum';
 import { CrearProductoDto } from './dto/crear-producto.dto';
 import { EditarProductoDto } from './dto/editar-producto.dto';
 import { FiltrarProductosDto } from './dto/filtrar-productos.dto';
+import { UsuarioActual } from '../../auth/decorators/usuario-actual.decorator';
+import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 
 @ApiTags('Inventario - Productos')
 @ApiCookieAuth('cookie')
@@ -27,21 +29,30 @@ export class ProductoController {
   @ApiOperation({ summary: 'Listar productos activos (filtrable)' })
   @Get()
   @RequierePermiso(ModuloSistema.INVENTARIO, NivelPermiso.LECTURA)
-  listar(@Query() filtros: FiltrarProductosDto) {
-    return this.productoService.listar(filtros);
+  listar(
+    @Query() filtros: FiltrarProductosDto,
+    @UsuarioActual() actor: UsuarioAutenticado,
+  ) {
+    return this.productoService.listar(filtros, actor);
   }
 
   @ApiOperation({ summary: 'Crear un producto' })
   @Post()
-  crear(@Body() dto: CrearProductoDto) {
-    return this.productoService.crear(dto);
+  crear(
+    @Body() dto: CrearProductoDto,
+    @UsuarioActual() actor: UsuarioAutenticado,
+  ) {
+    return this.productoService.crear(dto, actor);
   }
 
   @ApiOperation({ summary: 'Consultar un producto por id' })
   @Get(':id')
   @RequierePermiso(ModuloSistema.INVENTARIO, NivelPermiso.LECTURA)
-  obtener(@Param('id', ParseIntPipe) id: number) {
-    return this.productoService.obtener(id);
+  obtener(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioActual() actor: UsuarioAutenticado,
+  ) {
+    return this.productoService.obtener(id, actor);
   }
 
   @ApiOperation({ summary: 'Editar un producto existente' })
@@ -49,7 +60,8 @@ export class ProductoController {
   actualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: EditarProductoDto,
+    @UsuarioActual() actor: UsuarioAutenticado,
   ) {
-    return this.productoService.actualizar(id, dto);
+    return this.productoService.actualizar(id, dto, actor);
   }
 }
