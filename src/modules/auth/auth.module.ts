@@ -4,10 +4,10 @@ import { JwtModule, type JwtSignOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { AuthController } from './controllers/auth.controller';
+import { AuthController } from './auth.controller';
 import { PermisoRol } from './entities/permiso-rol.entity';
-import { AuthService } from './services/auth.service';
-import { PermisosService } from './services/permisos.service';
+import { AuthService } from './auth.service';
+import { PermisosService } from './permisos.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsuariosModule } from '../usuarios/usuarios.module';
 

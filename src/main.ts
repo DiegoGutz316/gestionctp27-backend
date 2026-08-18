@@ -2,16 +2,18 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
+import { obtenerOrigenesPermitidos } from './common/http/origenes-permitidos';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.use(cookieParser());
 
-  // CORS: el origen permitido (URL del frontend) se lee del .env
+  const origenes = obtenerOrigenesPermitidos((clave) => process.env[clave]);
   app.enableCors({
-    origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+    origin: origenes,
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key'],
   });
 
   const config = new DocumentBuilder()

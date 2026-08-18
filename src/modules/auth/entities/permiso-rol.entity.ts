@@ -25,7 +25,7 @@ import { NivelPermiso } from '../enums/nivel-permiso.enum';
 @Index('permisos_rol_unico', ['rol', 'modulo'], { unique: true })
 export class PermisoRol {
   @PrimaryGeneratedColumn()
-  id!: number;
+  id: number;
 
   @Column({
     name: 'rol',
@@ -33,7 +33,7 @@ export class PermisoRol {
     enum: RolUsuario,
     enumName: 'rol_usuario',
   })
-  rol!: RolUsuario;
+  rol: RolUsuario;
 
   @Column({
     name: 'modulo',
@@ -41,7 +41,7 @@ export class PermisoRol {
     enum: ModuloSistema,
     enumName: 'modulo_sistema',
   })
-  modulo!: ModuloSistema;
+  modulo: ModuloSistema;
 
   @Column({
     name: 'nivel',
@@ -50,11 +50,11 @@ export class PermisoRol {
     enumName: 'nivel_permiso',
     default: NivelPermiso.NINGUNO,
   })
-  nivel!: NivelPermiso;
+  nivel: NivelPermiso;
 
   @CreateDateColumn({ name: 'creado_en', type: 'timestamptz' })
-  creadoEn!: Date;
+  creadoEn: Date;
 
   @UpdateDateColumn({ name: 'actualizado_en', type: 'timestamptz' })
-  actualizadoEn!: Date;
+  actualizadoEn: Date;
 }

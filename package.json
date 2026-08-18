@@ -23,6 +23,8 @@
     "migration:generate": "pnpm typeorm migration:generate",
     "migration:run": "pnpm typeorm migration:run",
     "migration:revert": "pnpm typeorm migration:revert",
+    "migration:check": "pnpm typeorm migration:show",
+    "predeploy": "pnpm build && pnpm migration:check",
     "seed:usuarios": "ts-node -r tsconfig-paths/register src/database/seeds/usuarios.seed.ts"
   },
   "dependencies": {

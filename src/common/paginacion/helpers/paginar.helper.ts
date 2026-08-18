@@ -44,15 +44,14 @@ export function crearMetaPaginacion(
   const { pagina, limite } = resolverOpcionesPaginacion(opciones);
   const totalSeguro = Math.max(0, Math.trunc(total));
   const totalPaginas = totalSeguro === 0 ? 0 : Math.ceil(totalSeguro / limite);
-  const paginaActual = totalPaginas === 0 ? 1 : Math.min(pagina, totalPaginas);
 
   return {
-    pagina: paginaActual,
+    pagina,
     limite,
     total: totalSeguro,
     totalPaginas,
-    tieneAnterior: paginaActual > 1,
-    tieneSiguiente: totalPaginas > 0 && paginaActual < totalPaginas,
+    tieneAnterior: pagina > 1 && totalSeguro > 0,
+    tieneSiguiente: pagina < totalPaginas,
   };
 }
 

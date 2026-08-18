@@ -19,7 +19,7 @@ src/
 ├── modules/
 │   ├── usuarios/      ├── pecuaria/     ├── agricola/
 │   ├── inventario/    ├── reportes/     └── dashboard/
-│         (cada módulo: controllers/ services/ entities/ dto/ enums/)
+│         (cada módulo: *.controller.ts *.service.ts entities/ dto/ enums/)
 ├── database/
 │   ├── data-source.ts     (DataSource para la CLI de TypeORM)
 │   ├── database.config.ts (opciones de conexión compartidas app/CLI)
@@ -50,7 +50,8 @@ cp .env.example .env
 
 Variables: conexión a PostgreSQL (`DATABASE_URL`, o bien `DB_HOST`, `DB_PORT`,
 `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`), SSL (`DB_SSL`), puerto de la API
-(`PORT`) y origen permitido para CORS (`CORS_ORIGIN`, la URL del frontend).
+(`PORT`) y orígenes exactos permitidos para CORS/CSRF (`CORS_ORIGIN` y,
+opcionalmente, `CORS_ORIGINS` como lista separada por comas).
 
 ### Conexión con Supabase
 
@@ -76,7 +77,24 @@ pnpm migration:generate src/database/migrations/NombreDeLaMigracion
 pnpm migration:create   src/database/migrations/NombreDeLaMigracion
 pnpm migration:run
 pnpm migration:revert
+pnpm migration:check    # muestra migraciones aplicadas y pendientes; no migra
 ```
+
+Las migraciones no se ejecutan al arrancar la API. En despliegue,
+`pnpm predeploy` compila y revisa el estado, pero nunca aplica cambios de esquema.
+
+## Contrato de inventario
+
+- `GET /inventario/productos` devuelve `ResultadoPaginado` y cada producto puede
+  incluir `configuracionStock` e `inventario` por separado; no existe `stock`.
+- `POST /inventario/configuracion-stock`, `GET/PATCH /inventario/configuracion-stock/:id`.
+- `GET /inventario/existencias`, `GET /inventario/existencias/:id` y
+  `GET /inventario/existencias/movimientos` devuelven resultados paginados cuando
+  corresponda.
+- `POST /inventario/existencias/:id/entradas` y `/salidas` requieren
+  `Idempotency-Key` con un UUID y cuerpos JSON.
+- `pagina` y `limite` controlan la paginación. Una página fuera de rango devuelve
+  `datos: []` y conserva en `meta.pagina` el número solicitado.
 
 ## Despliegue
 

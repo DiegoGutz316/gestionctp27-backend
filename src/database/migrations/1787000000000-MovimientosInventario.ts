@@ -68,7 +68,9 @@ export class MovimientosInventario1787000000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX IF EXISTS "movimientos_tipo_fecha_idx"`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "movimientos_tipo_fecha_idx"`,
+    );
     await queryRunner.query(`DROP INDEX IF EXISTS "movimientos_insumo_idx"`);
     await queryRunner.query(`DROP TABLE IF EXISTS "movimientos_inventario"`);
     await queryRunner.query(`DROP TYPE IF EXISTS "tipo_movimiento"`);
