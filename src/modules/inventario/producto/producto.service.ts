@@ -28,6 +28,7 @@ import { MovimientoStock } from '../stock/entities/movimiento-stock.entity';
 import { CrearProductoDto } from './dto/crear-producto.dto';
 import { EditarProductoDto } from './dto/editar-producto.dto';
 import { FiltrarProductosDto } from './dto/filtrar-productos.dto';
+import { OrdenProductos } from './enums/orden-productos.enum';
 import { Producto } from './entities/producto.entity';
 import { UnidadMedida } from './enums/unidad-medida.enum';
 
@@ -54,9 +55,20 @@ export class ProductoService {
         'inventario',
         'inventario.activo = true',
       )
-      .where('producto.activo = true')
-      .orderBy('producto.nombre', 'ASC')
-      .addOrderBy('producto.id', 'ASC');
+      .where('producto.activo = true');
+
+    // Backlog 4.7: el orden lo elige quien consulta. Al agrupar por categoría
+    // se ordena además por nombre dentro de cada una, y en ambos casos se
+    // desempata por id para que la paginación no repita ni omita filas.
+    // Nota: `tipo_producto` es un enum de Postgres, que ordena por orden de
+    // declaración (INSUMO, HERRAMIENTA, EQUIPO), no alfabéticamente.
+    if (filtros.orden === OrdenProductos.CATEGORIA) {
+      consulta.orderBy('producto.tipoProducto', 'ASC');
+      consulta.addOrderBy('producto.nombre', 'ASC');
+    } else {
+      consulta.orderBy('producto.nombre', 'ASC');
+    }
+    consulta.addOrderBy('producto.id', 'ASC');
 
     if (filtros.nombre) {
       consulta.andWhere('lower(producto.nombre) LIKE lower(:nombre)', {

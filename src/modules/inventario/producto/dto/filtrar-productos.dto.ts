@@ -10,6 +10,7 @@ import { ApiPropertyOptional, OmitType } from '@nestjs/swagger';
 import { TipoProducto } from '../enums/tipo-producto.enum';
 import { Departamento } from '../enums/departamento.enum';
 import { Ubicacion } from '../enums/ubicacion.enum';
+import { OrdenProductos } from '../enums/orden-productos.enum';
 import { PaginarDto } from '../../../../common/paginacion/dto/paginar.dto';
 
 function normalizarTexto({ value }: TransformFnParams): unknown {
@@ -40,4 +41,17 @@ export class FiltrarProductosDto extends OmitType(PaginarDto, ['q'] as const) {
   @IsOptional()
   @IsEnum(Ubicacion, { message: 'Ubicación inválida' })
   ubicacion?: Ubicacion;
+
+  /**
+   * Backlog 4.7: "Ordenar insumos por categoría o nombre". La categoría del
+   * enunciado es el `tipo_producto` de este modelo.
+   */
+  @ApiPropertyOptional({
+    enum: OrdenProductos,
+    enumName: 'OrdenProductos',
+    default: OrdenProductos.NOMBRE,
+  })
+  @IsOptional()
+  @IsEnum(OrdenProductos, { message: 'Orden inválido' })
+  orden: OrdenProductos = OrdenProductos.NOMBRE;
 }
