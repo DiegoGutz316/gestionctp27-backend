@@ -5,9 +5,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * elimina duplicados vacíos y sin historial; cualquier caso ambiguo aborta la
  * migración para evitar combinar saldos de forma silenciosa.
  */
-export class RepararInventariosDuplicados1792000000000
-  implements MigrationInterface
-{
+export class RepararInventariosDuplicados1792000000000 implements MigrationInterface {
   name = 'RepararInventariosDuplicados1792000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
