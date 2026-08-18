@@ -20,7 +20,8 @@ import { CrearInsumoDto } from '../dto/crear-insumo.dto';
 import { EditarInsumoDto } from '../dto/editar-insumo.dto';
 import { FiltrarInsumosDto } from '../dto/filtrar-insumos.dto';
 import { RegistrarEntradaDto } from '../dto/registrar-entrada.dto';
-import { ConsultarEntradasDto } from '../dto/consultar-entradas.dto';
+import { RegistrarSalidaDto } from '../dto/registrar-salida.dto';
+import { ConsultarMovimientosDto } from '../dto/consultar-movimientos.dto';
 
 /**
  * Backlog 1.6: cierra el TODO(Feature 1 - auth) que quedó abierto en los
@@ -98,15 +99,32 @@ export class InventarioController {
   }
 
   /**
-   * Backlog 4.5: historial de entradas. Es una consulta, así que basta con
-   * LECTURA sobre inventario (los roles de solo lectura también pueden verlo).
+   * Backlog 4.6: registrar una salida de inventario. Hereda el permiso
+   * COMPLETO del controlador. El servicio rechaza la operación si la cantidad
+   * supera la existencia disponible.
    */
   @ApiOperation({
-    summary: 'Consultar el historial de entradas (paginado y filtrable)',
+    summary: 'Registrar una salida de inventario (resta del stock)',
   })
-  @Get('entradas')
+  @Post('salidas')
+  registrarSalida(
+    @Body() dto: RegistrarSalidaDto,
+    @UsuarioActual() actor: UsuarioAutenticado,
+  ) {
+    return this.inventarioService.registrarSalida(dto, actor);
+  }
+
+  /**
+   * Backlogs 4.5 y 4.6: historial de movimientos. Sin el filtro `tipo` devuelve
+   * entradas y salidas juntas. Es una consulta, así que basta con LECTURA sobre
+   * inventario (los roles de solo lectura también pueden verlo).
+   */
+  @ApiOperation({
+    summary: 'Consultar el historial de movimientos (paginado y filtrable)',
+  })
+  @Get('movimientos')
   @RequierePermiso(ModuloSistema.INVENTARIO, NivelPermiso.LECTURA)
-  listarEntradas(@Query() filtros: ConsultarEntradasDto) {
-    return this.inventarioService.listarEntradas(filtros);
+  listarMovimientos(@Query() filtros: ConsultarMovimientosDto) {
+    return this.inventarioService.listarMovimientos(filtros);
   }
 }

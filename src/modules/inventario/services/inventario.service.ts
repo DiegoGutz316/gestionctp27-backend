@@ -5,7 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, QueryFailedError, Repository } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  QueryFailedError,
+  Repository,
+} from 'typeorm';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { CategoriaInsumo } from '../entities/categoria-insumo.entity';
 import { Insumo } from '../entities/insumo.entity';
@@ -16,7 +21,8 @@ import { CrearInsumoDto } from '../dto/crear-insumo.dto';
 import { EditarInsumoDto } from '../dto/editar-insumo.dto';
 import { FiltrarInsumosDto } from '../dto/filtrar-insumos.dto';
 import { RegistrarEntradaDto } from '../dto/registrar-entrada.dto';
-import { ConsultarEntradasDto } from '../dto/consultar-entradas.dto';
+import { ConsultarMovimientosDto } from '../dto/consultar-movimientos.dto';
+import { RegistrarSalidaDto } from '../dto/registrar-salida.dto';
 import { VALOR_MAXIMO, VALOR_MAXIMO_TEXTO } from '../dto/limites-numericos';
 import {
   crearResultadoPaginado,
@@ -28,17 +34,21 @@ import type { UnidadMedida } from '../enums/unidad-medida.enum';
 const PG_UNIQUE_VIOLATION = '23505';
 
 /**
- * Forma de una entrada en el historial (backlog 4.5).
+ * Forma de un movimiento en el historial (backlogs 4.5 y 4.6).
  *
  * Se mapea a mano en lugar de devolver la entidad para no exponer del usuario
- * responsable más que su nombre: quien consulta el inventario no necesa­riamente
+ * responsable más que su nombre: quien consulta el inventario no necesariamente
  * tiene permiso sobre el módulo de usuarios.
  */
-export interface EntradaRespuesta {
+export interface MovimientoRespuesta {
   id: number;
+  tipo: TipoMovimiento;
   cantidad: number;
   fecha: string;
+  /** Solo en entradas. */
   origen: string | null;
+  /** Solo en salidas. */
+  motivo: string | null;
   creadoEn: Date;
   insumo: { id: number; nombre: string; unidadMedida: UnidadMedida };
   responsable: { id: string; nombre: string };
@@ -229,20 +239,7 @@ export class InventarioService {
     actor: UsuarioAutenticado,
   ): Promise<MovimientoInventario> {
     return this.dataSource.transaction(async (manager) => {
-      // Se usa QueryBuilder a propósito: `findOne` aplicaría el LEFT JOIN de la
-      // relación eager `categoria`, y Postgres no admite FOR UPDATE sobre el
-      // lado externo de un outer join.
-      const insumo = await manager
-        .createQueryBuilder(Insumo, 'insumo')
-        .setLock('pessimistic_write')
-        .where('insumo.id = :id', { id: dto.insumoId })
-        .getOne();
-
-      if (!insumo || !insumo.activo) {
-        throw new NotFoundException(
-          'El insumo seleccionado no existe o está inactivo.',
-        );
-      }
+      const insumo = await this.bloquearInsumo(manager, dto.insumoId);
 
       // El DTO ya acota la cantidad al rango de numeric(12,2), pero la suma con
       // la existencia actual puede desbordar la columna igual. Se comprueba en
@@ -290,14 +287,96 @@ export class InventarioService {
   }
 
   /**
-   * Backlog 4.5: historial de entradas, paginado y filtrable.
+   * Backlog 4.6: registra una salida y resta la cantidad del stock del insumo.
+   *
+   * Misma transacción con bloqueo pesimista que la entrada. Aquí el bloqueo es
+   * aún más necesario: la comprobación de existencia disponible y la resta
+   * tienen que ocurrir sin que nadie más toque la fila en medio, o dos salidas
+   * simultáneas podrían dejar el stock en negativo pese a que cada una era
+   * válida por separado.
+   */
+  async registrarSalida(
+    dto: RegistrarSalidaDto,
+    actor: UsuarioAutenticado,
+  ): Promise<MovimientoInventario> {
+    return this.dataSource.transaction(async (manager) => {
+      const insumo = await this.bloquearInsumo(manager, dto.insumoId);
+
+      // Criterio: "no permite registrar una salida mayor a la existencia
+      // disponible". Se compara en céntimos con enteros para que la aritmética
+      // decimal sea exacta.
+      const enCentimos = (valor: number) => Math.round(valor * 100);
+
+      if (enCentimos(dto.cantidad) > enCentimos(insumo.cantidad)) {
+        throw new BadRequestException(
+          `No hay existencia suficiente de "${insumo.nombre}": disponible ${insumo.cantidad} ${insumo.unidadMedida}.`,
+        );
+      }
+
+      const movimiento = await manager.save(
+        manager.create(MovimientoInventario, {
+          insumo,
+          tipo: TipoMovimiento.SALIDA,
+          cantidad: dto.cantidad,
+          fecha: dto.fecha,
+          origen: null,
+          motivo: dto.motivo,
+          responsableId: actor.id,
+        }),
+      );
+
+      // La resta se hace en SQL para que la calcule Postgres sobre el numeric.
+      await manager.decrement(
+        Insumo,
+        { id: insumo.id },
+        'cantidad',
+        dto.cantidad,
+      );
+
+      movimiento.insumo = (await manager.findOneBy(Insumo, {
+        id: insumo.id,
+      })) as Insumo;
+
+      return movimiento;
+    });
+  }
+
+  /**
+   * Bloquea la fila del insumo dentro de una transacción y comprueba que esté
+   * disponible para movimientos.
+   *
+   * Se usa QueryBuilder a propósito: `findOne` aplicaría el LEFT JOIN de la
+   * relación eager `categoria`, y Postgres no admite FOR UPDATE sobre el lado
+   * externo de un outer join.
+   */
+  private async bloquearInsumo(
+    manager: EntityManager,
+    insumoId: number,
+  ): Promise<Insumo> {
+    const insumo = await manager
+      .createQueryBuilder(Insumo, 'insumo')
+      .setLock('pessimistic_write')
+      .where('insumo.id = :id', { id: insumoId })
+      .getOne();
+
+    if (!insumo || !insumo.activo) {
+      throw new NotFoundException(
+        'El insumo seleccionado no existe o está inactivo.',
+      );
+    }
+
+    return insumo;
+  }
+
+  /**
+   * Backlogs 4.5 y 4.6: historial de movimientos, paginado y filtrable.
    *
    * Solo devuelve movimientos de tipo ENTRADA. Aprovecha el índice
    * (tipo, fecha) creado en la migración del 4.4.
    */
-  async listarEntradas(
-    filtros: ConsultarEntradasDto,
-  ): Promise<ResultadoPaginado<EntradaRespuesta>> {
+  async listarMovimientos(
+    filtros: ConsultarMovimientosDto,
+  ): Promise<ResultadoPaginado<MovimientoRespuesta>> {
     // Se seleccionan solo las columnas necesarias; del responsable se trae
     // únicamente id y nombre, nunca su correo ni el hash de contraseña.
     const consulta = this.movimientosRepo
@@ -306,9 +385,11 @@ export class InventarioService {
       .innerJoin('movimiento.responsable', 'responsable')
       .select([
         'movimiento.id',
+        'movimiento.tipo',
         'movimiento.cantidad',
         'movimiento.fecha',
         'movimiento.origen',
+        'movimiento.motivo',
         'movimiento.creadoEn',
         'insumo.id',
         'insumo.nombre',
@@ -316,10 +397,14 @@ export class InventarioService {
         'responsable.id',
         'responsable.nombre',
       ])
-      .where('movimiento.tipo = :tipo', { tipo: TipoMovimiento.ENTRADA })
       // Lo más reciente primero; el id desempata dos movimientos del mismo día.
       .orderBy('movimiento.fecha', 'DESC')
       .addOrderBy('movimiento.id', 'DESC');
+
+    // Sin filtro de tipo se devuelven entradas y salidas juntas.
+    if (filtros.tipo) {
+      consulta.andWhere('movimiento.tipo = :tipo', { tipo: filtros.tipo });
+    }
 
     if (filtros.insumoId) {
       consulta.andWhere('movimiento.insumo_id = :insumoId', {
@@ -340,9 +425,11 @@ export class InventarioService {
     return crearResultadoPaginado(
       entidades.map((movimiento) => ({
         id: movimiento.id,
+        tipo: movimiento.tipo,
         cantidad: movimiento.cantidad,
         fecha: movimiento.fecha,
         origen: movimiento.origen,
+        motivo: movimiento.motivo,
         creadoEn: movimiento.creadoEn,
         insumo: {
           id: movimiento.insumo.id,
