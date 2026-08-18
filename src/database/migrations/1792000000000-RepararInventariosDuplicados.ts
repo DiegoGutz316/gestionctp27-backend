@@ -5,9 +5,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * elimina duplicados vacíos y sin historial; cualquier caso ambiguo aborta la
  * migración para evitar combinar saldos de forma silenciosa.
  */
-export class RepararInventariosDuplicados1792000000000
-  implements MigrationInterface
-{
+export class RepararInventariosDuplicados1792000000000 implements MigrationInterface {
   name = 'RepararInventariosDuplicados1792000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -79,9 +77,20 @@ export class RepararInventariosDuplicados1792000000000
       END $$
     `);
 
+    // La restricción se crea solo si falta. En las bases que esta migración
+    // viene a reparar no existe, pero en una que corre la cadena desde cero ya
+    // la trae la migración 1788 al crear la tabla, y un ADD CONSTRAINT directo
+    // aborta con "relation ya existe" dejando toda la cadena sin aplicar.
     await queryRunner.query(`
-      ALTER TABLE "inventario"
-      ADD CONSTRAINT "uq_inventario_producto" UNIQUE ("producto_id")
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = 'uq_inventario_producto'
+        ) THEN
+          ALTER TABLE "inventario"
+          ADD CONSTRAINT "uq_inventario_producto" UNIQUE ("producto_id");
+        END IF;
+      END $$
     `);
   }
 
