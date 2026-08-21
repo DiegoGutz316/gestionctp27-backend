@@ -1,4 +1,6 @@
 export enum UnidadMedida {
-  GRANEL = 'GRANEL',
+  Kilo = 'Kilogramo',
+  Litros = 'Litro',
   UNIDAD = 'UNIDAD',
+  Mililitro = 'Mililitro',
 }
