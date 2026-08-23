@@ -1,5 +1,7 @@
 import {
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -8,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
 import { UsuariosService } from '../usuarios/usuarios.service';
+import { IntentosLoginService } from './intentos-login.service';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import type { LoginDto } from './dto/login.dto';
 import type { JwtPayload } from './tipos/jwt-payload';
@@ -41,6 +44,7 @@ export class AuthService {
     private readonly usuarios: UsuariosService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly intentos: IntentosLoginService,
   ) {
     this.opcionesCookie = construirOpcionesCookie((key) =>
       this.config.get<string>(key),
@@ -54,11 +58,21 @@ export class AuthService {
    * de cuenta desactivada nunca se muestra a quien no conoce la contrasena.
    */
   private async validarCredenciales(datos: LoginDto): Promise<Usuario> {
+    // El bloqueo se comprueba antes de tocar la contrasena: mientras dure, da
+    // igual si es correcta o no.
+    const bloqueoVigente = await this.intentos.minutosRestantes(datos.correo);
+    if (bloqueoVigente !== null) {
+      throw this.errorDemasiadosIntentos(bloqueoVigente);
+    }
+
     const usuario = await this.usuarios.buscarParaAutenticar(datos.correo);
 
     if (!usuario) {
       await bcrypt.compare(datos.contrasena, HASH_SENUELO);
-      throw new UnauthorizedException(CREDENCIALES_INVALIDAS);
+      // Tambien se cuentan los intentos contra correos inexistentes. Si solo se
+      // contaran los de cuentas reales, el mensaje de bloqueo delataria que ese
+      // correo esta registrado.
+      throw await this.errorPorFallo(datos.correo);
     }
 
     const contrasenaCorrecta = await bcrypt.compare(
@@ -66,8 +80,12 @@ export class AuthService {
       usuario.contrasenaHash,
     );
     if (!contrasenaCorrecta) {
-      throw new UnauthorizedException(CREDENCIALES_INVALIDAS);
+      throw await this.errorPorFallo(datos.correo);
     }
+
+    // La contrasena era correcta: el contador se reinicia aunque la cuenta
+    // resulte estar desactivada, porque quien la conoce no es un atacante.
+    await this.intentos.limpiar(datos.correo);
 
     // Criterio de aceptacion: un usuario inactivo no puede iniciar sesion.
     if (!usuario.activo) {
@@ -77,6 +95,31 @@ export class AuthService {
     }
 
     return usuario;
+  }
+
+  /**
+   * Registra el fallo y devuelve el error que corresponde lanzar: el de bloqueo
+   * si este intento agoto los disponibles, o el generico de credenciales.
+   *
+   * Devuelve el error en vez de lanzarlo para que el `throw` quede a la vista
+   * en quien la llama; asi TypeScript puede estrechar los tipos despues del
+   * bloque, cosa que no hace con un metodo async que nunca retorna.
+   */
+  private async errorPorFallo(correo: string): Promise<HttpException> {
+    const minutos = await this.intentos.registrarFallo(correo);
+    if (minutos !== null) {
+      return this.errorDemasiadosIntentos(minutos);
+    }
+    return new UnauthorizedException(CREDENCIALES_INVALIDAS);
+  }
+
+  private errorDemasiadosIntentos(minutos: number): HttpException {
+    return new HttpException(
+      `Demasiados intentos fallidos. Intente de nuevo en ${minutos} ${
+        minutos === 1 ? 'minuto' : 'minutos'
+      }.`,
+      HttpStatus.TOO_MANY_REQUESTS,
+    );
   }
 
   /**
