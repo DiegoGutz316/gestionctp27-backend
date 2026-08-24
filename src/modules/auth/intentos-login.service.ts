@@ -10,8 +10,8 @@ export const MAX_INTENTOS_FALLIDOS = 5;
 /** Duracion del bloqueo. Se libera solo: nadie tiene que desbloquear a mano. */
 export const MINUTOS_DE_BLOQUEO = 10;
 
-interface FilaMinutos {
-  minutos: string | number | null;
+interface FilaSegundos {
+  segundos: string | number | null;
 }
 
 /**
@@ -29,27 +29,29 @@ export class IntentosLoginService {
   ) {}
 
   /**
-   * Minutos que faltan para poder reintentar, o `null` si no hay bloqueo.
+   * Segundos que faltan para poder reintentar, o `null` si no hay bloqueo.
+   * Se devuelven segundos y no minutos para que la interfaz pueda mostrar una
+   * cuenta regresiva fina; el mensaje al usuario los redondea a minutos.
    *
    * El calculo se hace en la base de datos a proposito: `bloqueado_hasta` se
    * fija con el `now()` del servidor de BD, y restarle la hora del proceso de
    * Node mete el desfase entre ambos relojes. Con solo dos segundos de
    * diferencia, un bloqueo de 10 minutos se anunciaba como 11.
    */
-  async minutosRestantes(correo: string): Promise<number | null> {
-    const filas = await this.intentos.query<FilaMinutos[]>(
-      `SELECT ceil(extract(epoch FROM ("bloqueado_hasta" - now())) / 60) AS minutos
+  async segundosRestantes(correo: string): Promise<number | null> {
+    const filas = await this.intentos.query<FilaSegundos[]>(
+      `SELECT ceil(extract(epoch FROM ("bloqueado_hasta" - now()))) AS segundos
          FROM "intentos_login"
         WHERE "correo" = $1
           AND "bloqueado_hasta" IS NOT NULL
           AND "bloqueado_hasta" > now()`,
       [correo],
     );
-    return this.aNumero(filas[0]?.minutos);
+    return this.aNumero(filas[0]?.segundos);
   }
 
   /**
-   * Registra un fallo y devuelve los minutos de bloqueo si este intento fue el
+   * Registra un fallo y devuelve los segundos de bloqueo si este intento fue el
    * que lo activo (o `null` si todavia quedan intentos).
    *
    * Todo ocurre en una sola sentencia: leer el contador, sumarle uno y decidir
@@ -57,7 +59,7 @@ export class IntentosLoginService {
    * el mismo valor y el limite se pasara por alto.
    */
   async registrarFallo(correo: string): Promise<number | null> {
-    const filas = await this.intentos.query<FilaMinutos[]>(
+    const filas = await this.intentos.query<FilaSegundos[]>(
       `INSERT INTO "intentos_login"
               ("correo", "intentos_fallidos", "bloqueado_hasta", "actualizado_en")
        VALUES ($1, 1, NULL, now())
@@ -72,10 +74,10 @@ export class IntentosLoginService {
            ELSE NULL
          END,
          "actualizado_en" = now()
-       RETURNING ceil(extract(epoch FROM ("bloqueado_hasta" - now())) / 60) AS minutos`,
+       RETURNING ceil(extract(epoch FROM ("bloqueado_hasta" - now()))) AS segundos`,
       [correo, MAX_INTENTOS_FALLIDOS, MINUTOS_DE_BLOQUEO],
     );
-    return this.aNumero(filas[0]?.minutos);
+    return this.aNumero(filas[0]?.segundos);
   }
 
   /** Se llama al validar la contrasena correctamente. */
@@ -86,7 +88,7 @@ export class IntentosLoginService {
   /** `numeric` de Postgres llega como string por el driver. */
   private aNumero(valor: string | number | null | undefined): number | null {
     if (valor === null || valor === undefined) return null;
-    const minutos = Number(valor);
-    return Number.isFinite(minutos) && minutos > 0 ? minutos : null;
+    const segundos = Number(valor);
+    return Number.isFinite(segundos) && segundos > 0 ? segundos : null;
   }
 }

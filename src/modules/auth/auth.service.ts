@@ -60,7 +60,7 @@ export class AuthService {
   private async validarCredenciales(datos: LoginDto): Promise<Usuario> {
     // El bloqueo se comprueba antes de tocar la contrasena: mientras dure, da
     // igual si es correcta o no.
-    const bloqueoVigente = await this.intentos.minutosRestantes(datos.correo);
+    const bloqueoVigente = await this.intentos.segundosRestantes(datos.correo);
     if (bloqueoVigente !== null) {
       throw this.errorDemasiadosIntentos(bloqueoVigente);
     }
@@ -106,18 +106,28 @@ export class AuthService {
    * bloque, cosa que no hace con un metodo async que nunca retorna.
    */
   private async errorPorFallo(correo: string): Promise<HttpException> {
-    const minutos = await this.intentos.registrarFallo(correo);
-    if (minutos !== null) {
-      return this.errorDemasiadosIntentos(minutos);
+    const segundos = await this.intentos.registrarFallo(correo);
+    if (segundos !== null) {
+      return this.errorDemasiadosIntentos(segundos);
     }
     return new UnauthorizedException(CREDENCIALES_INVALIDAS);
   }
 
-  private errorDemasiadosIntentos(minutos: number): HttpException {
+  /**
+   * Ademas del mensaje legible, la respuesta lleva `segundosRestantes` para que
+   * la interfaz pueda mostrar una cuenta regresiva sin tener que interpretar el
+   * texto del mensaje.
+   */
+  private errorDemasiadosIntentos(segundos: number): HttpException {
+    const minutos = Math.ceil(segundos / 60);
     return new HttpException(
-      `Demasiados intentos fallidos. Intente de nuevo en ${minutos} ${
-        minutos === 1 ? 'minuto' : 'minutos'
-      }.`,
+      {
+        statusCode: HttpStatus.TOO_MANY_REQUESTS,
+        message: `Demasiados intentos fallidos. Intente de nuevo en ${minutos} ${
+          minutos === 1 ? 'minuto' : 'minutos'
+        }.`,
+        segundosRestantes: segundos,
+      },
       HttpStatus.TOO_MANY_REQUESTS,
     );
   }
