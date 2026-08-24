@@ -26,7 +26,7 @@ describe('StockService', () => {
     id: 7,
     nombre: 'Concentrado',
     tipoProducto: TipoProducto.INSUMO,
-    unidadMedida: UnidadMedida.Kilo,
+    unidadMedida: UnidadMedida.Kilogramo,
     departamento: Departamento.PECUARIO,
     ubicacion: Ubicacion.BODEGA_PECUARIA,
     activo: true,

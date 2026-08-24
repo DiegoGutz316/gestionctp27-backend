@@ -1,6 +1,6 @@
 export enum UnidadMedida {
-  Kilo = 'Kilogramo',
-  Litros = 'Litro',
+  Kilogramo = 'Kilogramo',
+  Litro = 'Litro',
   UNIDAD = 'UNIDAD',
   Mililitro = 'Mililitro',
 }

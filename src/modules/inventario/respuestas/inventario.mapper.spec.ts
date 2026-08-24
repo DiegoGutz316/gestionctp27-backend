@@ -14,7 +14,7 @@ describe('mapeadores de inventario', () => {
       id: 1,
       nombre: 'Semilla',
       tipoProducto: TipoProducto.INSUMO,
-      unidadMedida: UnidadMedida.Kilo,
+      unidadMedida: UnidadMedida.Kilogramo,
       departamento: Departamento.AGRICOLA,
       ubicacion: Ubicacion.BODEGA_AGRICOLA,
       activo: true,
