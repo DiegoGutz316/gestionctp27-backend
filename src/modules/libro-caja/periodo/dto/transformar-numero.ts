@@ -14,3 +14,20 @@ export function transformarNumero({ value }: TransformFnParams): unknown {
 
   return valor;
 }
+
+/** Convierte vacío o ausente en 0 (columnas de ingresos/egresos). */
+export function transformarNumeroOCero({ value }: TransformFnParams): unknown {
+  if (value === undefined || value === null) {
+    return 0;
+  }
+
+  if (typeof value === 'string' && value.trim() === '') {
+    return 0;
+  }
+
+  if (typeof value === 'string' || typeof value === 'number') {
+    return Number(value);
+  }
+
+  return value;
+}

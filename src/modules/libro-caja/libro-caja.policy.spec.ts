@@ -33,4 +33,16 @@ describe('LibroCajaPolicy', () => {
       policy.exigirSolicitudFondo(actor(RolUsuario.DIRECTORA)),
     ).toThrow(ForbiddenException);
   });
+
+  it('permite a docentes y al administrador registrar asientos', () => {
+    expect(() =>
+      policy.exigirRegistroAsiento(actor(RolUsuario.DOCENTE_AGRICOLA)),
+    ).not.toThrow();
+    expect(() =>
+      policy.exigirRegistroAsiento(actor(RolUsuario.ADMINISTRADOR)),
+    ).not.toThrow();
+    expect(() =>
+      policy.exigirRegistroAsiento(actor(RolUsuario.DIRECTORA)),
+    ).toThrow(ForbiddenException);
+  });
 });

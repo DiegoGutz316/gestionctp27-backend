@@ -5,12 +5,14 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   type ValueTransformer,
 } from 'typeorm';
 import { DepartamentoCaja } from '../../departamento/entities/departamento-caja.entity';
 import { EstadoFondo } from '../enums/estado-fondo.enum';
+import { AsientoCaja } from './asiento-caja.entity';
 import { PeriodoCaja } from './periodo-caja.entity';
 
 const numericTransformer: ValueTransformer = {
@@ -70,6 +72,9 @@ export class FondoCaja {
 
   @Column({ name: 'solicitado_por', type: 'uuid', nullable: true })
   solicitadoPor: string | null;
+
+  @OneToMany(() => AsientoCaja, (asiento) => asiento.fondo)
+  asientos?: AsientoCaja[];
 
   @CreateDateColumn({ name: 'creado_en', type: 'timestamptz' })
   creadoEn: Date;
