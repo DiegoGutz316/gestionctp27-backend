@@ -15,6 +15,7 @@ import { PermisosGuard } from './modules/auth/guards/permisos.guard';
 import { PecuariaModule } from './modules/pecuaria/pecuaria.module';
 import { AgricolaModule } from './modules/agricola/agricola.module';
 import { InventarioModule } from './modules/inventario/inventario.module';
+import { LibroCajaModule } from './modules/libro-caja/libro-caja.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { OriginCsrfGuard } from './common/http/origin-csrf.guard';
@@ -59,6 +60,7 @@ import { MailModule } from './common/mail/mail.module';
     PecuariaModule,
     AgricolaModule,
     InventarioModule,
+    LibroCajaModule,
     ReportesModule,
     DashboardModule,
   ],

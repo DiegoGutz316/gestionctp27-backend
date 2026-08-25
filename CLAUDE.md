@@ -18,7 +18,9 @@ Colegio Técnico Profesional. Repositorio independiente del frontend
   viven en la carpeta `enums/` de su módulo correspondiente.
 - Arquitectura en capas por módulo: controllers y services en la raíz del módulo; `entities/`, `dto/`, `enums/`
   dentro de cada módulo en `src/modules/` (`usuarios`, `pecuaria`, `agricola`,
-  `inventario`, `reportes`, `dashboard`).
+  `inventario`, `libro-caja`, `reportes`, `dashboard`).
+- `libro-caja` es un módulo independiente de `inventario`. Internamente se
+  separa en submódulos (`colegio`, `departamento`, `periodo`).
 - No usar Docker en este proyecto.
 - La API debe poder compilar y arrancar aunque la BD no esté disponible.
 
