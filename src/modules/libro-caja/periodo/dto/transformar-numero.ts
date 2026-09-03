@@ -15,19 +15,21 @@ export function transformarNumero({ value }: TransformFnParams): unknown {
   return valor;
 }
 
-/** Convierte vacío o ausente en 0 (columnas de ingresos/egresos). */
+/** Convierte vacío, nulo o ausente a 0 (ingresos/egresos del asiento). */
 export function transformarNumeroOCero({ value }: TransformFnParams): unknown {
-  if (value === undefined || value === null) {
+  const valor: unknown = value;
+
+  if (valor === undefined || valor === null) {
     return 0;
   }
 
-  if (typeof value === 'string' && value.trim() === '') {
+  if (typeof valor === 'string' && valor.trim() === '') {
     return 0;
   }
 
-  if (typeof value === 'string' || typeof value === 'number') {
-    return Number(value);
+  if (typeof valor === 'string' || typeof valor === 'number') {
+    return Number(valor);
   }
 
-  return value;
+  return valor;
 }

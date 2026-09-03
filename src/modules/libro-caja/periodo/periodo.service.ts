@@ -71,8 +71,8 @@ export class PeriodoService {
   }
 
   /**
-   * Abre un periodo y registra a mano el fondo de cada departamento activo
-   * (saldo que queda de periodos anteriores).
+   * Abre un periodo y carga todos los departamentos activos. Cada uno queda
+   * con un fondo de caja en estado PENDIENTE hasta que solicite el monto inicial.
    */
   async abrir(
     dto: AbrirPeriodoDto,
@@ -86,7 +86,7 @@ export class PeriodoService {
       });
       if (abierto) {
         throw new ConflictException(
-          `Solo puede haber un periodo abierto a la vez. "${abierto.nombre}" sigue abierto: ciérrelo para poder abrir otro, aunque el nombre sea distinto.`,
+          `Ya hay un periodo abierto ("${abierto.nombre}"). Ciérrelo antes de abrir otro.`,
         );
       }
 
@@ -101,12 +101,6 @@ export class PeriodoService {
           'No hay departamentos activos. Cree al menos uno antes de abrir un periodo.',
         );
       }
-
-      const montoPorDepartamento = this.montosPorDepartamentoActivo(
-        departamentos,
-        dto.fondos,
-      );
-      const ahora = new Date();
 
       const creado = await manager.save(
         PeriodoCaja,
@@ -124,10 +118,10 @@ export class PeriodoService {
         manager.create(FondoCaja, {
           periodo: creado,
           departamento,
-          montoSolicitado: montoPorDepartamento.get(departamento.id),
-          estado: EstadoFondo.SOLICITADO,
-          solicitadoEn: ahora,
-          solicitadoPor: actor.id,
+          montoSolicitado: null,
+          estado: EstadoFondo.PENDIENTE,
+          solicitadoEn: null,
+          solicitadoPor: null,
         }),
       );
       creado.fondos = await manager.save(FondoCaja, fondos);
@@ -273,39 +267,5 @@ export class PeriodoService {
         `Las fechas se solapan con el periodo "${solapado.nombre}" (${solapado.fechaInicio} a ${solapado.fechaFin}).`,
       );
     }
-  }
-
-  private montosPorDepartamentoActivo(
-    departamentos: DepartamentoCaja[],
-    fondos: AbrirPeriodoDto['fondos'],
-  ): Map<number, number> {
-    const idsEnviados = fondos.map((fondo) => fondo.departamentoId);
-    const unicos = new Set(idsEnviados);
-    if (unicos.size !== idsEnviados.length) {
-      throw new BadRequestException(
-        'Hay departamentos duplicados en los fondos.',
-      );
-    }
-
-    const idsActivos = new Set(departamentos.map((departamento) => departamento.id));
-    const faltantes = departamentos.filter(
-      (departamento) => !unicos.has(departamento.id),
-    );
-    if (faltantes.length > 0) {
-      throw new BadRequestException(
-        `Debe indicar el fondo de cada departamento activo. Falta: ${faltantes
-          .map((departamento) => departamento.nombreUnidad)
-          .join(', ')}.`,
-      );
-    }
-
-    const extra = idsEnviados.find((id) => !idsActivos.has(id));
-    if (extra !== undefined) {
-      throw new BadRequestException(
-        'Hay fondos de departamentos que no están activos o no existen.',
-      );
-    }
-
-    return new Map(fondos.map((fondo) => [fondo.departamentoId, fondo.monto]));
   }
 }

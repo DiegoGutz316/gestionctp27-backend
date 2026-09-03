@@ -39,6 +39,9 @@ describe('LibroCajaPolicy', () => {
       policy.exigirRegistroAsiento(actor(RolUsuario.DOCENTE_AGRICOLA)),
     ).not.toThrow();
     expect(() =>
+      policy.exigirRegistroAsiento(actor(RolUsuario.DOCENTE_PECUARIO)),
+    ).not.toThrow();
+    expect(() =>
       policy.exigirRegistroAsiento(actor(RolUsuario.ADMINISTRADOR)),
     ).not.toThrow();
     expect(() =>

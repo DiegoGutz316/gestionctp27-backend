@@ -1,16 +1,7 @@
-import { Transform, Type, type TransformFnParams } from 'class-transformer';
-import {
-  ArrayMinSize,
-  IsArray,
-  IsDefined,
-  IsNotEmpty,
-  IsString,
-  MaxLength,
-  ValidateNested,
-} from 'class-validator';
+import { Transform, type TransformFnParams } from 'class-transformer';
+import { IsDefined, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { EsFechaIso, RangoPeriodoValido } from './fecha-periodo.validator';
-import { FondoInicialDto } from './fondo-inicial.dto';
 
 function normalizarTexto({ value }: TransformFnParams): unknown {
   const valor: unknown = value;
@@ -41,18 +32,4 @@ export class AbrirPeriodoDto {
   @IsDefined({ message: 'La fecha de fin es obligatoria' })
   @EsFechaIso()
   fechaFin!: string;
-
-  @ApiProperty({
-    type: [FondoInicialDto],
-    description:
-      'Fondo de cada departamento activo: saldo que queda de periodos anteriores, escrito a mano.',
-  })
-  @IsDefined({ message: 'Debe indicar el fondo de cada departamento' })
-  @IsArray({ message: 'Debe indicar el fondo de cada departamento' })
-  @ArrayMinSize(1, {
-    message: 'Debe indicar el fondo de cada departamento',
-  })
-  @ValidateNested({ each: true })
-  @Type(() => FondoInicialDto)
-  fondos!: FondoInicialDto[];
 }

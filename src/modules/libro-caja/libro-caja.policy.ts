@@ -13,28 +13,24 @@ export class LibroCajaPolicy {
   }
 
   exigirSolicitudFondo(actor: UsuarioAutenticado): void {
-    if (actor.rol === RolUsuario.ADMINISTRADOR) return;
-    if (
-      actor.rol === RolUsuario.DOCENTE_AGRICOLA ||
-      actor.rol === RolUsuario.DOCENTE_PECUARIO
-    ) {
-      return;
-    }
+    if (this.esDocenteOAdministrador(actor)) return;
     throw new ForbiddenException(
       'No puede solicitar el fondo de caja de este departamento.',
     );
   }
 
   exigirRegistroAsiento(actor: UsuarioAutenticado): void {
-    if (actor.rol === RolUsuario.ADMINISTRADOR) return;
-    if (
-      actor.rol === RolUsuario.DOCENTE_AGRICOLA ||
-      actor.rol === RolUsuario.DOCENTE_PECUARIO
-    ) {
-      return;
-    }
+    if (this.esDocenteOAdministrador(actor)) return;
     throw new ForbiddenException(
       'No puede registrar asientos en el libro de caja.',
+    );
+  }
+
+  private esDocenteOAdministrador(actor: UsuarioAutenticado): boolean {
+    return (
+      actor.rol === RolUsuario.ADMINISTRADOR ||
+      actor.rol === RolUsuario.DOCENTE_AGRICOLA ||
+      actor.rol === RolUsuario.DOCENTE_PECUARIO
     );
   }
 }

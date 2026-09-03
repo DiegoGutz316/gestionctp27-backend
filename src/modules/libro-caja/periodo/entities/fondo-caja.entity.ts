@@ -21,9 +21,9 @@ const numericTransformer: ValueTransformer = {
 };
 
 /**
- * Fondo de caja de un departamento dentro de un periodo.
- * Al abrir el periodo se registra a mano el saldo que queda de periodos
- * anteriores (uno por cada departamento activo).
+ * Fondo de caja inicial de un departamento dentro de un periodo.
+ * Se crea al abrir el periodo (uno por cada departamento activo) y el
+ * departamento debe solicitar el monto.
  */
 @Entity({ name: 'fondos_caja' })
 @Index('fondos_caja_periodo_departamento_uq', ['periodo', 'departamento'], {
@@ -73,12 +73,12 @@ export class FondoCaja {
   @Column({ name: 'solicitado_por', type: 'uuid', nullable: true })
   solicitadoPor: string | null;
 
-  @OneToMany(() => AsientoCaja, (asiento) => asiento.fondo)
-  asientos?: AsientoCaja[];
-
   @CreateDateColumn({ name: 'creado_en', type: 'timestamptz' })
   creadoEn: Date;
 
   @UpdateDateColumn({ name: 'actualizado_en', type: 'timestamptz' })
   actualizadoEn: Date;
+
+  @OneToMany(() => AsientoCaja, (asiento) => asiento.fondo)
+  asientos?: AsientoCaja[];
 }

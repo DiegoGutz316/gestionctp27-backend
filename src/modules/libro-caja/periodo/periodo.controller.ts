@@ -37,7 +37,7 @@ export class PeriodoController {
   @Post()
   @ApiOperation({
     summary:
-      'Abrir un periodo e indicar a mano el fondo de cada departamento activo',
+      'Abrir un periodo y cargar todos los departamentos para solicitar fondo inicial',
   })
   abrir(
     @Body() dto: AbrirPeriodoDto,

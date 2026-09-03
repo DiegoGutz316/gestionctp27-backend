@@ -15,8 +15,8 @@ import { PeriodoService } from './periodo.service';
     TypeOrmModule.forFeature([
       PeriodoCaja,
       FondoCaja,
-      AsientoCaja,
       DepartamentoCaja,
+      AsientoCaja,
     ]),
   ],
   controllers: [PeriodoController, AsientoController],
