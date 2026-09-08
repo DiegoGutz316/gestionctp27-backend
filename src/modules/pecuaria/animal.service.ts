@@ -103,6 +103,27 @@ export class AnimalService {
     }
   }
 
+  async desactivar(id: number, actor: UsuarioAutenticado): Promise<Animal> {
+    const animal = await this.animalesRepo.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!animal) {
+      throw new NotFoundException('El animal no existe.');
+    }
+
+    // Desactivacion logica:
+    // el animal permanece en la base de datos.
+    animal.estado = 'INACTIVO';
+
+    // Usuario responsable de la modificacion.
+    animal.actualizadoPor = actor.id;
+
+    return await this.animalesRepo.save(animal);
+  }
+
   private lanzarCodigoDuplicado(codigo: string): never {
     throw new ConflictException(
       `Ya existe un animal registrado con el código "${codigo}".`,

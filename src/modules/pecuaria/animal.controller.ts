@@ -47,4 +47,15 @@ export class AnimalController {
   ) {
     return this.animalService.actualizar(id, dto, actor);
   }
+
+  @ApiOperation({
+    summary: 'Desactivar un animal',
+  })
+  @Patch(':id/desactivar')
+  desactivar(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioActual() actor: UsuarioAutenticado,
+  ) {
+    return this.animalService.desactivar(id, actor);
+  }
 }
