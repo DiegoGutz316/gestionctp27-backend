@@ -4,6 +4,7 @@ import {
   Entity,
   Index,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 @Entity({ name: 'animales' })
@@ -72,4 +73,17 @@ export class Animal {
     nullable: false,
   })
   creadoPor: string;
+
+  @UpdateDateColumn({
+    name: 'actualizado_en',
+    type: 'timestamptz',
+  })
+  actualizadoEn: Date;
+
+  @Column({
+    name: 'actualizado_por',
+    type: 'uuid',
+    nullable: true,
+  })
+  actualizadoPor: string | null;
 }

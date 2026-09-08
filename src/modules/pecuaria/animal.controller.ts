@@ -1,4 +1,11 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { RequierePermiso } from '../auth/decorators/requiere-permiso.decorator';
@@ -9,6 +16,7 @@ import type { UsuarioAutenticado } from '../auth/tipos/jwt-payload';
 
 import { AnimalService } from './animal.service';
 import { CrearAnimalDto } from './dto/crear-animal.dto';
+import { EditarAnimalDto } from './dto/editar-animal.dto';
 
 @ApiTags('Pecuaria - Animales')
 @ApiCookieAuth('cookie')
@@ -26,5 +34,17 @@ export class AnimalController {
     @UsuarioActual() actor: UsuarioAutenticado,
   ) {
     return this.animalService.crear(dto, actor);
+  }
+
+  @ApiOperation({
+    summary: 'Editar un animal',
+  })
+  @Patch(':id')
+  actualizar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: EditarAnimalDto,
+    @UsuarioActual() actor: UsuarioAutenticado,
+  ) {
+    return this.animalService.actualizar(id, dto, actor);
   }
 }
