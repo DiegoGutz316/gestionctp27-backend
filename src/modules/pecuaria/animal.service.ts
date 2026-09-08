@@ -51,6 +51,27 @@ export class AnimalService {
       throw error;
     }
   }
+  async listar(): Promise<Animal[]> {
+    return await this.animalesRepo.find({
+      order: {
+        id: 'ASC',
+      },
+    });
+  }
+
+  async obtener(id: number): Promise<Animal> {
+    const animal = await this.animalesRepo.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!animal) {
+      throw new NotFoundException('El animal no existe.');
+    }
+
+    return animal;
+  }
 
   async actualizar(
     id: number,
@@ -114,11 +135,11 @@ export class AnimalService {
       throw new NotFoundException('El animal no existe.');
     }
 
-    // Desactivacion logica:
+    // Desactivación lógica:
     // el animal permanece en la base de datos.
     animal.estado = 'INACTIVO';
 
-    // Usuario responsable de la modificacion.
+    // Usuario responsable de la modificación.
     animal.actualizadoPor = actor.id;
 
     return await this.animalesRepo.save(animal);

@@ -1,11 +1,13 @@
 import {
   Body,
   Controller,
+  Get,
   Param,
   ParseIntPipe,
   Patch,
   Post,
 } from '@nestjs/common';
+
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { RequierePermiso } from '../auth/decorators/requiere-permiso.decorator';
@@ -34,6 +36,24 @@ export class AnimalController {
     @UsuarioActual() actor: UsuarioAutenticado,
   ) {
     return this.animalService.crear(dto, actor);
+  }
+
+  @ApiOperation({
+    summary: 'Consultar animales',
+  })
+  @Get()
+  @RequierePermiso(ModuloSistema.PECUARIA, NivelPermiso.LECTURA)
+  listar() {
+    return this.animalService.listar();
+  }
+
+  @ApiOperation({
+    summary: 'Consultar un animal por id',
+  })
+  @Get(':id')
+  @RequierePermiso(ModuloSistema.PECUARIA, NivelPermiso.LECTURA)
+  obtener(@Param('id', ParseIntPipe) id: number) {
+    return this.animalService.obtener(id);
   }
 
   @ApiOperation({
