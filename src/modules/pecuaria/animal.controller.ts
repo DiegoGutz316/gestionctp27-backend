@@ -6,6 +6,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -19,6 +20,7 @@ import type { UsuarioAutenticado } from '../auth/tipos/jwt-payload';
 import { AnimalService } from './animal.service';
 import { CrearAnimalDto } from './dto/crear-animal.dto';
 import { EditarAnimalDto } from './dto/editar-animal.dto';
+import { FiltrarAnimalesDto } from './dto/filtrar-animales.dto';
 
 @ApiTags('Pecuaria - Animales')
 @ApiCookieAuth('cookie')
@@ -43,8 +45,8 @@ export class AnimalController {
   })
   @Get()
   @RequierePermiso(ModuloSistema.PECUARIA, NivelPermiso.LECTURA)
-  listar() {
-    return this.animalService.listar();
+  listar(@Query() filtros: FiltrarAnimalesDto) {
+    return this.animalService.listar(filtros);
   }
 
   @ApiOperation({
