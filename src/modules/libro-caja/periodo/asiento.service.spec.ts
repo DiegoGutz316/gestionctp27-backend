@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import type { DataSource, EntityManager } from 'typeorm';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { RolUsuario } from '../../usuarios/enums/rol-usuario.enum';

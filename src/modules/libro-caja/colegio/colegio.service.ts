@@ -53,9 +53,7 @@ export class ColegioService {
     } catch {
       const recienCreado = await this.colegioRepo.findOne({ where: { id: 1 } });
       if (recienCreado) return recienCreado;
-      throw new NotFoundException(
-        'No se encontró la información del colegio.',
-      );
+      throw new NotFoundException('No se encontró la información del colegio.');
     }
   }
 }

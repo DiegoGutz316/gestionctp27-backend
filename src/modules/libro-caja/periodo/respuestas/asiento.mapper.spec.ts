@@ -33,11 +33,7 @@ describe('mapearLibroDepartamento', () => {
   } as FondoCaja;
 
   it('calcula el saldo corrido desde el fondo inicial', () => {
-    const asientos = [
-      asiento(1, 50, 0),
-      asiento(2, 0, 20),
-      asiento(3, 10, 0),
-    ];
+    const asientos = [asiento(1, 50, 0), asiento(2, 0, 20), asiento(3, 10, 0)];
 
     const libro = mapearLibroDepartamento(fondo, asientos);
 
