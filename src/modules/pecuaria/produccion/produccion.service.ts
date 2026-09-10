@@ -12,7 +12,6 @@ import { esAnimalActivo } from '../animal/enums/estado-animal.enum';
 import { ConsultarProduccionDto } from './dto/consultar-produccion.dto';
 import { RegistrarProduccionDto } from './dto/registrar-produccion.dto';
 import { ProduccionPecuaria } from './entities/produccion-pecuaria.entity';
-import { admiteTipoProduccion } from './enums/tipo-produccion.enum';
 import {
   mapearConsultaProduccion,
   mapearProduccion,
@@ -38,12 +37,6 @@ export class ProduccionService {
     if (!esAnimalActivo(animal.estado)) {
       throw new BadRequestException(
         'Solo se puede registrar producción de un animal activo.',
-      );
-    }
-
-    if (!admiteTipoProduccion(animal.especie, dto.tipoProduccion)) {
-      throw new BadRequestException(
-        'El tipo de producción no corresponde a la especie del animal.',
       );
     }
 

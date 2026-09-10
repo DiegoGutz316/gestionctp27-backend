@@ -99,7 +99,7 @@ describe('ProduccionService', () => {
     );
   });
 
-  it('rechaza un tipo de producción que no corresponde a la especie', async () => {
+  it('acepta leche, huevos o carne para cualquier animal activo', async () => {
     const { service } = crearServicio({ animal: animalActivo });
 
     await expect(
@@ -107,7 +107,11 @@ describe('ProduccionService', () => {
         { ...dto, tipoProduccion: TipoProduccion.HUEVOS },
         actor,
       ),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).resolves.toEqual(
+      expect.objectContaining({
+        tipoProduccion: TipoProduccion.HUEVOS,
+      }),
+    );
   });
 
   it('consulta producción por animal, aplica el período y calcula totales', async () => {
