@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
-// Módulo placeholder: la lógica (controllers, services, entities, dto)
-// se implementará en etapas posteriores.
+import { AnimalController } from './animal.controller';
+import { AnimalService } from './animal.service';
+import { Animal } from './entities/animal.entity';
+
 @Module({
-  imports: [],
-  controllers: [],
-  providers: [],
+  imports: [TypeOrmModule.forFeature([Animal])],
+  controllers: [AnimalController],
+  providers: [AnimalService],
 })
 export class PecuariaModule {}
