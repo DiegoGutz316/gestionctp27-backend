@@ -15,7 +15,13 @@ import { OrdenAnimales } from './enums/orden-animales.enum';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
-/** Valor con el que `desactivar` marca la baja logica de un animal. */
+/**
+ * Valor con el que `desactivar` marca la baja logica de un animal.
+ *
+ * `estado` es texto libre: los DTO de registro y edicion aceptan cualquier
+ * grafia, asi que un animal guardado como "inactivo" tambien esta dado de baja
+ * y hay que compararlo sin distinguir mayusculas. El frontend ya lo hace asi.
+ */
 const ESTADO_INACTIVO = 'INACTIVO';
 
 const COLUMNA_DE_ORDEN: Record<OrdenAnimales, string> = {
@@ -73,7 +79,7 @@ export class AnimalService {
     const consulta = this.animalesRepo.createQueryBuilder('animal');
 
     if (!filtros.incluirInactivos) {
-      consulta.where('animal.estado != :inactivo', {
+      consulta.where('lower(animal.estado) != lower(:inactivo)', {
         inactivo: ESTADO_INACTIVO,
       });
     }
