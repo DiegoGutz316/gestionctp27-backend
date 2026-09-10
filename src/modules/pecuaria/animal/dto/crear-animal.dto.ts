@@ -1,6 +1,7 @@
 import { Transform, type TransformFnParams } from 'class-transformer';
 import {
   IsDateString,
+  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -8,13 +9,17 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+import { EspecieAnimal } from '../enums/especie-animal.enum';
+import { EstadoAnimal } from '../enums/estado-animal.enum';
+import { CategoriaBovina } from '../enums/categoria-bovina.enum';
+
 function normalizarTexto({ value }: TransformFnParams): unknown {
   const valor: unknown = value;
 
   return typeof valor === 'string' ? valor.trim() : valor;
 }
 
-export class EditarAnimalDto {
+export class CrearAnimalDto {
   @ApiProperty({
     minLength: 1,
     maxLength: 50,
@@ -50,21 +55,14 @@ export class EditarAnimalDto {
   nombre!: string;
 
   @ApiProperty({
-    minLength: 1,
-    maxLength: 80,
-    example: 'Bovino',
+    enum: EspecieAnimal,
+    enumName: 'EspecieAnimal',
+    example: EspecieAnimal.VACA,
   })
-  @Transform(normalizarTexto)
-  @IsString({
-    message: 'La especie del animal es obligatoria',
+  @IsEnum(EspecieAnimal, {
+    message: 'Seleccione una especie válida',
   })
-  @IsNotEmpty({
-    message: 'La especie del animal es obligatoria',
-  })
-  @MaxLength(80, {
-    message: 'La especie no puede superar 80 caracteres',
-  })
-  especie!: string;
+  especie!: EspecieAnimal;
 
   @ApiProperty({
     minLength: 1,
@@ -95,24 +93,36 @@ export class EditarAnimalDto {
   fechaNacimiento!: string;
 
   @ApiProperty({
-    minLength: 1,
-    maxLength: 50,
-    example: 'ACTIVO',
+    enum: EstadoAnimal,
+    enumName: 'EstadoAnimal',
+    example: EstadoAnimal.ACTIVO,
   })
-  @Transform(normalizarTexto)
-  @IsString({
-    message: 'El estado del animal es obligatorio',
+  @IsEnum(EstadoAnimal, {
+    message: 'Seleccione un estado válido',
   })
-  @IsNotEmpty({
-    message: 'El estado del animal es obligatorio',
-  })
-  @MaxLength(50, {
-    message: 'El estado no puede superar 50 caracteres',
-  })
-  estado!: string;
+  estado!: EstadoAnimal;
 
   @ApiPropertyOptional({
-    example: 'Animal en seguimiento veterinario.',
+    enum: CategoriaBovina,
+    enumName: 'CategoriaBovina',
+    example: CategoriaBovina.VACA,
+    description: 'Obligatoria si la especie es VACA (plantilla de ganado bovino)',
+  })
+  @Transform(({ value }: TransformFnParams): unknown => {
+    if (typeof value === 'string' && value.trim() === '') {
+      return undefined;
+    }
+
+    return value;
+  })
+  @IsOptional()
+  @IsEnum(CategoriaBovina, {
+    message: 'Seleccione si es toro, novilla, vaca, ternero/a o torete',
+  })
+  categoriaBovina?: CategoriaBovina;
+
+  @ApiPropertyOptional({
+    example: 'Animal en buenas condiciones.',
   })
   @Transform(normalizarTexto)
   @IsOptional()

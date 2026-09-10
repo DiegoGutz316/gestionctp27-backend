@@ -35,6 +35,14 @@ export class Animal {
   especie: string;
 
   @Column({
+    name: 'categoria_bovina',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
+  categoriaBovina: string | null;
+
+  @Column({
     name: 'raza',
     type: 'varchar',
     length: 100,

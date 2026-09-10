@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -6,10 +7,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 
-import type { UsuarioAutenticado } from '../auth/tipos/jwt-payload';
+import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { CrearAnimalDto } from './dto/crear-animal.dto';
 import { EditarAnimalDto } from './dto/editar-animal.dto';
 import { Animal } from './entities/animal.entity';
+import { EspecieAnimal } from './enums/especie-animal.enum';
+import { EstadoAnimal } from './enums/estado-animal.enum';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -35,6 +38,7 @@ export class AnimalService {
       codigo: dto.codigo,
       nombre: dto.nombre,
       especie: dto.especie,
+      categoriaBovina: this.categoriaBovinaDe(dto),
       raza: dto.raza,
       fechaNacimiento: dto.fechaNacimiento,
       estado: dto.estado,
@@ -106,6 +110,7 @@ export class AnimalService {
       codigo: dto.codigo,
       nombre: dto.nombre,
       especie: dto.especie,
+      categoriaBovina: this.categoriaBovinaDe(dto),
       raza: dto.raza,
       fechaNacimiento: dto.fechaNacimiento,
       estado: dto.estado,
@@ -137,12 +142,28 @@ export class AnimalService {
 
     // Desactivación lógica:
     // el animal permanece en la base de datos.
-    animal.estado = 'INACTIVO';
+    animal.estado = EstadoAnimal.INACTIVO;
 
     // Usuario responsable de la modificación.
     animal.actualizadoPor = actor.id;
 
     return await this.animalesRepo.save(animal);
+  }
+
+  private categoriaBovinaDe(
+    dto: CrearAnimalDto | EditarAnimalDto,
+  ): string | null {
+    if (dto.especie !== EspecieAnimal.VACA) {
+      return null;
+    }
+
+    if (!dto.categoriaBovina) {
+      throw new BadRequestException(
+        'Seleccione si es toro, novilla, vaca, ternero/a o torete.',
+      );
+    }
+
+    return dto.categoriaBovina;
   }
 
   private lanzarCodigoDuplicado(codigo: string): never {

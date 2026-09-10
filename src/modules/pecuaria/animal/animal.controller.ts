@@ -10,11 +10,11 @@ import {
 
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { RequierePermiso } from '../auth/decorators/requiere-permiso.decorator';
-import { UsuarioActual } from '../auth/decorators/usuario-actual.decorator';
-import { ModuloSistema } from '../auth/enums/modulo-sistema.enum';
-import { NivelPermiso } from '../auth/enums/nivel-permiso.enum';
-import type { UsuarioAutenticado } from '../auth/tipos/jwt-payload';
+import { RequierePermiso } from '../../auth/decorators/requiere-permiso.decorator';
+import { UsuarioActual } from '../../auth/decorators/usuario-actual.decorator';
+import { ModuloSistema } from '../../auth/enums/modulo-sistema.enum';
+import { NivelPermiso } from '../../auth/enums/nivel-permiso.enum';
+import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 
 import { AnimalService } from './animal.service';
 import { CrearAnimalDto } from './dto/crear-animal.dto';
