@@ -75,4 +75,35 @@ export class DesparasitacionService {
       },
     );
   }
+
+  /**
+   * Backlog 2.8: "Los usuarios autorizados pueden consultar el historial de
+   * desparasitaciones de un animal" y "La informacion corresponde unicamente
+   * al animal seleccionado".
+   *
+   * Primero se comprueba que el animal exista, para distinguir "no existe"
+   * (404) de "existe pero no tiene registros" (lista vacia).
+   *
+   * No se filtra por animal activo: la baja es logica precisamente para
+   * conservar los historiales, asi que el de un animal dado de baja tiene que
+   * seguir consultable.
+   *
+   * Orden: de la mas reciente a la mas antigua, desempatando por id para que
+   * dos aplicaciones del mismo dia no cambien de posicion entre consultas.
+   */
+  async listarPorAnimal(animalId: number): Promise<Desparasitacion[]> {
+    const animal = await this.desparasitacionesRepo.manager.findOne(Animal, {
+      select: { id: true },
+      where: { id: animalId },
+    });
+
+    if (!animal) {
+      throw new NotFoundException('El animal no existe.');
+    }
+
+    return await this.desparasitacionesRepo.find({
+      where: { animalId },
+      order: { fecha: 'DESC', id: 'DESC' },
+    });
+  }
 }
