@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 
 import type { UsuarioAutenticado } from '../auth/tipos/jwt-payload';
+import { condicionAnimalActivo, ESTADO_INACTIVO } from './animal-estado';
 import { CrearAnimalDto } from './dto/crear-animal.dto';
 import { EditarAnimalDto } from './dto/editar-animal.dto';
 import { FiltrarAnimalesDto } from './dto/filtrar-animales.dto';
@@ -14,15 +15,6 @@ import { Animal } from './entities/animal.entity';
 import { OrdenAnimales } from './enums/orden-animales.enum';
 
 const PG_UNIQUE_VIOLATION = '23505';
-
-/**
- * Valor con el que `desactivar` marca la baja logica de un animal.
- *
- * `estado` es texto libre: los DTO de registro y edicion aceptan cualquier
- * grafia, asi que un animal guardado como "inactivo" tambien esta dado de baja
- * y hay que compararlo sin distinguir mayusculas. El frontend ya lo hace asi.
- */
-const ESTADO_INACTIVO = 'INACTIVO';
 
 const COLUMNA_DE_ORDEN: Record<OrdenAnimales, string> = {
   [OrdenAnimales.NOMBRE]: 'animal.nombre',
@@ -79,7 +71,7 @@ export class AnimalService {
     const consulta = this.animalesRepo.createQueryBuilder('animal');
 
     if (!filtros.incluirInactivos) {
-      consulta.where('lower(animal.estado) != lower(:inactivo)', {
+      consulta.where(condicionAnimalActivo('animal'), {
         inactivo: ESTADO_INACTIVO,
       });
     }
