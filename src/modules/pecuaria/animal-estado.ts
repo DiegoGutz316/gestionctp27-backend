@@ -20,7 +20,15 @@ export function estaInactivo(estado: string): boolean {
 /**
  * Misma comprobacion, pero en SQL. Espera que la consulta reciba el parametro
  * `inactivo` con el valor de `ESTADO_INACTIVO`.
+ *
+ * Las dos mitades tienen que recortar igual o dejan de ser la misma regla: un
+ * estado como ' INACTIVO ' se rechazaba para desparasitaciones y a la vez
+ * seguia saliendo en el listado de activos.
+ *
+ * Se usa `btrim` con el conjunto explicito y no `trim` a secas porque `trim`
+ * solo quita espacios, mientras que `.trim()` de JavaScript quita tambien
+ * tabuladores y saltos de linea.
  */
 export function condicionAnimalActivo(alias: string): string {
-  return `lower(${alias}.estado) != lower(:inactivo)`;
+  return `lower(btrim(${alias}.estado, E' \\t\\n\\r')) != lower(:inactivo)`;
 }
