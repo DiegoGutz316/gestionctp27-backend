@@ -33,9 +33,7 @@ export function IngresoOEgresoExclusivo(
       options: opciones,
       validator: {
         validate(_value: unknown, args: ValidationArguments): boolean {
-          return esIngresoOEgresoExclusivo(
-            args.object as { ingresos?: unknown; egresos?: unknown },
-          );
+          return esIngresoOEgresoExclusivo(args.object);
         },
         defaultMessage: () =>
           'Indique un ingreso o un egreso, no ambos. El otro queda en 0.',

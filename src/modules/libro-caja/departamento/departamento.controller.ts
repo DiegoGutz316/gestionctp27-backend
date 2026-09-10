@@ -28,7 +28,9 @@ export class DepartamentoController {
 
   @Get()
   @RequierePermiso(ModuloSistema.LIBRO_CAJA, NivelPermiso.LECTURA)
-  @ApiOperation({ summary: 'Listar departamentos (unidades) del libro de caja' })
+  @ApiOperation({
+    summary: 'Listar departamentos (unidades) del libro de caja',
+  })
   listar(@Query() filtros: FiltrarDepartamentosDto) {
     return this.departamentoService.listar(filtros);
   }

@@ -287,7 +287,9 @@ export class PeriodoService {
       );
     }
 
-    const idsActivos = new Set(departamentos.map((departamento) => departamento.id));
+    const idsActivos = new Set(
+      departamentos.map((departamento) => departamento.id),
+    );
     const faltantes = departamentos.filter(
       (departamento) => !unicos.has(departamento.id),
     );

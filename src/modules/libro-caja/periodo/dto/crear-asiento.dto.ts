@@ -64,8 +64,7 @@ export class CrearAsientoDto {
     minimum: 0,
     maximum: VALOR_MAXIMO,
     example: 1200000,
-    description:
-      'Ingreso en colones. Debe ser 0 si el asiento es un egreso.',
+    description: 'Ingreso en colones. Debe ser 0 si el asiento es un egreso.',
   })
   @Transform(transformarNumeroOCero)
   @IsNumber({}, { message: 'El ingreso debe ser un número válido' })
@@ -83,8 +82,7 @@ export class CrearAsientoDto {
     minimum: 0,
     maximum: VALOR_MAXIMO,
     example: 0,
-    description:
-      'Egreso en colones. Debe ser 0 si el asiento es un ingreso.',
+    description: 'Egreso en colones. Debe ser 0 si el asiento es un ingreso.',
   })
   @Transform(transformarNumeroOCero)
   @IsNumber({}, { message: 'El egreso debe ser un número válido' })

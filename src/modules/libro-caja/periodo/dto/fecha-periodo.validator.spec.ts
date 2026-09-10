@@ -1,6 +1,4 @@
-import {
-  esFechaIsoValida,
-} from './fecha-periodo.validator';
+import { esFechaIsoValida } from './fecha-periodo.validator';
 
 describe('esFechaIsoValida', () => {
   it('acepta una fecha calendario válida', () => {
