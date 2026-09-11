@@ -9,7 +9,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-import { EsFechaNoFutura } from '../../../common/validacion/fecha-no-futura.validator';
+import { EsFechaNoFutura } from '../../../../common/validacion/fecha-no-futura.validator';
 
 function normalizarTexto({ value }: TransformFnParams): unknown {
   const valor: unknown = value;
