@@ -35,7 +35,7 @@ describe('SaludService', () => {
     observaciones: 'Inicio de tratamiento',
   };
 
-  it('registra salud de un animal activo y deja al usuario como responsable', async () => {
+  it('registra salud de un animal activo con fecha y usuario responsable', async () => {
     const { service, saludRepo } = crearServicio({ animal: animalActivo });
 
     const resultado = await service.registrar(dto, actor);
@@ -43,31 +43,38 @@ describe('SaludService', () => {
     expect(saludRepo.create).toHaveBeenCalledWith(
       expect.objectContaining({
         animal: animalActivo,
+        fecha: '2026-09-08',
         condicionObservada: CondicionSalud.ENFERMO,
         diagnostico: 'Mastitis',
+        observaciones: 'Inicio de tratamiento',
         creadoPor: actor.id,
       }),
     );
     expect(resultado.animalId).toBe(1);
     expect(resultado.creadoPor).toBe(actor.id);
+    expect(resultado.creadoEn).toEqual(
+      new Date('2026-09-08T18:00:00.000Z'),
+    );
   });
 
   it('rechaza el registro si el animal no existe', async () => {
-    const { service } = crearServicio({ animal: null });
+    const { service, saludRepo } = crearServicio({ animal: null });
 
     await expect(service.registrar(dto, actor)).rejects.toBeInstanceOf(
       NotFoundException,
     );
+    expect(saludRepo.save).not.toHaveBeenCalled();
   });
 
   it('rechaza el registro si el animal no está activo', async () => {
-    const { service } = crearServicio({
+    const { service, saludRepo } = crearServicio({
       animal: { ...animalActivo, estado: 'INACTIVO' } as Animal,
     });
 
     await expect(service.registrar(dto, actor)).rejects.toBeInstanceOf(
       BadRequestException,
     );
+    expect(saludRepo.save).not.toHaveBeenCalled();
   });
 
   it('consulta el historial de salud asociado al animal', async () => {
@@ -83,7 +90,10 @@ describe('SaludService', () => {
         creadoPor: actor.id,
       },
     ] as RegistroSalud[];
-    const { service } = crearServicio({ animal: animalActivo, registros });
+    const { service, saludRepo } = crearServicio({
+      animal: animalActivo,
+      registros,
+    });
 
     const resultado = await service.consultar({ animalId: 1 });
 
@@ -92,6 +102,11 @@ describe('SaludService', () => {
     expect(resultado.registros[0]?.condicionObservada).toBe(
       CondicionSalud.ENFERMO,
     );
+    expect(saludRepo.find).toHaveBeenCalledWith({
+      where: { animal: { id: animalActivo.id } },
+      relations: { animal: true },
+      order: { fecha: 'DESC', id: 'DESC' },
+    });
   });
 });
 
