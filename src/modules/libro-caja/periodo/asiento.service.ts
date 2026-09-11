@@ -70,7 +70,10 @@ export class AsientoService {
           'Registre el fondo inicial de este departamento antes de anotar asientos.',
         );
       }
-      if (dto.fecha < fondo.periodo.fechaInicio || dto.fecha > fondo.periodo.fechaFin) {
+      if (
+        dto.fecha < fondo.periodo.fechaInicio ||
+        dto.fecha > fondo.periodo.fechaFin
+      ) {
         throw new BadRequestException(
           `La fecha del asiento debe estar entre ${fondo.periodo.fechaInicio} y ${fondo.periodo.fechaFin}.`,
         );

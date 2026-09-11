@@ -8,13 +8,21 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
+import { condicionAnimalActivo, ESTADO_INACTIVO } from '../animal-estado';
 import { CrearAnimalDto } from './dto/crear-animal.dto';
 import { EditarAnimalDto } from './dto/editar-animal.dto';
+import { FiltrarAnimalesDto } from './dto/filtrar-animales.dto';
 import { Animal } from './entities/animal.entity';
 import { EspecieAnimal } from './enums/especie-animal.enum';
-import { EstadoAnimal } from './enums/estado-animal.enum';
+import { OrdenAnimales } from './enums/orden-animales.enum';
 
 const PG_UNIQUE_VIOLATION = '23505';
+
+const COLUMNA_DE_ORDEN: Record<OrdenAnimales, string> = {
+  [OrdenAnimales.NOMBRE]: 'animal.nombre',
+  [OrdenAnimales.CODIGO]: 'animal.codigo',
+  [OrdenAnimales.ESTADO]: 'animal.estado',
+};
 
 @Injectable()
 export class AnimalService {
@@ -55,12 +63,40 @@ export class AnimalService {
       throw error;
     }
   }
-  async listar(): Promise<Animal[]> {
-    return await this.animalesRepo.find({
-      order: {
-        id: 'ASC',
-      },
-    });
+  /**
+   * Backlog 2.2 (Consultar animales).
+   *
+   * Por defecto se omiten los animales dados de baja, porque el criterio pide
+   * el listado de los **activos**. La baja es lógica y se marca poniendo
+   * `estado` en INACTIVO (ver `desactivar`), así que ese es el filtro.
+   */
+  async listar(filtros: FiltrarAnimalesDto): Promise<Animal[]> {
+    const consulta = this.animalesRepo.createQueryBuilder('animal');
+
+    if (!filtros.incluirInactivos) {
+      consulta.where(condicionAnimalActivo('animal'), {
+        inactivo: ESTADO_INACTIVO,
+      });
+    }
+
+    // "Buscar animales por código, nombre o estado": una sola búsqueda contra
+    // los tres campos. Se compara en minúsculas para que no dependa de cómo
+    // se haya tecleado.
+    if (filtros.q) {
+      consulta.andWhere(
+        `(lower(animal.codigo) LIKE lower(:q)
+          OR lower(animal.nombre) LIKE lower(:q)
+          OR lower(animal.estado) LIKE lower(:q))`,
+        { q: `%${filtros.q}%` },
+      );
+    }
+
+    // El id desempata: sin él, dos animales con el mismo nombre o estado
+    // podrían intercambiarse de posición entre consultas.
+    consulta.orderBy(COLUMNA_DE_ORDEN[filtros.orden], 'ASC');
+    consulta.addOrderBy('animal.id', 'ASC');
+
+    return await consulta.getMany();
   }
 
   async obtener(id: number): Promise<Animal> {
@@ -142,7 +178,7 @@ export class AnimalService {
 
     // Desactivación lógica:
     // el animal permanece en la base de datos.
-    animal.estado = EstadoAnimal.INACTIVO;
+    animal.estado = ESTADO_INACTIVO;
 
     // Usuario responsable de la modificación.
     animal.actualizadoPor = actor.id;

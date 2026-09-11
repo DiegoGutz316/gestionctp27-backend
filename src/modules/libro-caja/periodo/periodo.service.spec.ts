@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import type { DataSource, EntityManager } from 'typeorm';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { RolUsuario } from '../../usuarios/enums/rol-usuario.enum';
@@ -84,9 +81,9 @@ describe('PeriodoService', () => {
     );
 
     expect(resultado.fondos).toHaveLength(2);
-    expect(resultado.fondos.map((fondo) => fondo.departamento.nombreUnidad)).toEqual(
-      ['Unidad Agrícola', 'Unidad Pecuaria'],
-    );
+    expect(
+      resultado.fondos.map((fondo) => fondo.departamento.nombreUnidad),
+    ).toEqual(['Unidad Agrícola', 'Unidad Pecuaria']);
     expect(fondosGuardados).toHaveLength(2);
   });
 
