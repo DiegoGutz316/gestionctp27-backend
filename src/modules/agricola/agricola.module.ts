@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
-// Módulo placeholder: la lógica (controllers, services, entities, dto)
-// se implementará en etapas posteriores.
+import { CamaCultivoController } from './cama/cama-cultivo.controller';
+import { CamaCultivoService } from './cama/cama-cultivo.service';
+import { CamaCultivo } from './cama/entities/cama-cultivo.entity';
+
 @Module({
-  imports: [],
-  controllers: [],
-  providers: [],
+  imports: [TypeOrmModule.forFeature([CamaCultivo])],
+  controllers: [CamaCultivoController],
+  providers: [CamaCultivoService],
 })
 export class AgricolaModule {}
