@@ -80,7 +80,7 @@ describe('CamaCultivoService', () => {
   it('lista todas las camas registradas', async () => {
     const camas = [
       { id: 1, codigo: 'CAMA-001', estado: EstadoCamaCultivo.DISPONIBLE },
-      { id: 2, codigo: 'CAMA-002', estado: EstadoCamaCultivo.EN_USO },
+      { id: 2, codigo: 'CAMA-002', estado: EstadoCamaCultivo.SEMBRADA },
     ] as CamaCultivo[];
     const { service, consulta } = crearServicioParaListar(camas);
 
@@ -158,7 +158,7 @@ describe('CamaCultivoService', () => {
   const dtoEdicion = {
     codigo: 'CAMA-001',
     ubicacion: 'Invernadero 2',
-    estado: EstadoCamaCultivo.EN_USO,
+    estado: EstadoCamaCultivo.SEMBRADA,
     observaciones: 'Riego revisado.',
   };
 
@@ -253,7 +253,7 @@ describe('CamaCultivoService', () => {
 
     const resultado = await service.actualizar(1, dtoEdicion, actor);
 
-    expect(resultado.estado).toBe(EstadoCamaCultivo.EN_USO);
+    expect(resultado.estado).toBe(EstadoCamaCultivo.SEMBRADA);
   });
 
   it('sigue permitiendo cambiar las observaciones', async () => {
@@ -294,7 +294,7 @@ describe('CamaCultivoService', () => {
         id: 1,
         codigo: 'CAMA-001',
         ubicacion: 'Invernadero 2',
-        estado: EstadoCamaCultivo.EN_USO,
+        estado: EstadoCamaCultivo.SEMBRADA,
         observaciones: 'Riego revisado.',
         actualizadoPor: actor.id,
       }),

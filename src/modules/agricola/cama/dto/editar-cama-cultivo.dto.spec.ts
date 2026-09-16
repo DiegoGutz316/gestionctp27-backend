@@ -9,7 +9,7 @@ describe('EditarCamaCultivoDto', () => {
     const dto = plainToInstance(EditarCamaCultivoDto, {
       codigo: 'CAMA-001',
       ubicacion: 'Invernadero 2',
-      estado: EstadoCamaCultivo.EN_USO,
+      estado: EstadoCamaCultivo.SEMBRADA,
     });
 
     expect(validateSync(dto)).toHaveLength(0);
@@ -19,7 +19,7 @@ describe('EditarCamaCultivoDto', () => {
     const dto = plainToInstance(EditarCamaCultivoDto, {
       codigo: '   ',
       ubicacion: 'Invernadero 2',
-      estado: EstadoCamaCultivo.EN_USO,
+      estado: EstadoCamaCultivo.SEMBRADA,
     });
 
     const camposInvalidos = validateSync(dto).map((error) => error.property);
@@ -31,7 +31,7 @@ describe('EditarCamaCultivoDto', () => {
     const dto = plainToInstance(EditarCamaCultivoDto, {
       codigo: 'C'.repeat(51),
       ubicacion: 'Invernadero 2',
-      estado: EstadoCamaCultivo.EN_USO,
+      estado: EstadoCamaCultivo.SEMBRADA,
     });
 
     const camposInvalidos = validateSync(dto).map((error) => error.property);
@@ -43,7 +43,7 @@ describe('EditarCamaCultivoDto', () => {
     const dto = plainToInstance(EditarCamaCultivoDto, {
       codigo: 'CAMA-001',
       ubicacion: '   ',
-      estado: EstadoCamaCultivo.EN_USO,
+      estado: EstadoCamaCultivo.SEMBRADA,
     });
 
     const camposInvalidos = validateSync(dto).map((error) => error.property);
@@ -77,7 +77,7 @@ describe('EditarCamaCultivoDto', () => {
     const dto = plainToInstance(EditarCamaCultivoDto, {
       codigo: '  CAMA-001  ',
       ubicacion: '  Invernadero 2  ',
-      estado: EstadoCamaCultivo.EN_USO,
+      estado: EstadoCamaCultivo.SEMBRADA,
       observaciones: '  Riego revisado.  ',
     });
 
