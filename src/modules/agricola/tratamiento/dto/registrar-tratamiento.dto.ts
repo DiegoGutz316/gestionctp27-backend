@@ -19,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 
 import { EsFechaNoFutura } from '../../../../common/validacion/fecha-no-futura.validator';
+import { TieneMaximoDosDecimales } from '../../siembra/dto/dos-decimales.validator';
 
 const CANTIDAD_MAXIMA = 9_999_999_999.99;
 
@@ -122,15 +123,10 @@ export class RegistrarTratamientoDto {
   @IsDefined({
     message: 'La cantidad aplicada es obligatoria',
   })
-  @IsNumber(
-    {
-      maxDecimalPlaces: 2,
-    },
-    {
-      message:
-        'La cantidad aplicada debe ser un número válido con máximo 2 decimales',
-    },
-  )
+  @IsNumber({}, { message: 'La cantidad aplicada debe ser un número válido' })
+  @TieneMaximoDosDecimales({
+    message: 'La cantidad aplicada admite como máximo 2 decimales',
+  })
   @IsPositive({
     message:
       'La cantidad aplicada debe ser mayor a cero',
