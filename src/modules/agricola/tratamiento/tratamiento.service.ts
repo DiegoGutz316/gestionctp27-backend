@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -35,6 +39,16 @@ export class TratamientoService {
 
     if (!siembra) {
       throw new NotFoundException('La siembra seleccionada no existe.');
+    }
+
+    // El DTO solo descarta fechas futuras, asi que sin esto se podria registrar
+    // un tratamiento anterior a la siembra. Ambas columnas son `date` y llegan
+    // como texto AAAA-MM-DD, formato en el que el orden alfabetico coincide con
+    // el cronologico.
+    if (dto.fecha < siembra.fechaSiembra) {
+      throw new BadRequestException(
+        'La fecha del tratamiento no puede ser anterior a la fecha de siembra.',
+      );
     }
 
     const tratamiento = this.tratamientosRepo.create({
