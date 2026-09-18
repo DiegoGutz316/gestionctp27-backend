@@ -1,7 +1,8 @@
 import { Transform, type TransformFnParams } from 'class-transformer';
 import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional, OmitType } from '@nestjs/swagger';
 
+import { PaginarDto } from '../../../../common/paginacion/dto/paginar.dto';
 import { EsFechaNoFutura } from '../../../../common/validacion/fecha-no-futura.validator';
 
 function normalizarTexto({ value }: TransformFnParams): unknown {
@@ -15,10 +16,13 @@ function normalizarTexto({ value }: TransformFnParams): unknown {
 /**
  * Backlog 3.7: "El sistema permite filtrar cosechas por cultivo o fecha".
  *
- * Los dos filtros son opcionales y se combinan: sin ninguno se devuelve el
- * historial completo, que es lo que pide "consultar el historial de cosechas".
+ * Los dos filtros son opcionales y se combinan.
+ *
+ * Hereda `pagina` y `limite` de `PaginarDto` pero omite `q`: este historial no
+ * tiene busqueda por texto libre, se filtra por cultivo y por fecha. Sin
+ * paginacion la consulta cargaria toda la historia, que solo crece.
  */
-export class ConsultarCosechasDto {
+export class ConsultarCosechasDto extends OmitType(PaginarDto, ['q'] as const) {
   @ApiPropertyOptional({
     example: 'Tomate',
     description: 'Coincidencia parcial e insensible a mayúsculas',

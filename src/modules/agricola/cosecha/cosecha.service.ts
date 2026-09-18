@@ -6,6 +6,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import {
+  crearResultadoPaginado,
+  paginarQueryBuilder,
+} from '../../../common/paginacion/helpers/paginar.helper';
+import type { ResultadoPaginado } from '../../../common/paginacion/tipos/resultado-paginado';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { Siembra } from '../siembra/entities/siembra.entity';
 
@@ -80,8 +85,13 @@ export class CosechaService {
    *
    * Orden: de la cosecha mas reciente a la mas antigua, desempatando por id
    * para que dos del mismo dia no cambien de posicion entre consultas.
+   *
+   * La respuesta va paginada: la tabla solo crece, asi que sin acotarla la
+   * consulta cargaria y serializaria toda la historia.
    */
-  async consultar(filtros: ConsultarCosechasDto): Promise<CosechaRespuesta[]> {
+  async consultar(
+    filtros: ConsultarCosechasDto,
+  ): Promise<ResultadoPaginado<CosechaRespuesta>> {
     const consulta = this.cosechasRepo
       .createQueryBuilder('cosecha')
       .innerJoinAndSelect('cosecha.siembra', 'siembra');
@@ -96,11 +106,10 @@ export class CosechaService {
       consulta.andWhere('cosecha.fecha = :fecha', { fecha: filtros.fecha });
     }
 
-    const cosechas = await consulta
-      .orderBy('cosecha.fecha', 'DESC')
-      .addOrderBy('cosecha.id', 'DESC')
-      .getMany();
+    consulta.orderBy('cosecha.fecha', 'DESC').addOrderBy('cosecha.id', 'DESC');
 
-    return cosechas.map(mapearCosecha);
+    const { entidades, total } = await paginarQueryBuilder(consulta, filtros);
+
+    return crearResultadoPaginado(entidades.map(mapearCosecha), filtros, total);
   }
 }
