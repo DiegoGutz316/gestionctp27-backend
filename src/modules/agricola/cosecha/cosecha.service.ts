@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { Siembra } from '../siembra/entities/siembra.entity';
 
+import { ConsultarCosechasDto } from './dto/consultar-cosechas.dto';
 import { RegistrarCosechaDto } from './dto/registrar-cosecha.dto';
 import { Cosecha } from './entities/cosecha.entity';
 import {
@@ -68,5 +69,38 @@ export class CosechaService {
     guardada.siembra = siembra;
 
     return mapearCosecha(guardada);
+  }
+
+  /**
+   * Backlog 3.7: "Los usuarios autorizados pueden consultar el historial de
+   * cosechas" y "El sistema permite filtrar cosechas por cultivo o fecha".
+   *
+   * El cultivo vive en la siembra, asi que el filtro se aplica sobre la tabla
+   * unida. Sin filtros se devuelve el historial completo.
+   *
+   * Orden: de la cosecha mas reciente a la mas antigua, desempatando por id
+   * para que dos del mismo dia no cambien de posicion entre consultas.
+   */
+  async consultar(filtros: ConsultarCosechasDto): Promise<CosechaRespuesta[]> {
+    const consulta = this.cosechasRepo
+      .createQueryBuilder('cosecha')
+      .innerJoinAndSelect('cosecha.siembra', 'siembra');
+
+    if (filtros.cultivo) {
+      consulta.andWhere('lower(siembra.tipoCultivo) LIKE lower(:cultivo)', {
+        cultivo: `%${filtros.cultivo}%`,
+      });
+    }
+
+    if (filtros.fecha) {
+      consulta.andWhere('cosecha.fecha = :fecha', { fecha: filtros.fecha });
+    }
+
+    const cosechas = await consulta
+      .orderBy('cosecha.fecha', 'DESC')
+      .addOrderBy('cosecha.id', 'DESC')
+      .getMany();
+
+    return cosechas.map(mapearCosecha);
   }
 }
