@@ -40,3 +40,34 @@ export function RangoFechasValido(
     });
   };
 }
+
+/**
+ * `fecha` es el filtro de un solo dia anterior al rango. Se conserva por
+ * compatibilidad, pero combinarlo con `desde` o `hasta` no tendria un
+ * significado claro, asi que se rechaza en vez de inventar una precedencia.
+ */
+export function FechaExclusivaDelRango(
+  opciones?: ValidationOptions,
+): ClassDecorator {
+  return (target) => {
+    registerDecorator({
+      target,
+      propertyName: '',
+      options: opciones,
+      validator: {
+        validate(_valor: unknown, args: ValidationArguments): boolean {
+          const objeto = args.object as {
+            fecha?: string;
+            desde?: string;
+            hasta?: string;
+          };
+
+          return !objeto.fecha || (!objeto.desde && !objeto.hasta);
+        },
+
+        defaultMessage: () =>
+          'No combine «fecha» con «desde» o «hasta»: use el rango',
+      },
+    });
+  };
+}

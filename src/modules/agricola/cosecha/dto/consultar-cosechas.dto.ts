@@ -5,7 +5,10 @@ import { ApiPropertyOptional, OmitType } from '@nestjs/swagger';
 import { PaginarDto } from '../../../../common/paginacion/dto/paginar.dto';
 import { EsFechaNoFutura } from '../../../../common/validacion/fecha-no-futura.validator';
 
-import { RangoFechasValido } from './rango-fechas.validator';
+import {
+  FechaExclusivaDelRango,
+  RangoFechasValido,
+} from './rango-fechas.validator';
 
 function normalizarTexto({ value }: TransformFnParams): unknown {
   if (typeof value !== 'string') return value;
@@ -26,11 +29,17 @@ function normalizarTexto({ value }: TransformFnParams): unknown {
  * Mismo par `desde`/`hasta` que usan movimientos de inventario y produccion
  * pecuaria.
  *
+ * `fecha`, el filtro de un dia que habia antes, sigue aceptandose. El pipe
+ * global usa `forbidNonWhitelisted`, asi que quitarlo devolvia 400 a quien lo
+ * mandara, y backend y frontend se despliegan por separado: entre un
+ * despliegue y otro el frontend ya publicado lo sigue enviando.
+ *
  * Hereda `pagina` y `limite` de `PaginarDto` pero omite `q`: este historial no
  * tiene busqueda por texto libre. Sin paginacion la consulta cargaria toda la
  * historia, que solo crece.
  */
 @RangoFechasValido()
+@FechaExclusivaDelRango()
 export class ConsultarCosechasDto extends OmitType(PaginarDto, ['q'] as const) {
   @ApiPropertyOptional({
     example: 'Tomate',
@@ -64,4 +73,18 @@ export class ConsultarCosechasDto extends OmitType(PaginarDto, ['q'] as const) {
     message: 'Ingrese una fecha final válida que no sea futura',
   })
   hasta?: string;
+
+  /**
+   * @deprecated Use `desde` y `hasta`. Equivale a un rango de un solo dia y se
+   * mantiene para no romper a los clientes ya desplegados.
+   */
+  @ApiPropertyOptional({
+    example: '2026-09-18',
+    deprecated: true,
+    description: 'Obsoleto: filtra un solo día. Use «desde» y «hasta»',
+  })
+  @Transform(normalizarTexto)
+  @IsOptional()
+  @EsFechaNoFutura({ message: 'Ingrese una fecha válida que no sea futura' })
+  fecha?: string;
 }
