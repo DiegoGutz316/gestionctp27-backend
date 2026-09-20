@@ -5,6 +5,8 @@ import { ApiPropertyOptional, OmitType } from '@nestjs/swagger';
 import { PaginarDto } from '../../../../common/paginacion/dto/paginar.dto';
 import { EsFechaNoFutura } from '../../../../common/validacion/fecha-no-futura.validator';
 
+import { RangoFechasValido } from './rango-fechas.validator';
+
 function normalizarTexto({ value }: TransformFnParams): unknown {
   if (typeof value !== 'string') return value;
 
@@ -16,12 +18,19 @@ function normalizarTexto({ value }: TransformFnParams): unknown {
 /**
  * Backlog 3.7: "El sistema permite filtrar cosechas por cultivo o fecha".
  *
- * Los dos filtros son opcionales y se combinan.
+ * Los filtros son opcionales y se combinan.
+ *
+ * La fecha se filtra por rango y no por un dia exacto: un historial de
+ * produccion se consulta por periodos ("lo cosechado en setiembre"), y un dia
+ * suelto sigue siendo posible poniendo el mismo valor en los dos extremos.
+ * Mismo par `desde`/`hasta` que usan movimientos de inventario y produccion
+ * pecuaria.
  *
  * Hereda `pagina` y `limite` de `PaginarDto` pero omite `q`: este historial no
- * tiene busqueda por texto libre, se filtra por cultivo y por fecha. Sin
- * paginacion la consulta cargaria toda la historia, que solo crece.
+ * tiene busqueda por texto libre. Sin paginacion la consulta cargaria toda la
+ * historia, que solo crece.
  */
+@RangoFechasValido()
 export class ConsultarCosechasDto extends OmitType(PaginarDto, ['q'] as const) {
   @ApiPropertyOptional({
     example: 'Tomate',
@@ -34,9 +43,25 @@ export class ConsultarCosechasDto extends OmitType(PaginarDto, ['q'] as const) {
   @MaxLength(120, { message: 'El filtro no puede superar 120 caracteres' })
   cultivo?: string;
 
-  @ApiPropertyOptional({ example: '2026-09-17' })
+  @ApiPropertyOptional({
+    example: '2026-09-01',
+    description: 'Incluye las cosechas de esta fecha en adelante',
+  })
   @Transform(normalizarTexto)
   @IsOptional()
-  @EsFechaNoFutura({ message: 'Ingrese una fecha válida que no sea futura' })
-  fecha?: string;
+  @EsFechaNoFutura({
+    message: 'Ingrese una fecha inicial válida que no sea futura',
+  })
+  desde?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-09-30',
+    description: 'Incluye las cosechas hasta esta fecha',
+  })
+  @Transform(normalizarTexto)
+  @IsOptional()
+  @EsFechaNoFutura({
+    message: 'Ingrese una fecha final válida que no sea futura',
+  })
+  hasta?: string;
 }
