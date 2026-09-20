@@ -83,6 +83,11 @@ export class CosechaService {
    * El cultivo vive en la siembra, asi que el filtro se aplica sobre la tabla
    * unida. Sin filtros se devuelve el historial completo.
    *
+   * La fecha se filtra por rango (`desde`/`hasta`, ambos inclusivos): un
+   * historial de produccion se consulta por periodos, no por un dia suelto.
+   * El parametro `fecha` de antes se sigue aceptando como un rango de un solo
+   * dia, para no romper a los clientes ya desplegados.
+   *
    * Orden: de la cosecha mas reciente a la mas antigua, desempatando por id
    * para que dos del mismo dia no cambien de posicion entre consultas.
    *
@@ -102,8 +107,20 @@ export class CosechaService {
       });
     }
 
-    if (filtros.fecha) {
-      consulta.andWhere('cosecha.fecha = :fecha', { fecha: filtros.fecha });
+    // Los dos extremos son inclusivos y opcionales por separado: se puede
+    // pedir "desde agosto", "hasta ayer" o un dia exacto repitiendo el valor.
+    //
+    // El `fecha` obsoleto es justo eso, un rango de un solo dia. El DTO impide
+    // que venga junto al rango, asi que aqui no hay ambiguedad que resolver.
+    const desde = filtros.desde ?? filtros.fecha;
+    const hasta = filtros.hasta ?? filtros.fecha;
+
+    if (desde) {
+      consulta.andWhere('cosecha.fecha >= :desde', { desde });
+    }
+
+    if (hasta) {
+      consulta.andWhere('cosecha.fecha <= :hasta', { hasta });
     }
 
     consulta.orderBy('cosecha.fecha', 'DESC').addOrderBy('cosecha.id', 'DESC');
