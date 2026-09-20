@@ -1,4 +1,5 @@
 import type { Cosecha } from '../entities/cosecha.entity';
+import type { UnidadMedida } from '../enums/unidad-medida.enum';
 
 export interface CosechaRespuesta {
   id: number;
@@ -9,6 +10,7 @@ export interface CosechaRespuesta {
   };
   fecha: string;
   cantidadObtenida: number;
+  unidadMedida: UnidadMedida;
   observaciones: string | null;
   creadoEn: Date;
   creadoPor: string;
@@ -24,6 +26,7 @@ export function mapearCosecha(cosecha: Cosecha): CosechaRespuesta {
     },
     fecha: cosecha.fecha,
     cantidadObtenida: cosecha.cantidadObtenida,
+    unidadMedida: cosecha.unidadMedida,
     observaciones: cosecha.observaciones,
     creadoEn: cosecha.creadoEn,
     creadoPor: cosecha.creadoPor,

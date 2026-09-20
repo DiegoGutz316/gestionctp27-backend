@@ -1,6 +1,7 @@
 import { Transform, type TransformFnParams } from 'class-transformer';
 import {
   IsDefined,
+  IsEnum,
   IsInt,
   IsNumber,
   IsOptional,
@@ -13,6 +14,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 import { EsFechaNoFutura } from '../../../../common/validacion/fecha-no-futura.validator';
 import { TieneMaximoDosDecimales } from '../../siembra/dto/dos-decimales.validator';
+import { UnidadMedida } from '../enums/unidad-medida.enum';
+import { CantidadEnteraEnUnidades } from './cantidad-entera.validator';
 
 /** Limite de la columna numeric(12,2). */
 const CANTIDAD_MAXIMA = 9_999_999_999.99;
@@ -32,6 +35,7 @@ function normalizarObservaciones({ value }: TransformFnParams): unknown {
   return texto === '' ? undefined : texto;
 }
 
+@CantidadEnteraEnUnidades()
 export class RegistrarCosechaDto {
   @ApiProperty({ type: Number, minimum: 1, example: 1 })
   @Transform(transformarNumero)
@@ -73,6 +77,21 @@ export class RegistrarCosechaDto {
   @IsNumber({}, { message: 'La cantidad obtenida debe ser un número válido' })
   @IsDefined({ message: 'La cantidad obtenida es obligatoria' })
   cantidadObtenida!: number;
+
+  /**
+   * Mismo orden invertido que en `cantidadObtenida`: `@IsDefined` se declara
+   * al final para que, si no viene, gane su mensaje y no el del enum.
+   */
+  @ApiProperty({
+    enum: UnidadMedida,
+    enumName: 'UnidadMedida',
+    example: UnidadMedida.KG,
+  })
+  @IsEnum(UnidadMedida, {
+    message: 'Seleccione una unidad de medida válida',
+  })
+  @IsDefined({ message: 'Seleccione la unidad de medida' })
+  unidadMedida!: UnidadMedida;
 
   @ApiPropertyOptional({
     maxLength: 500,
