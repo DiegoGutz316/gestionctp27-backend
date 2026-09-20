@@ -63,6 +63,7 @@ export class CosechaService {
       siembra,
       fecha: dto.fecha,
       cantidadObtenida: dto.cantidadObtenida,
+      unidadMedida: dto.unidadMedida,
       observaciones: dto.observaciones ?? null,
 
       // El responsable sale de la sesion, nunca del cuerpo de la peticion.

@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 
 import { Siembra } from '../../siembra/entities/siembra.entity';
+import { UnidadMedida } from '../enums/unidad-medida.enum';
 
 const numericTransformer: ValueTransformer = {
   to: (value: number) => value,
@@ -49,6 +50,17 @@ export class Cosecha {
     transformer: numericTransformer,
   })
   cantidadObtenida: number;
+
+  /**
+   * En que se midio la cantidad. Va por cosecha y no por siembra: del mismo
+   * cultivo se puede pesar un corte y contar otro.
+   */
+  @Column({
+    name: 'unidad_medida',
+    type: 'varchar',
+    length: 20,
+  })
+  unidadMedida: UnidadMedida;
 
   @Column({
     name: 'observaciones',
