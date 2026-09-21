@@ -1,5 +1,12 @@
 import { Transform, type TransformFnParams } from 'class-transformer';
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsPositive,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { ApiPropertyOptional, OmitType } from '@nestjs/swagger';
 
 import { PaginarDto } from '../../../../common/paginacion/dto/paginar.dto';
@@ -9,6 +16,13 @@ import {
   FechaExclusivaDelRango,
   RangoFechasValido,
 } from './rango-fechas.validator';
+
+function transformarNumero({ value }: TransformFnParams): unknown {
+  if (typeof value === 'number') return value;
+  if (typeof value !== 'string' || value.trim() === '') return undefined;
+
+  return Number(value);
+}
 
 function normalizarTexto({ value }: TransformFnParams): unknown {
   if (typeof value !== 'string') return value;
@@ -51,6 +65,22 @@ export class ConsultarCosechasDto extends OmitType(PaginarDto, ['q'] as const) {
   @MinLength(1, { message: 'Ingrese un cultivo válido' })
   @MaxLength(120, { message: 'El filtro no puede superar 120 caracteres' })
   cultivo?: string;
+
+  /**
+   * Se filtra por id y no por el codigo "CAMA-001": un id no admite variantes
+   * de escritura, que es justo el problema que tiene el filtro de cultivo.
+   */
+  @ApiPropertyOptional({
+    type: Number,
+    minimum: 1,
+    example: 1,
+    description: 'Id de la cama de cultivo donde se hizo la cosecha',
+  })
+  @Transform(transformarNumero)
+  @IsOptional()
+  @IsPositive({ message: 'Seleccione una cama de cultivo válida' })
+  @IsInt({ message: 'Seleccione una cama de cultivo válida' })
+  camaId?: number;
 
   @ApiPropertyOptional({
     example: '2026-09-01',

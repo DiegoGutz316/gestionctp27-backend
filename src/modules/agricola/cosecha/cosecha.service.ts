@@ -4,22 +4,25 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, type SelectQueryBuilder } from 'typeorm';
 
 import {
   crearResultadoPaginado,
   paginarQueryBuilder,
 } from '../../../common/paginacion/helpers/paginar.helper';
-import type { ResultadoPaginado } from '../../../common/paginacion/tipos/resultado-paginado';
+
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { Siembra } from '../siembra/entities/siembra.entity';
 
 import { ConsultarCosechasDto } from './dto/consultar-cosechas.dto';
 import { RegistrarCosechaDto } from './dto/registrar-cosecha.dto';
 import { Cosecha } from './entities/cosecha.entity';
+import { UnidadMedida } from './enums/unidad-medida.enum';
 import {
   mapearCosecha,
   type CosechaRespuesta,
+  type ResultadoCosechas,
+  type TotalPorUnidad,
 } from './respuestas/cosecha.mapper';
 
 @Injectable()
@@ -43,8 +46,11 @@ export class CosechaService {
     dto: RegistrarCosechaDto,
     actor: UsuarioAutenticado,
   ): Promise<CosechaRespuesta> {
+    // La cama se carga aqui porque la respuesta la incluye: sin la relacion,
+    // `mapearCosecha` se encontraria `siembra.cama` sin definir.
     const siembra = await this.siembrasRepo.findOne({
       where: { id: dto.siembraId },
+      relations: { cama: true },
     });
 
     if (!siembra) {
@@ -95,24 +101,51 @@ export class CosechaService {
    * La respuesta va paginada: la tabla solo crece, asi que sin acotarla la
    * consulta cargaria y serializaria toda la historia.
    */
-  async consultar(
-    filtros: ConsultarCosechasDto,
-  ): Promise<ResultadoPaginado<CosechaRespuesta>> {
+  async consultar(filtros: ConsultarCosechasDto): Promise<ResultadoCosechas> {
     const consulta = this.cosechasRepo
       .createQueryBuilder('cosecha')
-      .innerJoinAndSelect('cosecha.siembra', 'siembra');
+      .innerJoinAndSelect('cosecha.siembra', 'siembra')
+      .innerJoinAndSelect('siembra.cama', 'cama');
 
+    this.aplicarFiltros(consulta, filtros);
+
+    consulta.orderBy('cosecha.fecha', 'DESC').addOrderBy('cosecha.id', 'DESC');
+
+    const { entidades, total } = await paginarQueryBuilder(consulta, filtros);
+
+    return {
+      ...crearResultadoPaginado(entidades.map(mapearCosecha), filtros, total),
+      totales: await this.totalizar(filtros),
+    };
+  }
+
+  /**
+   * Los filtros se aplican igual a la consulta que se pagina y a la que suma,
+   * asi que viven en un solo sitio: si se separaran, la cabecera podria acabar
+   * totalizando algo distinto de lo que muestra la tabla.
+   *
+   * Las dos consultas tienen que traer unidas `siembra` y `cama`, porque el
+   * cultivo y la cama viven ahi y no en la cosecha.
+   *
+   * Los dos extremos de fecha son inclusivos y opcionales por separado: se
+   * puede pedir "desde agosto", "hasta ayer" o un dia exacto repitiendo el
+   * valor. El `fecha` obsoleto es justo eso, un rango de un solo dia; el DTO
+   * impide que venga junto al rango, asi que aqui no hay ambiguedad.
+   */
+  private aplicarFiltros(
+    consulta: SelectQueryBuilder<Cosecha>,
+    filtros: ConsultarCosechasDto,
+  ): void {
     if (filtros.cultivo) {
       consulta.andWhere('lower(siembra.tipoCultivo) LIKE lower(:cultivo)', {
         cultivo: `%${filtros.cultivo}%`,
       });
     }
 
-    // Los dos extremos son inclusivos y opcionales por separado: se puede
-    // pedir "desde agosto", "hasta ayer" o un dia exacto repitiendo el valor.
-    //
-    // El `fecha` obsoleto es justo eso, un rango de un solo dia. El DTO impide
-    // que venga junto al rango, asi que aqui no hay ambiguedad que resolver.
+    if (filtros.camaId) {
+      consulta.andWhere('cama.id = :camaId', { camaId: filtros.camaId });
+    }
+
     const desde = filtros.desde ?? filtros.fecha;
     const hasta = filtros.hasta ?? filtros.fecha;
 
@@ -123,11 +156,39 @@ export class CosechaService {
     if (hasta) {
       consulta.andWhere('cosecha.fecha <= :hasta', { hasta });
     }
+  }
 
-    consulta.orderBy('cosecha.fecha', 'DESC').addOrderBy('cosecha.id', 'DESC');
+  /**
+   * Cuanto se cosecho en todo el filtro, no en la pagina visible: el docente
+   * quiere saber la produccion del periodo, y contar registros no se lo dice.
+   *
+   * Se agrupa por unidad porque kilos y unidades no se suman entre si. La
+   * suma la hace la base y no el servidor, que solo ve una pagina.
+   */
+  private async totalizar(
+    filtros: ConsultarCosechasDto,
+  ): Promise<TotalPorUnidad[]> {
+    const consulta = this.cosechasRepo
+      .createQueryBuilder('cosecha')
+      .innerJoin('cosecha.siembra', 'siembra')
+      .innerJoin('siembra.cama', 'cama');
 
-    const { entidades, total } = await paginarQueryBuilder(consulta, filtros);
+    this.aplicarFiltros(consulta, filtros);
 
-    return crearResultadoPaginado(entidades.map(mapearCosecha), filtros, total);
+    const filas = await consulta
+      .select('cosecha.unidadMedida', 'unidad')
+      .addSelect('SUM(cosecha.cantidadObtenida)', 'cantidad')
+      .groupBy('cosecha.unidadMedida')
+      .getRawMany<{ unidad: UnidadMedida; cantidad: string }>();
+
+    // Orden fijo, el del enum, para que la cabecera no cambie de orden entre
+    // consultas segun lo que devuelva la base.
+    return Object.values(UnidadMedida).flatMap((unidad) => {
+      const fila = filas.find((candidata) => candidata.unidad === unidad);
+
+      return fila
+        ? [{ unidadMedida: unidad, cantidad: Number(fila.cantidad) }]
+        : [];
+    });
   }
 }
