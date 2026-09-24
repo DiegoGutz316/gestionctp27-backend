@@ -1,5 +1,6 @@
 import { Transform, type TransformFnParams } from 'class-transformer';
 import {
+  IsBoolean,
   IsDefined,
   IsEnum,
   IsInt,
@@ -104,4 +105,13 @@ export class RegistrarCosechaDto {
     message: 'Las observaciones no pueden superar 500 caracteres',
   })
   observaciones?: string;
+
+  /**
+   * Cierra el ciclo después de guardar esta cosecha. Una cosecha parcial
+   * no lo envía: la cama sigue sembrada.
+   */
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean({ message: 'Indique si esta cosecha cierra el ciclo' })
+  cerrarCiclo?: boolean;
 }

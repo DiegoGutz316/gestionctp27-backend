@@ -16,6 +16,7 @@ import { ModuloSistema } from '../../auth/enums/modulo-sistema.enum';
 import { NivelPermiso } from '../../auth/enums/nivel-permiso.enum';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { ConsultarSiembrasDto } from './dto/consultar-siembras.dto';
+import { FinalizarSiembraDto } from './dto/finalizar-siembra.dto';
 import { RegistrarSiembraDto } from './dto/registrar-siembra.dto';
 import { SiembraService } from './siembra.service';
 
@@ -39,9 +40,10 @@ export class SiembraController {
   @Patch(':id/finalizar')
   finalizar(
     @Param('id', ParseIntPipe) id: number,
+    @Body() dto: FinalizarSiembraDto,
     @UsuarioActual() actor: UsuarioAutenticado,
   ) {
-    return this.siembraService.finalizar(id, actor);
+    return this.siembraService.finalizar(id, dto, actor);
   }
 
   @ApiOperation({ summary: 'Consultar siembras por cultivo o fecha' })

@@ -51,6 +51,22 @@ export class Siembra {
   })
   finalizadaEn: string | null;
 
+  /** Por qué se cerró el ciclo cuando no hubo cosecha. Nulo si sigue activa o si cerró con cosecha. */
+  @Column({
+    name: 'motivo_finalizacion',
+    type: 'varchar',
+    length: 40,
+    nullable: true,
+  })
+  motivoFinalizacion: string | null;
+
+  @Column({
+    name: 'motivo_detalle',
+    type: 'text',
+    nullable: true,
+  })
+  motivoDetalle: string | null;
+
   @Column({
     name: 'cantidad_sembrada',
     type: 'numeric',
