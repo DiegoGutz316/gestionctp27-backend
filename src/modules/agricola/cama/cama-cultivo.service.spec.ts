@@ -126,6 +126,27 @@ describe('CamaCultivoService', () => {
     );
   });
 
+  it('filtra por ubicación del invernadero', async () => {
+    const { service, consulta } = crearServicioParaListar([]);
+
+    await service.listar({ ubicacion: 'Invernadero 1' });
+
+    expect(consulta.andWhere).toHaveBeenCalledWith(
+      'lower(cama.ubicacion) = lower(:ubicacion)',
+      { ubicacion: 'Invernadero 1' },
+    );
+  });
+
+  it('filtra por id de cama', async () => {
+    const { service, consulta } = crearServicioParaListar([]);
+
+    await service.listar({ camaId: 2 });
+
+    expect(consulta.andWhere).toHaveBeenCalledWith('cama.id = :camaId', {
+      camaId: 2,
+    });
+  });
+
   it('la búsqueda con q es insensible a mayúsculas/minúsculas', async () => {
     const camas = [] as CamaCultivo[];
     const { service, consulta } = crearServicioParaListar(camas);

@@ -68,6 +68,16 @@ export class CamaCultivoService {
       );
     }
 
+    if (filtros.ubicacion) {
+      consulta.andWhere('lower(cama.ubicacion) = lower(:ubicacion)', {
+        ubicacion: filtros.ubicacion,
+      });
+    }
+
+    if (filtros.camaId) {
+      consulta.andWhere('cama.id = :camaId', { camaId: filtros.camaId });
+    }
+
     consulta.orderBy('cama.codigo', 'ASC');
     consulta.addOrderBy('cama.id', 'ASC');
 

@@ -146,6 +146,12 @@ export class CosechaService {
       consulta.andWhere('cama.id = :camaId', { camaId: filtros.camaId });
     }
 
+    if (filtros.ubicacion) {
+      consulta.andWhere('lower(cama.ubicacion) = lower(:ubicacion)', {
+        ubicacion: filtros.ubicacion,
+      });
+    }
+
     const desde = filtros.desde ?? filtros.fecha;
     const hasta = filtros.hasta ?? filtros.fecha;
 
