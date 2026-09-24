@@ -1,9 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 
+import { fechaDeHoy } from '../../../common/validacion/fecha-no-futura.validator';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { CamaCultivo } from '../cama/entities/cama-cultivo.entity';
+import { EstadoCamaCultivo } from '../cama/enums/estado-cama-cultivo.enum';
 import { ConsultarSiembrasDto } from './dto/consultar-siembras.dto';
 import { RegistrarSiembraDto } from './dto/registrar-siembra.dto';
 import { Siembra } from './entities/siembra.entity';
@@ -31,6 +37,22 @@ export class SiembraService {
       throw new NotFoundException('La cama de cultivo seleccionada no existe.');
     }
 
+    if (cama.estado !== EstadoCamaCultivo.DISPONIBLE) {
+      throw new ConflictException(
+        'La cama seleccionada ya tiene una siembra activa.',
+      );
+    }
+
+    const activa = await this.siembrasRepo.findOne({
+      where: { cama: { id: cama.id }, finalizadaEn: IsNull() },
+    });
+
+    if (activa) {
+      throw new ConflictException(
+        'La cama seleccionada ya tiene una siembra activa.',
+      );
+    }
+
     const siembra = this.siembrasRepo.create({
       cama,
       tipoCultivo: dto.tipoCultivo,
@@ -40,6 +62,41 @@ export class SiembraService {
     });
     const guardada = await this.siembrasRepo.save(siembra);
     guardada.cama = cama;
+
+    cama.estado = EstadoCamaCultivo.SEMBRADA;
+    cama.actualizadoPor = actor.id;
+    await this.camasRepo.save(cama);
+
+    return mapearSiembra(guardada);
+  }
+
+  /**
+   * Cierra el ciclo sin borrar la siembra. La cama vuelve a estar disponible
+   * y deja de mostrar ese cultivo como actual.
+   */
+  async finalizar(
+    id: number,
+    actor: UsuarioAutenticado,
+  ): Promise<SiembraRespuesta> {
+    const siembra = await this.siembrasRepo.findOne({
+      where: { id },
+      relations: { cama: true },
+    });
+
+    if (!siembra) {
+      throw new NotFoundException('La siembra seleccionada no existe.');
+    }
+
+    if (siembra.finalizadaEn) {
+      throw new ConflictException('Esta siembra ya fue finalizada.');
+    }
+
+    siembra.finalizadaEn = fechaDeHoy();
+    siembra.cama.estado = EstadoCamaCultivo.DISPONIBLE;
+    siembra.cama.actualizadoPor = actor.id;
+
+    await this.camasRepo.save(siembra.cama);
+    const guardada = await this.siembrasRepo.save(siembra);
 
     return mapearSiembra(guardada);
   }

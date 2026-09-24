@@ -50,10 +50,11 @@ export class EditarCamaCultivoDto {
     enumName: 'EstadoCamaCultivo',
     example: EstadoCamaCultivo.DISPONIBLE,
   })
+  @IsOptional()
   @IsEnum(EstadoCamaCultivo, {
     message: 'Seleccione un estado válido',
   })
-  estado!: EstadoCamaCultivo;
+  estado?: EstadoCamaCultivo;
 
   @ApiPropertyOptional({
     example: 'Cama con riego por goteo instalado.',

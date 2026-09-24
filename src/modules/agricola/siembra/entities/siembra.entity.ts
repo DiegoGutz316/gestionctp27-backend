@@ -43,6 +43,14 @@ export class Siembra {
   })
   fechaSiembra: string;
 
+  /** Nula mientras el ciclo sigue activo. Al finalizar se conserva el registro. */
+  @Column({
+    name: 'finalizada_en',
+    type: 'date',
+    nullable: true,
+  })
+  finalizadaEn: string | null;
+
   @Column({
     name: 'cantidad_sembrada',
     type: 'numeric',

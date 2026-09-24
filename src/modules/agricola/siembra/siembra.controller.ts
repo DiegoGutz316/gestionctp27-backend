@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { RequierePermiso } from '../../auth/decorators/requiere-permiso.decorator';
@@ -24,6 +33,15 @@ export class SiembraController {
     @UsuarioActual() actor: UsuarioAutenticado,
   ) {
     return this.siembraService.registrar(dto, actor);
+  }
+
+  @ApiOperation({ summary: 'Finalizar el ciclo de una siembra' })
+  @Patch(':id/finalizar')
+  finalizar(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioActual() actor: UsuarioAutenticado,
+  ) {
+    return this.siembraService.finalizar(id, actor);
   }
 
   @ApiOperation({ summary: 'Consultar siembras por cultivo o fecha' })

@@ -10,7 +10,13 @@ import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { CrearCamaCultivoDto } from './dto/crear-cama-cultivo.dto';
 import { EditarCamaCultivoDto } from './dto/editar-cama-cultivo.dto';
 import { FiltrarCamasCultivoDto } from './dto/filtrar-camas-cultivo.dto';
+import { Siembra } from '../siembra/entities/siembra.entity';
 import { CamaCultivo } from './entities/cama-cultivo.entity';
+import { EstadoCamaCultivo } from './enums/estado-cama-cultivo.enum';
+
+export type CamaCultivoConCultivo = CamaCultivo & {
+  cultivoActual: string | null;
+};
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -19,6 +25,8 @@ export class CamaCultivoService {
   constructor(
     @InjectRepository(CamaCultivo)
     private readonly camasRepo: Repository<CamaCultivo>,
+    @InjectRepository(Siembra)
+    private readonly siembrasRepo: Repository<Siembra>,
   ) {}
 
   async crear(
@@ -38,7 +46,7 @@ export class CamaCultivoService {
     const cama = this.camasRepo.create({
       codigo: dto.codigo,
       ubicacion: dto.ubicacion,
-      estado: dto.estado,
+      estado: EstadoCamaCultivo.DISPONIBLE,
       observaciones: dto.observaciones ?? null,
       creadoPor: actor.id,
     });
@@ -57,7 +65,7 @@ export class CamaCultivoService {
    * código o estado, igual que AnimalService.listar busca en código, nombre
    * o estado.
    */
-  async listar(filtros: FiltrarCamasCultivoDto): Promise<CamaCultivo[]> {
+  async listar(filtros: FiltrarCamasCultivoDto): Promise<CamaCultivoConCultivo[]> {
     const consulta = this.camasRepo.createQueryBuilder('cama');
 
     if (filtros.q) {
@@ -81,11 +89,15 @@ export class CamaCultivoService {
     consulta.orderBy('cama.codigo', 'ASC');
     consulta.addOrderBy('cama.id', 'ASC');
 
-    return await consulta.getMany();
+    const camas = await consulta.getMany();
+
+    return this.conCultivoActual(camas);
   }
 
-  async obtener(id: number): Promise<CamaCultivo> {
-    return await this.buscarPorId(id);
+  async obtener(id: number): Promise<CamaCultivoConCultivo> {
+    const [cama] = await this.conCultivoActual([await this.buscarPorId(id)]);
+
+    return cama;
   }
 
   /**
@@ -118,7 +130,6 @@ export class CamaCultivoService {
     Object.assign(cama, {
       codigo: dto.codigo,
       ubicacion: dto.ubicacion,
-      estado: dto.estado,
       observaciones: dto.observaciones ?? null,
 
       // Usuario autenticado que realizó la modificación.
@@ -132,6 +143,31 @@ export class CamaCultivoService {
 
       throw error;
     }
+  }
+
+  /**
+   * El cultivo no se guarda en la cama: es el de la siembra que aún no
+   * finaliza. Sin esa siembra, la cama no tiene cultivo actual.
+   */
+  private async conCultivoActual(
+    camas: CamaCultivo[],
+  ): Promise<CamaCultivoConCultivo[]> {
+    if (camas.length === 0) return [];
+
+    const activas = await this.siembrasRepo
+      .createQueryBuilder('siembra')
+      .innerJoinAndSelect('siembra.cama', 'cama')
+      .where('cama.id IN (:...ids)', { ids: camas.map((cama) => cama.id) })
+      .andWhere('siembra.finalizadaEn IS NULL')
+      .getMany();
+
+    const porCama = new Map(
+      activas.map((siembra) => [siembra.cama.id, siembra.tipoCultivo]),
+    );
+
+    return camas.map((cama) =>
+      Object.assign(cama, { cultivoActual: porCama.get(cama.id) ?? null }),
+    );
   }
 
   private async buscarPorId(id: number): Promise<CamaCultivo> {

@@ -5,6 +5,7 @@ import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { RolUsuario } from '../../usuarios/enums/rol-usuario.enum';
 import { CamaCultivoService } from './cama-cultivo.service';
 import { EstadoCamaCultivo } from './enums/estado-cama-cultivo.enum';
+import { Siembra } from '../siembra/entities/siembra.entity';
 import { CamaCultivo } from './entities/cama-cultivo.entity';
 
 describe('CamaCultivoService', () => {
@@ -268,13 +269,17 @@ describe('CamaCultivoService', () => {
     expect(resultado.ubicacion).toBe('Invernadero 2');
   });
 
-  it('sigue permitiendo cambiar el estado', async () => {
-    const cama = { id: 1, codigo: 'CAMA-001' } as CamaCultivo;
+  it('no cambia el estado al editar la cama', async () => {
+    const cama = {
+      id: 1,
+      codigo: 'CAMA-001',
+      estado: EstadoCamaCultivo.DISPONIBLE,
+    } as CamaCultivo;
     const { service } = crearServicioParaActualizar(cama);
 
     const resultado = await service.actualizar(1, dtoEdicion, actor);
 
-    expect(resultado.estado).toBe(EstadoCamaCultivo.SEMBRADA);
+    expect(resultado.estado).toBe(EstadoCamaCultivo.DISPONIBLE);
   });
 
   it('sigue permitiendo cambiar las observaciones', async () => {
@@ -315,7 +320,6 @@ describe('CamaCultivoService', () => {
         id: 1,
         codigo: 'CAMA-001',
         ubicacion: 'Invernadero 2',
-        estado: EstadoCamaCultivo.SEMBRADA,
         observaciones: 'Riego revisado.',
         actualizadoPor: actor.id,
       }),
@@ -337,6 +341,7 @@ function crearServicio(opciones: { duplicada: CamaCultivo | null }) {
   };
   const service = new CamaCultivoService(
     camasRepo as unknown as Repository<CamaCultivo>,
+    repositorioSiembrasVacio(),
   );
 
   return { service, camasRepo };
@@ -348,6 +353,7 @@ function crearServicioParaObtener(cama: CamaCultivo | null) {
   };
   const service = new CamaCultivoService(
     camasRepo as unknown as Repository<CamaCultivo>,
+    repositorioSiembrasVacio(),
   );
 
   return { service, camasRepo };
@@ -369,6 +375,7 @@ function crearServicioParaActualizar(
   };
   const service = new CamaCultivoService(
     camasRepo as unknown as Repository<CamaCultivo>,
+    repositorioSiembrasVacio(),
   );
 
   return { service, camasRepo, consultaDuplicado };
@@ -386,7 +393,21 @@ function crearServicioParaListar(camas: CamaCultivo[]) {
   };
   const service = new CamaCultivoService(
     camasRepo as unknown as Repository<CamaCultivo>,
+    repositorioSiembrasVacio(),
   );
 
   return { service, consulta };
+}
+
+function repositorioSiembrasVacio(): Repository<Siembra> {
+  const consulta = {
+    innerJoinAndSelect: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    getMany: jest.fn().mockResolvedValue([]),
+  };
+
+  return {
+    createQueryBuilder: jest.fn().mockReturnValue(consulta),
+  } as unknown as Repository<Siembra>;
 }

@@ -15,7 +15,7 @@ describe('CrearCamaCultivoDto', () => {
     const camposInvalidos = validateSync(dto).map((error) => error.property);
 
     expect(camposInvalidos).toEqual(
-      expect.arrayContaining(['codigo', 'ubicacion', 'estado']),
+      expect.arrayContaining(['codigo', 'ubicacion']),
     );
   });
 
@@ -53,16 +53,13 @@ describe('CrearCamaCultivoDto', () => {
     expect(dto.codigo).toBe('CAMA-001');
   });
 
-  it('rechaza un estado que no pertenece al enum', () => {
+  it('no exige el estado: una cama nueva queda disponible en el servicio', () => {
     const dto = plainToInstance(CrearCamaCultivoDto, {
       codigo: 'CAMA-001',
       ubicacion: 'Invernadero 1',
-      estado: 'DESTRUIDA',
     });
 
-    const camposInvalidos = validateSync(dto).map((error) => error.property);
-
-    expect(camposInvalidos).toEqual(expect.arrayContaining(['estado']));
+    expect(validateSync(dto)).toHaveLength(0);
   });
 
   it('permite registrar sin observaciones', () => {
