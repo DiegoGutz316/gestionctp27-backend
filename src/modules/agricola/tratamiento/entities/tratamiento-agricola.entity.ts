@@ -10,6 +10,8 @@ import {
 } from 'typeorm';
 
 import { Siembra } from '../../siembra/entities/siembra.entity';
+import { TipoTratamiento } from '../enums/tipo-tratamiento.enum';
+import { UnidadTratamiento } from '../enums/unidad-tratamiento.enum';
 
 const numericTransformer: ValueTransformer = {
   to: (value: number) => value,
@@ -34,6 +36,13 @@ export class TratamientoAgricola {
   siembra: Siembra;
 
   @Column({
+    name: 'tipo',
+    type: 'varchar',
+    length: 40,
+  })
+  tipo: TipoTratamiento;
+
+  @Column({
     name: 'producto',
     type: 'varchar',
     length: 120,
@@ -54,6 +63,13 @@ export class TratamientoAgricola {
     transformer: numericTransformer,
   })
   cantidad: number;
+
+  @Column({
+    name: 'unidad',
+    type: 'varchar',
+    length: 20,
+  })
+  unidad: UnidadTratamiento;
 
   @Column({
     name: 'observaciones',

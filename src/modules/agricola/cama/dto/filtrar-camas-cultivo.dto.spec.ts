@@ -22,4 +22,26 @@ describe('FiltrarCamasCultivoDto', () => {
 
     expect(dto.q).toBe('CAMA');
   });
+
+  it('acepta la ubicación que envía el listado', () => {
+    const dto = plainToInstance(FiltrarCamasCultivoDto, {
+      ubicacion: 'Invernadero 1',
+    });
+
+    expect(validateSync(dto)).toHaveLength(0);
+    expect(dto.ubicacion).toBe('Invernadero 1');
+  });
+
+  it('acepta el id de cama que llega como texto en la query', () => {
+    const dto = plainToInstance(FiltrarCamasCultivoDto, { camaId: '3' });
+
+    expect(validateSync(dto)).toHaveLength(0);
+    expect(dto.camaId).toBe(3);
+  });
+
+  it('rechaza un id de cama que no es positivo', () => {
+    const dto = plainToInstance(FiltrarCamasCultivoDto, { camaId: '0' });
+
+    expect(validateSync(dto).length).toBeGreaterThan(0);
+  });
 });

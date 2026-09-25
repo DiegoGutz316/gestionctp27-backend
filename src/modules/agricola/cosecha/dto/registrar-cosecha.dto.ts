@@ -1,5 +1,6 @@
 import { Transform, type TransformFnParams } from 'class-transformer';
 import {
+  IsBoolean,
   IsDefined,
   IsEnum,
   IsInt,
@@ -104,4 +105,19 @@ export class RegistrarCosechaDto {
     message: 'Las observaciones no pueden superar 500 caracteres',
   })
   observaciones?: string;
+
+  /**
+   * El formulario lo manda siempre, también en `false`. Sin declararlo, el
+   * pipe global (`forbidNonWhitelisted`) responde 400 antes de registrar.
+   * En `true`, la cosecha cierra el ciclo y la cama vuelve a estar disponible.
+   */
+  @ApiPropertyOptional({
+    type: Boolean,
+    default: false,
+    description:
+      'Si es verdadero, al registrar la cosecha la cama queda disponible',
+  })
+  @IsOptional()
+  @IsBoolean({ message: 'El cierre de ciclo debe ser verdadero o falso' })
+  cerrarCiclo?: boolean;
 }

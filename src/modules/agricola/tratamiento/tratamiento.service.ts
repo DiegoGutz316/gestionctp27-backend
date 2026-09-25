@@ -35,6 +35,7 @@ export class TratamientoService {
       where: {
         id: dto.siembraId,
       },
+      relations: { cama: true },
     });
 
     if (!siembra) {
@@ -53,9 +54,11 @@ export class TratamientoService {
 
     const tratamiento = this.tratamientosRepo.create({
       siembra,
+      tipo: dto.tipo,
       producto: dto.producto,
       fecha: dto.fecha,
       cantidad: dto.cantidad,
+      unidad: dto.unidad,
       observaciones: dto.observaciones ?? null,
       creadoPor: actor.id,
     });
@@ -67,15 +70,40 @@ export class TratamientoService {
     return mapearTratamiento(guardado);
   }
 
-  async consultarPorCultivo(
+  /**
+   * La pantalla abre el historial completo de las siembras que siguen
+   * activas. Ubicación, cama, tipo y cultivo acotan esa lista.
+   */
+  async consultar(
     filtros: ConsultarTratamientosDto,
   ): Promise<TratamientoRespuesta[]> {
-    const tratamientos = await this.tratamientosRepo
+    const consulta = this.tratamientosRepo
       .createQueryBuilder('tratamiento')
       .innerJoinAndSelect('tratamiento.siembra', 'siembra')
-      .where('LOWER(siembra.tipoCultivo) = LOWER(:cultivo)', {
+      .innerJoinAndSelect('siembra.cama', 'cama')
+      .where('siembra.finalizadaEn IS NULL');
+
+    if (filtros.cultivo) {
+      consulta.andWhere('LOWER(siembra.tipoCultivo) = LOWER(:cultivo)', {
         cultivo: filtros.cultivo,
-      })
+      });
+    }
+
+    if (filtros.ubicacion) {
+      consulta.andWhere('LOWER(cama.ubicacion) = LOWER(:ubicacion)', {
+        ubicacion: filtros.ubicacion,
+      });
+    }
+
+    if (filtros.camaId) {
+      consulta.andWhere('cama.id = :camaId', { camaId: filtros.camaId });
+    }
+
+    if (filtros.tipo) {
+      consulta.andWhere('tratamiento.tipo = :tipo', { tipo: filtros.tipo });
+    }
+
+    const tratamientos = await consulta
       .orderBy('tratamiento.fecha', 'DESC')
       .addOrderBy('tratamiento.id', 'DESC')
       .getMany();

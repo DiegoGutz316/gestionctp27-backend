@@ -4,13 +4,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { In, IsNull, QueryFailedError, Repository } from 'typeorm';
 
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
+import { Siembra } from '../siembra/entities/siembra.entity';
 import { CrearCamaCultivoDto } from './dto/crear-cama-cultivo.dto';
 import { EditarCamaCultivoDto } from './dto/editar-cama-cultivo.dto';
 import { FiltrarCamasCultivoDto } from './dto/filtrar-camas-cultivo.dto';
 import { CamaCultivo } from './entities/cama-cultivo.entity';
+import { EstadoCamaCultivo } from './enums/estado-cama-cultivo.enum';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -19,6 +21,8 @@ export class CamaCultivoService {
   constructor(
     @InjectRepository(CamaCultivo)
     private readonly camasRepo: Repository<CamaCultivo>,
+    @InjectRepository(Siembra)
+    private readonly siembrasRepo: Repository<Siembra>,
   ) {}
 
   async crear(
@@ -38,13 +42,16 @@ export class CamaCultivoService {
     const cama = this.camasRepo.create({
       codigo: dto.codigo,
       ubicacion: dto.ubicacion,
-      estado: dto.estado,
+      estado: dto.estado ?? EstadoCamaCultivo.DISPONIBLE,
       observaciones: dto.observaciones ?? null,
       creadoPor: actor.id,
     });
 
     try {
-      return await this.camasRepo.save(cama);
+      const guardada = await this.camasRepo.save(cama);
+      guardada.cultivoActual = null;
+
+      return guardada;
     } catch (error) {
       this.relanzarSiCodigoDuplicado(error, dto.codigo);
 
@@ -54,8 +61,8 @@ export class CamaCultivoService {
 
   /**
    * Consulta las camas registradas. `q` busca en una sola pasada contra
-   * código o estado, igual que AnimalService.listar busca en código, nombre
-   * o estado.
+   * código o estado. `ubicacion` y `camaId` acotan el listado que pide la
+   * pantalla de camas.
    */
   async listar(filtros: FiltrarCamasCultivoDto): Promise<CamaCultivo[]> {
     const consulta = this.camasRepo.createQueryBuilder('cama');
@@ -68,14 +75,27 @@ export class CamaCultivoService {
       );
     }
 
+    if (filtros.ubicacion) {
+      consulta.andWhere('lower(cama.ubicacion) = lower(:ubicacion)', {
+        ubicacion: filtros.ubicacion,
+      });
+    }
+
+    if (filtros.camaId) {
+      consulta.andWhere('cama.id = :camaId', { camaId: filtros.camaId });
+    }
+
     consulta.orderBy('cama.codigo', 'ASC');
     consulta.addOrderBy('cama.id', 'ASC');
 
-    return await consulta.getMany();
+    return await this.conCultivoActual(await consulta.getMany());
   }
 
   async obtener(id: number): Promise<CamaCultivo> {
-    return await this.buscarPorId(id);
+    const cama = await this.buscarPorId(id);
+    const [conCultivo] = await this.conCultivoActual([cama]);
+
+    return conCultivo;
   }
 
   /**
@@ -108,7 +128,7 @@ export class CamaCultivoService {
     Object.assign(cama, {
       codigo: dto.codigo,
       ubicacion: dto.ubicacion,
-      estado: dto.estado,
+      ...(dto.estado !== undefined ? { estado: dto.estado } : {}),
       observaciones: dto.observaciones ?? null,
 
       // Usuario autenticado que realizó la modificación.
@@ -116,12 +136,48 @@ export class CamaCultivoService {
     });
 
     try {
-      return await this.camasRepo.save(cama);
+      const guardada = await this.camasRepo.save(cama);
+      const [conCultivo] = await this.conCultivoActual([guardada]);
+
+      return conCultivo;
     } catch (error) {
       this.relanzarSiCodigoDuplicado(error, dto.codigo);
 
       throw error;
     }
+  }
+
+  /**
+   * El cultivo no vive en la cama: es el tipo de la siembra que todavía no
+   * se ha cerrado. Si hay varias abiertas, gana la más reciente.
+   */
+  private async conCultivoActual(
+    camas: CamaCultivo[],
+  ): Promise<CamaCultivo[]> {
+    if (camas.length === 0) return camas;
+
+    const abiertas = await this.siembrasRepo.find({
+      where: {
+        cama: { id: In(camas.map((cama) => cama.id)) },
+        finalizadaEn: IsNull(),
+      },
+      relations: { cama: true },
+      order: { fechaSiembra: 'DESC', id: 'DESC' },
+    });
+
+    const porCama = new Map<number, string>();
+
+    for (const siembra of abiertas) {
+      if (!porCama.has(siembra.cama.id)) {
+        porCama.set(siembra.cama.id, siembra.tipoCultivo);
+      }
+    }
+
+    for (const cama of camas) {
+      cama.cultivoActual = porCama.get(cama.id) ?? null;
+    }
+
+    return camas;
   }
 
   private async buscarPorId(id: number): Promise<CamaCultivo> {

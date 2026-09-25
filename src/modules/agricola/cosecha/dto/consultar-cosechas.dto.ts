@@ -83,6 +83,19 @@ export class ConsultarCosechasDto extends OmitType(PaginarDto, ['q'] as const) {
   camaId?: number;
 
   @ApiPropertyOptional({
+    example: 'Invernadero 1',
+    minLength: 1,
+    maxLength: 120,
+    description: 'Ubicación exacta de la cama donde se cosechó',
+  })
+  @Transform(normalizarTexto)
+  @IsOptional()
+  @IsString({ message: 'Seleccione una ubicación válida' })
+  @MinLength(1, { message: 'Seleccione una ubicación válida' })
+  @MaxLength(120, { message: 'La ubicación no puede superar 120 caracteres' })
+  ubicacion?: string;
+
+  @ApiPropertyOptional({
     example: '2026-09-01',
     description: 'Incluye las cosechas de esta fecha en adelante',
   })

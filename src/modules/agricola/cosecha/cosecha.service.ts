@@ -12,6 +12,7 @@ import {
 } from '../../../common/paginacion/helpers/paginar.helper';
 
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
+import { EstadoCamaCultivo } from '../cama/enums/estado-cama-cultivo.enum';
 import { Siembra } from '../siembra/entities/siembra.entity';
 
 import { ConsultarCosechasDto } from './dto/consultar-cosechas.dto';
@@ -65,18 +66,31 @@ export class CosechaService {
       );
     }
 
-    const cosecha = this.cosechasRepo.create({
-      siembra,
-      fecha: dto.fecha,
-      cantidadObtenida: dto.cantidadObtenida,
-      unidadMedida: dto.unidadMedida,
-      observaciones: dto.observaciones ?? null,
+    const guardada = await this.cosechasRepo.manager.transaction(
+      async (manager) => {
+        const cosecha = manager.create(Cosecha, {
+          siembra,
+          fecha: dto.fecha,
+          cantidadObtenida: dto.cantidadObtenida,
+          unidadMedida: dto.unidadMedida,
+          observaciones: dto.observaciones ?? null,
 
-      // El responsable sale de la sesion, nunca del cuerpo de la peticion.
-      creadoPor: actor.id,
-    });
+          // El responsable sale de la sesion, nunca del cuerpo de la peticion.
+          creadoPor: actor.id,
+        });
 
-    const guardada = await this.cosechasRepo.save(cosecha);
+        const creada = await manager.save(cosecha);
+
+        if (dto.cerrarCiclo) {
+          siembra.finalizadaEn = new Date();
+          await manager.save(siembra);
+          siembra.cama.estado = EstadoCamaCultivo.DISPONIBLE;
+          await manager.save(siembra.cama);
+        }
+
+        return creada;
+      },
+    );
 
     guardada.siembra = siembra;
 
@@ -144,6 +158,12 @@ export class CosechaService {
 
     if (filtros.camaId) {
       consulta.andWhere('cama.id = :camaId', { camaId: filtros.camaId });
+    }
+
+    if (filtros.ubicacion) {
+      consulta.andWhere('lower(cama.ubicacion) = lower(:ubicacion)', {
+        ubicacion: filtros.ubicacion,
+      });
     }
 
     const desde = filtros.desde ?? filtros.fecha;
