@@ -51,19 +51,12 @@ export class CrearCamaCultivoDto {
   })
   ubicacion!: string;
 
-  /**
-   * El estado ya no se elige al registrar: una cama de cultivo va con una
-   * siembra, asi que nace DISPONIBLE y cambia con lo que pase en ella. El
-   * formulario dejo de enviarlo, y exigirlo aqui devolvia 400 "Seleccione un
-   * estado valido" sin que existiera ningun campo donde elegirlo.
-   *
-   * Se sigue aceptando si viene, para no romper a quien ya lo mandaba.
-   */
   @ApiPropertyOptional({
     enum: EstadoCamaCultivo,
     enumName: 'EstadoCamaCultivo',
     example: EstadoCamaCultivo.DISPONIBLE,
-    description: 'Opcional. Si no viene, la cama se registra como DISPONIBLE',
+    description:
+      'Si se omite, la cama queda DISPONIBLE. El alta desde el formulario no envía este campo.',
   })
   @IsOptional()
   @IsEnum(EstadoCamaCultivo, {

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { CamaCultivo } from '../cama/entities/cama-cultivo.entity';
+import { EstadoCamaCultivo } from '../cama/enums/estado-cama-cultivo.enum';
 import { ConsultarSiembrasDto } from './dto/consultar-siembras.dto';
 import { RegistrarSiembraDto } from './dto/registrar-siembra.dto';
 import { Siembra } from './entities/siembra.entity';
@@ -37,9 +38,13 @@ export class SiembraService {
       fechaSiembra: dto.fechaSiembra,
       cantidadSembrada: dto.cantidadSembrada,
       creadoPor: actor.id,
+      finalizadaEn: null,
     });
     const guardada = await this.siembrasRepo.save(siembra);
     guardada.cama = cama;
+
+    cama.estado = EstadoCamaCultivo.SEMBRADA;
+    await this.camasRepo.save(cama);
 
     return mapearSiembra(guardada);
   }

@@ -64,4 +64,15 @@ export class Siembra {
     nullable: false,
   })
   creadoPor: string;
+
+  /**
+   * Null mientras el ciclo sigue abierto. Al cerrarlo, la cama deja de
+   * mostrar este cultivo como actual.
+   */
+  @Column({
+    name: 'finalizada_en',
+    type: 'timestamptz',
+    nullable: true,
+  })
+  finalizadaEn: Date | null;
 }

@@ -3,6 +3,7 @@ import { QueryFailedError, type Repository } from 'typeorm';
 
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { RolUsuario } from '../../usuarios/enums/rol-usuario.enum';
+import { Siembra } from '../siembra/entities/siembra.entity';
 import { CamaCultivoService } from './cama-cultivo.service';
 import { EstadoCamaCultivo } from './enums/estado-cama-cultivo.enum';
 import { CamaCultivo } from './entities/cama-cultivo.entity';
@@ -69,6 +70,24 @@ describe('CamaCultivoService', () => {
     );
   });
 
+  it('deja la cama DISPONIBLE cuando el alta no envía estado', async () => {
+    const { service, camasRepo } = crearServicio({ duplicada: null });
+
+    await service.crear(
+      {
+        codigo: 'CAMA-001',
+        ubicacion: 'Invernadero 1',
+      },
+      actor,
+    );
+
+    expect(camasRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        estado: EstadoCamaCultivo.DISPONIBLE,
+      }),
+    );
+  });
+
   it('permite registrar sin observaciones', async () => {
     const { service } = crearServicio({ duplicada: null });
 
@@ -88,6 +107,32 @@ describe('CamaCultivoService', () => {
 
     expect(resultado).toEqual(camas);
     expect(consulta.andWhere).not.toHaveBeenCalled();
+    expect(resultado.every((cama) => cama.cultivoActual === null)).toBe(true);
+  });
+
+  it('completa el cultivo actual con la siembra abierta más reciente', async () => {
+    const camas = [
+      { id: 1, codigo: 'CAMA-001' },
+      { id: 2, codigo: 'CAMA-002' },
+    ] as CamaCultivo[];
+    const { service, siembrasRepo } = crearServicioParaListar(camas);
+    siembrasRepo.find.mockResolvedValueOnce([
+      {
+        id: 8,
+        tipoCultivo: 'Lechuga',
+        cama: { id: 1 },
+      },
+      {
+        id: 4,
+        tipoCultivo: 'Tomate viejo',
+        cama: { id: 1 },
+      },
+    ] as Siembra[]);
+
+    const resultado = await service.listar({});
+
+    expect(resultado[0].cultivoActual).toBe('Lechuga');
+    expect(resultado[1].cultivoActual).toBeNull();
   });
 
   it('devuelve [] cuando no existen camas', async () => {
@@ -124,6 +169,27 @@ describe('CamaCultivoService', () => {
       expect.stringContaining('cama.estado'),
       { q: '%DISPONIBLE%' },
     );
+  });
+
+  it('filtra por ubicación', async () => {
+    const { service, consulta } = crearServicioParaListar([]);
+
+    await service.listar({ ubicacion: 'Invernadero 1' });
+
+    expect(consulta.andWhere).toHaveBeenCalledWith(
+      'lower(cama.ubicacion) = lower(:ubicacion)',
+      { ubicacion: 'Invernadero 1' },
+    );
+  });
+
+  it('filtra por id de cama', async () => {
+    const { service, consulta } = crearServicioParaListar([]);
+
+    await service.listar({ camaId: 3 });
+
+    expect(consulta.andWhere).toHaveBeenCalledWith('cama.id = :camaId', {
+      camaId: 3,
+    });
   });
 
   it('la búsqueda con q es insensible a mayúsculas/minúsculas', async () => {
@@ -247,6 +313,26 @@ describe('CamaCultivoService', () => {
     expect(resultado.ubicacion).toBe('Invernadero 2');
   });
 
+  it('conserva el estado actual cuando la edición no lo envía', async () => {
+    const cama = {
+      id: 1,
+      codigo: 'CAMA-001',
+      estado: EstadoCamaCultivo.SEMBRADA,
+    } as CamaCultivo;
+    const { service } = crearServicioParaActualizar(cama);
+
+    const resultado = await service.actualizar(
+      1,
+      {
+        codigo: 'CAMA-001',
+        ubicacion: 'Invernadero 2',
+      },
+      actor,
+    );
+
+    expect(resultado.estado).toBe(EstadoCamaCultivo.SEMBRADA);
+  });
+
   it('sigue permitiendo cambiar el estado', async () => {
     const cama = { id: 1, codigo: 'CAMA-001' } as CamaCultivo;
     const { service } = crearServicioParaActualizar(cama);
@@ -302,6 +388,12 @@ describe('CamaCultivoService', () => {
   });
 });
 
+function repositorioSiembrasVacio() {
+  return {
+    find: jest.fn().mockResolvedValue([] as Siembra[]),
+  };
+}
+
 function crearServicio(opciones: { duplicada: CamaCultivo | null }) {
   const camasRepo = {
     findOne: jest.fn().mockResolvedValue(opciones.duplicada),
@@ -316,6 +408,7 @@ function crearServicio(opciones: { duplicada: CamaCultivo | null }) {
   };
   const service = new CamaCultivoService(
     camasRepo as unknown as Repository<CamaCultivo>,
+    repositorioSiembrasVacio() as unknown as Repository<Siembra>,
   );
 
   return { service, camasRepo };
@@ -327,6 +420,7 @@ function crearServicioParaObtener(cama: CamaCultivo | null) {
   };
   const service = new CamaCultivoService(
     camasRepo as unknown as Repository<CamaCultivo>,
+    repositorioSiembrasVacio() as unknown as Repository<Siembra>,
   );
 
   return { service, camasRepo };
@@ -348,6 +442,7 @@ function crearServicioParaActualizar(
   };
   const service = new CamaCultivoService(
     camasRepo as unknown as Repository<CamaCultivo>,
+    repositorioSiembrasVacio() as unknown as Repository<Siembra>,
   );
 
   return { service, camasRepo, consultaDuplicado };
@@ -363,9 +458,11 @@ function crearServicioParaListar(camas: CamaCultivo[]) {
   const camasRepo = {
     createQueryBuilder: jest.fn().mockReturnValue(consulta),
   };
+  const siembrasRepo = repositorioSiembrasVacio();
   const service = new CamaCultivoService(
     camasRepo as unknown as Repository<CamaCultivo>,
+    siembrasRepo as unknown as Repository<Siembra>,
   );
 
-  return { service, consulta };
+  return { service, consulta, siembrasRepo };
 }

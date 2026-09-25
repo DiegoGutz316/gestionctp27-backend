@@ -34,14 +34,14 @@ export class TratamientoController {
   }
 
   @ApiOperation({
-    summary: 'Consultar tratamientos por cultivo',
+    summary: 'Consultar tratamientos de siembras activas',
   })
   @Get()
   @RequierePermiso(ModuloSistema.AGRICOLA, NivelPermiso.LECTURA)
-  consultarPorCultivo(
+  consultar(
     @Query()
     filtros: ConsultarTratamientosDto,
   ) {
-    return this.tratamientoService.consultarPorCultivo(filtros);
+    return this.tratamientoService.consultar(filtros);
   }
 }
