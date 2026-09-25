@@ -45,15 +45,21 @@ export class EditarCamaCultivoDto {
   })
   ubicacion!: string;
 
-  @ApiProperty({
+  /**
+   * Igual que al crear: el formulario ya no lo envia. Si no viene, la cama
+   * conserva el estado que tenia; editar la ubicacion no deberia cambiarlo.
+   */
+  @ApiPropertyOptional({
     enum: EstadoCamaCultivo,
     enumName: 'EstadoCamaCultivo',
     example: EstadoCamaCultivo.DISPONIBLE,
+    description: 'Opcional. Si no viene, se conserva el estado actual',
   })
+  @IsOptional()
   @IsEnum(EstadoCamaCultivo, {
     message: 'Seleccione un estado válido',
   })
-  estado!: EstadoCamaCultivo;
+  estado?: EstadoCamaCultivo;
 
   @ApiPropertyOptional({
     example: 'Cama con riego por goteo instalado.',

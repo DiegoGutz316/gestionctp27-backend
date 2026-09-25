@@ -11,6 +11,7 @@ import { CrearCamaCultivoDto } from './dto/crear-cama-cultivo.dto';
 import { EditarCamaCultivoDto } from './dto/editar-cama-cultivo.dto';
 import { FiltrarCamasCultivoDto } from './dto/filtrar-camas-cultivo.dto';
 import { CamaCultivo } from './entities/cama-cultivo.entity';
+import { EstadoCamaCultivo } from './enums/estado-cama-cultivo.enum';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -38,7 +39,9 @@ export class CamaCultivoService {
     const cama = this.camasRepo.create({
       codigo: dto.codigo,
       ubicacion: dto.ubicacion,
-      estado: dto.estado,
+
+      // Una cama nueva nace disponible: todavia no tiene siembra.
+      estado: dto.estado ?? EstadoCamaCultivo.DISPONIBLE,
       observaciones: dto.observaciones ?? null,
       creadoPor: actor.id,
     });
@@ -108,7 +111,10 @@ export class CamaCultivoService {
     Object.assign(cama, {
       codigo: dto.codigo,
       ubicacion: dto.ubicacion,
-      estado: dto.estado,
+
+      // Sin estado en la peticion se conserva el que tenia: editar la
+      // ubicacion no deberia devolver la cama a DISPONIBLE.
+      estado: dto.estado ?? cama.estado,
       observaciones: dto.observaciones ?? null,
 
       // Usuario autenticado que realizó la modificación.
