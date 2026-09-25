@@ -62,6 +62,15 @@ describe('CrearCamaCultivoDto', () => {
     expect(validateSync(dto)).toHaveLength(0);
   });
 
+  it('permite registrar sin estado: el alta del formulario no lo envía', () => {
+    const dto = plainToInstance(CrearCamaCultivoDto, {
+      codigo: 'CAMA-001',
+      ubicacion: 'Invernadero 1',
+    });
+
+    expect(validateSync(dto)).toHaveLength(0);
+  });
+
   it('permite registrar sin observaciones', () => {
     const dto = plainToInstance(CrearCamaCultivoDto, {
       codigo: 'CAMA-001',

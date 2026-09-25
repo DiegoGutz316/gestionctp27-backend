@@ -41,7 +41,9 @@ describe('SiembraService', () => {
       fechaSiembra: '2026-09-15',
       cantidadSembrada: 25.5,
       creadoPor: actor.id,
+      finalizadaEn: null,
     });
+    expect(cama.estado).toBe('SEMBRADA');
     expect(resultado.cama).toEqual({
       id: 3,
       codigo: 'CAMA-003',
@@ -124,7 +126,7 @@ function crearServicio(opciones: {
   };
   const camasRepo = {
     findOne: jest.fn().mockResolvedValue(opciones.cama),
-    save: jest.fn((valor: object) => Promise.resolve(valor)),
+    save: jest.fn((valor: CamaCultivo) => Promise.resolve(valor)),
   };
   const siembrasRepo = {
     findOne: jest.fn().mockResolvedValue(null),

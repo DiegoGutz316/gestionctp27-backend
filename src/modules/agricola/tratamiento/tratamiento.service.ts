@@ -77,7 +77,7 @@ export class TratamientoService {
 
   /**
    * Solo siembras activas. La cama, la ubicación y el cultivo salen de esa
-   * relación; no se copian en el tratamiento.
+   * relación; ubicación, cama, tipo y cultivo acotan la lista.
    */
   async consultar(
     filtros: ConsultarTratamientosDto,
@@ -87,6 +87,12 @@ export class TratamientoService {
       .innerJoinAndSelect('tratamiento.siembra', 'siembra')
       .innerJoinAndSelect('siembra.cama', 'cama')
       .where('siembra.finalizadaEn IS NULL');
+
+    if (filtros.cultivo) {
+      consulta.andWhere('lower(siembra.tipoCultivo) LIKE lower(:cultivo)', {
+        cultivo: `%${filtros.cultivo}%`,
+      });
+    }
 
     if (filtros.ubicacion) {
       consulta.andWhere('lower(cama.ubicacion) = lower(:ubicacion)', {
@@ -100,12 +106,6 @@ export class TratamientoService {
 
     if (filtros.tipo) {
       consulta.andWhere('tratamiento.tipo = :tipo', { tipo: filtros.tipo });
-    }
-
-    if (filtros.cultivo) {
-      consulta.andWhere('lower(siembra.tipoCultivo) LIKE lower(:cultivo)', {
-        cultivo: `%${filtros.cultivo}%`,
-      });
     }
 
     const tratamientos = await consulta

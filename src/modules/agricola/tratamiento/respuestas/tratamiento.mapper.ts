@@ -1,3 +1,5 @@
+import type { TipoTratamiento } from '../enums/tipo-tratamiento.enum';
+import type { UnidadTratamiento } from '../enums/unidad-tratamiento.enum';
 import type { TratamientoAgricola } from '../entities/tratamiento-agricola.entity';
 import type { TipoTratamiento } from '../enums/tipo-tratamiento.enum';
 import type { UnidadTratamiento } from '../enums/unidad-tratamiento.enum';

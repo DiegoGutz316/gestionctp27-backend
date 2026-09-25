@@ -62,6 +62,7 @@ export class SiembraService {
       fechaSiembra: dto.fechaSiembra,
       cantidadSembrada: dto.cantidadSembrada,
       creadoPor: actor.id,
+      finalizadaEn: null,
     });
     const guardada = await this.siembrasRepo.save(siembra);
     guardada.cama = cama;

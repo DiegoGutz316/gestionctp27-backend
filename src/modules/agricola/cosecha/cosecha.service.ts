@@ -75,26 +75,23 @@ export class CosechaService {
       );
     }
 
-    const cosecha = this.cosechasRepo.create({
-      siembra,
-      fecha: dto.fecha,
-      cantidadObtenida: dto.cantidadObtenida,
-      unidadMedida: dto.unidadMedida,
-      observaciones: dto.observaciones ?? null,
-
-      // El responsable sale de la sesion, nunca del cuerpo de la peticion.
-      creadoPor: actor.id,
-    });
-
-    if (dto.cerrarCiclo) {
-      this.siembraService.cerrarCiclo(siembra, actor.id);
-    }
-
     const guardada = await this.cosechasRepo.manager.transaction(
       async (manager) => {
+        const cosecha = manager.create(Cosecha, {
+          siembra,
+          fecha: dto.fecha,
+          cantidadObtenida: dto.cantidadObtenida,
+          unidadMedida: dto.unidadMedida,
+          observaciones: dto.observaciones ?? null,
+
+          // El responsable sale de la sesion, nunca del cuerpo de la peticion.
+          creadoPor: actor.id,
+        });
+
         const creada = await manager.save(cosecha);
 
         if (dto.cerrarCiclo) {
+          this.siembraService.cerrarCiclo(siembra, actor.id);
           await manager.save(siembra.cama);
           await manager.save(siembra);
         }

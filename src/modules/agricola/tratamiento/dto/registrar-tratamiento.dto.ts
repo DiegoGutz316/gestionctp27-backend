@@ -85,9 +85,13 @@ export class RegistrarTratamientoDto {
 
   @ApiProperty({
     enum: TipoTratamiento,
+    enumName: 'TipoTratamiento',
     example: TipoTratamiento.FERTILIZANTE,
   })
   @IsEnum(TipoTratamiento, {
+    message: 'Seleccione un tipo de tratamiento válido',
+  })
+  @IsDefined({
     message: 'Seleccione un tipo de tratamiento',
   })
   tipo!: TipoTratamiento;
@@ -151,9 +155,13 @@ export class RegistrarTratamientoDto {
 
   @ApiProperty({
     enum: UnidadTratamiento,
+    enumName: 'UnidadTratamiento',
     example: UnidadTratamiento.KG,
   })
   @IsEnum(UnidadTratamiento, {
+    message: 'Seleccione una unidad válida',
+  })
+  @IsDefined({
     message: 'Seleccione una unidad',
   })
   unidad!: UnidadTratamiento;

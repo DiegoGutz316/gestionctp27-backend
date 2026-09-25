@@ -34,6 +34,12 @@ export class CamaCultivo {
   })
   estado: string;
 
+  /**
+   * Cultivo de la siembra abierta en esta cama. No es columna: se completa
+   * al consultar, a partir de `siembras`.
+   */
+  cultivoActual?: string | null;
+
   @Column({
     name: 'observaciones',
     type: 'text',

@@ -40,6 +40,8 @@ export class FiltrarCamasCultivoDto {
 
   @ApiPropertyOptional({
     example: 'Invernadero 1',
+    minLength: 1,
+    maxLength: 120,
     description: 'Ubicación exacta de la cama, por ejemplo Invernadero 1 o 2',
   })
   @Transform(normalizarTexto)

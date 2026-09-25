@@ -63,6 +63,16 @@ describe('EditarCamaCultivoDto', () => {
     expect(camposInvalidos).toEqual(expect.arrayContaining(['estado']));
   });
 
+  it('permite editar sin estado para conservar el actual', () => {
+    const dto = plainToInstance(EditarCamaCultivoDto, {
+      codigo: 'CAMA-001',
+      ubicacion: 'Invernadero 2',
+    });
+
+    expect(validateSync(dto)).toHaveLength(0);
+    expect(dto.estado).toBeUndefined();
+  });
+
   it('permite observaciones opcionales', () => {
     const dto = plainToInstance(EditarCamaCultivoDto, {
       codigo: 'CAMA-001',

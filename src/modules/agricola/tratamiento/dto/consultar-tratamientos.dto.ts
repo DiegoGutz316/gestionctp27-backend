@@ -29,36 +29,51 @@ function transformarNumero({ value }: TransformFnParams): unknown {
 
 /**
  * Los filtros son opcionales y se combinan. El cultivo no se guarda en el
- * tratamiento: se filtra por la siembra activa de la cama.
+ * tratamiento: se busca en la siembra activa de la cama.
  */
 export class ConsultarTratamientosDto {
-  @ApiPropertyOptional({ example: 'Invernadero 1' })
-  @Transform(normalizarTexto)
-  @IsOptional()
-  @IsString()
-  @MaxLength(120)
-  ubicacion?: string;
-
-  @ApiPropertyOptional({ type: Number, minimum: 1 })
-  @Transform(transformarNumero)
-  @IsOptional()
-  @IsInt()
-  @IsPositive()
-  camaId?: number;
-
-  @ApiPropertyOptional({ enum: TipoTratamiento })
-  @IsOptional()
-  @IsEnum(TipoTratamiento)
-  tipo?: TipoTratamiento;
-
   @ApiPropertyOptional({
     example: 'Tomate',
-    description: 'Coincidencia parcial e insensible a mayúsculas sobre el cultivo de la siembra activa',
+    description:
+      'Coincidencia parcial e insensible a mayúsculas sobre el cultivo de la siembra activa',
   })
   @Transform(normalizarTexto)
   @IsOptional()
   @IsString({ message: 'Ingrese un cultivo válido' })
   @MinLength(1, { message: 'Ingrese un cultivo válido' })
-  @MaxLength(120, { message: 'El filtro no puede superar 120 caracteres' })
+  @MaxLength(120, { message: 'El cultivo no puede superar 120 caracteres' })
   cultivo?: string;
+
+  @ApiPropertyOptional({
+    example: 'Invernadero 1',
+    maxLength: 120,
+  })
+  @Transform(normalizarTexto)
+  @IsOptional()
+  @IsString({ message: 'Seleccione una ubicación válida' })
+  @MinLength(1, { message: 'Seleccione una ubicación válida' })
+  @MaxLength(120, { message: 'La ubicación no puede superar 120 caracteres' })
+  ubicacion?: string;
+
+  @ApiPropertyOptional({
+    type: Number,
+    minimum: 1,
+    example: 1,
+  })
+  @Transform(transformarNumero)
+  @IsOptional()
+  @IsPositive({ message: 'Seleccione una cama de cultivo válida' })
+  @IsInt({ message: 'Seleccione una cama de cultivo válida' })
+  camaId?: number;
+
+  @ApiPropertyOptional({
+    enum: TipoTratamiento,
+    enumName: 'TipoTratamiento',
+    example: TipoTratamiento.FERTILIZANTE,
+  })
+  @IsOptional()
+  @IsEnum(TipoTratamiento, {
+    message: 'Seleccione un tipo de tratamiento válido',
+  })
+  tipo?: TipoTratamiento;
 }

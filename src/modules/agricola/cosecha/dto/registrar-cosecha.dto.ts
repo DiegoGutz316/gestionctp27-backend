@@ -107,11 +107,17 @@ export class RegistrarCosechaDto {
   observaciones?: string;
 
   /**
-   * Cierra el ciclo después de guardar esta cosecha. Una cosecha parcial
-   * no lo envía: la cama sigue sembrada.
+   * El formulario lo manda siempre, también en `false`. Sin declararlo, el
+   * pipe global (`forbidNonWhitelisted`) responde 400 antes de registrar.
+   * En `true`, la cosecha cierra el ciclo y la cama vuelve a estar disponible.
    */
-  @ApiPropertyOptional({ default: false })
+  @ApiPropertyOptional({
+    type: Boolean,
+    default: false,
+    description:
+      'Si es verdadero, al registrar la cosecha la cama queda disponible',
+  })
   @IsOptional()
-  @IsBoolean({ message: 'Indique si esta cosecha cierra el ciclo' })
+  @IsBoolean({ message: 'El cierre de ciclo debe ser verdadero o falso' })
   cerrarCiclo?: boolean;
 }

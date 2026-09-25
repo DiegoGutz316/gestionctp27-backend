@@ -4,13 +4,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { In, IsNull, QueryFailedError, Repository } from 'typeorm';
 
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
+import { Siembra } from '../siembra/entities/siembra.entity';
 import { CrearCamaCultivoDto } from './dto/crear-cama-cultivo.dto';
 import { EditarCamaCultivoDto } from './dto/editar-cama-cultivo.dto';
 import { FiltrarCamasCultivoDto } from './dto/filtrar-camas-cultivo.dto';
-import { Siembra } from '../siembra/entities/siembra.entity';
 import { CamaCultivo } from './entities/cama-cultivo.entity';
 import { EstadoCamaCultivo } from './enums/estado-cama-cultivo.enum';
 
@@ -32,7 +32,7 @@ export class CamaCultivoService {
   async crear(
     dto: CrearCamaCultivoDto,
     actor: UsuarioAutenticado,
-  ): Promise<CamaCultivo> {
+  ): Promise<CamaCultivoConCultivo> {
     const duplicada = await this.camasRepo.findOne({
       where: {
         codigo: dto.codigo,
@@ -52,7 +52,10 @@ export class CamaCultivoService {
     });
 
     try {
-      return await this.camasRepo.save(cama);
+      const guardada = await this.camasRepo.save(cama);
+      guardada.cultivoActual = null;
+
+      return guardada;
     } catch (error) {
       this.relanzarSiCodigoDuplicado(error, dto.codigo);
 
@@ -62,10 +65,12 @@ export class CamaCultivoService {
 
   /**
    * Consulta las camas registradas. `q` busca en una sola pasada contra
-   * código o estado, igual que AnimalService.listar busca en código, nombre
-   * o estado.
+   * código o estado. `ubicacion` y `camaId` acotan el listado que pide la
+   * pantalla de camas.
    */
-  async listar(filtros: FiltrarCamasCultivoDto): Promise<CamaCultivoConCultivo[]> {
+  async listar(
+    filtros: FiltrarCamasCultivoDto,
+  ): Promise<CamaCultivoConCultivo[]> {
     const consulta = this.camasRepo.createQueryBuilder('cama');
 
     if (filtros.q) {
@@ -89,9 +94,7 @@ export class CamaCultivoService {
     consulta.orderBy('cama.codigo', 'ASC');
     consulta.addOrderBy('cama.id', 'ASC');
 
-    const camas = await consulta.getMany();
-
-    return this.conCultivoActual(camas);
+    return await this.conCultivoActual(await consulta.getMany());
   }
 
   async obtener(id: number): Promise<CamaCultivoConCultivo> {
@@ -110,7 +113,7 @@ export class CamaCultivoService {
     id: number,
     dto: EditarCamaCultivoDto,
     actor: UsuarioAutenticado,
-  ): Promise<CamaCultivo> {
+  ): Promise<CamaCultivoConCultivo> {
     const cama = await this.buscarPorId(id);
 
     const duplicada = await this.camasRepo
@@ -130,6 +133,7 @@ export class CamaCultivoService {
     Object.assign(cama, {
       codigo: dto.codigo,
       ubicacion: dto.ubicacion,
+      ...(dto.estado !== undefined ? { estado: dto.estado } : {}),
       observaciones: dto.observaciones ?? null,
 
       // Usuario autenticado que realizó la modificación.
@@ -137,7 +141,10 @@ export class CamaCultivoService {
     });
 
     try {
-      return await this.camasRepo.save(cama);
+      const guardada = await this.camasRepo.save(cama);
+      const [conCultivo] = await this.conCultivoActual([guardada]);
+
+      return conCultivo;
     } catch (error) {
       this.relanzarSiCodigoDuplicado(error, dto.codigo);
 
@@ -147,23 +154,29 @@ export class CamaCultivoService {
 
   /**
    * El cultivo no se guarda en la cama: es el de la siembra que aún no
-   * finaliza. Sin esa siembra, la cama no tiene cultivo actual.
+   * finaliza. Si hay varias abiertas, gana la más reciente.
    */
   private async conCultivoActual(
     camas: CamaCultivo[],
   ): Promise<CamaCultivoConCultivo[]> {
     if (camas.length === 0) return [];
 
-    const activas = await this.siembrasRepo
-      .createQueryBuilder('siembra')
-      .innerJoinAndSelect('siembra.cama', 'cama')
-      .where('cama.id IN (:...ids)', { ids: camas.map((cama) => cama.id) })
-      .andWhere('siembra.finalizadaEn IS NULL')
-      .getMany();
+    const abiertas = await this.siembrasRepo.find({
+      where: {
+        cama: { id: In(camas.map((cama) => cama.id)) },
+        finalizadaEn: IsNull(),
+      },
+      relations: { cama: true },
+      order: { fechaSiembra: 'DESC', id: 'DESC' },
+    });
 
-    const porCama = new Map(
-      activas.map((siembra) => [siembra.cama.id, siembra.tipoCultivo]),
-    );
+    const porCama = new Map<number, string>();
+
+    for (const siembra of abiertas) {
+      if (!porCama.has(siembra.cama.id)) {
+        porCama.set(siembra.cama.id, siembra.tipoCultivo);
+      }
+    }
 
     return camas.map((cama) =>
       Object.assign(cama, { cultivoActual: porCama.get(cama.id) ?? null }),
