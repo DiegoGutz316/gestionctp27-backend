@@ -4,6 +4,7 @@ import {
 } from 'class-transformer';
 import {
   IsDefined,
+  IsEnum,
   IsInt,
   IsNumber,
   IsOptional,
@@ -20,6 +21,8 @@ import {
 
 import { EsFechaNoFutura } from '../../../../common/validacion/fecha-no-futura.validator';
 import { TieneMaximoDosDecimales } from '../../siembra/dto/dos-decimales.validator';
+import { TipoTratamiento } from '../enums/tipo-tratamiento.enum';
+import { UnidadTratamiento } from '../enums/unidad-tratamiento.enum';
 
 const CANTIDAD_MAXIMA = 9_999_999_999.99;
 
@@ -81,6 +84,15 @@ export class RegistrarTratamientoDto {
   siembraId!: number;
 
   @ApiProperty({
+    enum: TipoTratamiento,
+    example: TipoTratamiento.FERTILIZANTE,
+  })
+  @IsEnum(TipoTratamiento, {
+    message: 'Seleccione un tipo de tratamiento',
+  })
+  tipo!: TipoTratamiento;
+
+  @ApiProperty({
     example: 'Fertilizante NPK 10-30-10',
     maxLength: 120,
   })
@@ -136,6 +148,15 @@ export class RegistrarTratamientoDto {
       'La cantidad aplicada supera el máximo permitido',
   })
   cantidad!: number;
+
+  @ApiProperty({
+    enum: UnidadTratamiento,
+    example: UnidadTratamiento.KG,
+  })
+  @IsEnum(UnidadTratamiento, {
+    message: 'Seleccione una unidad',
+  })
+  unidad!: UnidadTratamiento;
 
   @ApiPropertyOptional({
     example:

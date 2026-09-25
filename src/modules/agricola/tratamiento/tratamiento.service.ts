@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -32,13 +33,18 @@ export class TratamientoService {
     actor: UsuarioAutenticado,
   ): Promise<TratamientoRespuesta> {
     const siembra = await this.siembrasRepo.findOne({
-      where: {
-        id: dto.siembraId,
-      },
+      where: { id: dto.siembraId },
+      relations: { cama: true },
     });
 
     if (!siembra) {
       throw new NotFoundException('La siembra seleccionada no existe.');
+    }
+
+    if (siembra.finalizadaEn) {
+      throw new ConflictException(
+        'No se puede registrar un tratamiento en una cama sin siembra activa.',
+      );
     }
 
     // El DTO solo descarta fechas futuras, asi que sin esto se podria registrar
@@ -53,9 +59,11 @@ export class TratamientoService {
 
     const tratamiento = this.tratamientosRepo.create({
       siembra,
+      tipo: dto.tipo,
       producto: dto.producto,
       fecha: dto.fecha,
       cantidad: dto.cantidad,
+      unidad: dto.unidad,
       observaciones: dto.observaciones ?? null,
       creadoPor: actor.id,
     });
@@ -67,15 +75,40 @@ export class TratamientoService {
     return mapearTratamiento(guardado);
   }
 
-  async consultarPorCultivo(
+  /**
+   * Solo siembras activas. La cama, la ubicación y el cultivo salen de esa
+   * relación; no se copian en el tratamiento.
+   */
+  async consultar(
     filtros: ConsultarTratamientosDto,
   ): Promise<TratamientoRespuesta[]> {
-    const tratamientos = await this.tratamientosRepo
+    const consulta = this.tratamientosRepo
       .createQueryBuilder('tratamiento')
       .innerJoinAndSelect('tratamiento.siembra', 'siembra')
-      .where('LOWER(siembra.tipoCultivo) = LOWER(:cultivo)', {
-        cultivo: filtros.cultivo,
-      })
+      .innerJoinAndSelect('siembra.cama', 'cama')
+      .where('siembra.finalizadaEn IS NULL');
+
+    if (filtros.ubicacion) {
+      consulta.andWhere('lower(cama.ubicacion) = lower(:ubicacion)', {
+        ubicacion: filtros.ubicacion,
+      });
+    }
+
+    if (filtros.camaId) {
+      consulta.andWhere('cama.id = :camaId', { camaId: filtros.camaId });
+    }
+
+    if (filtros.tipo) {
+      consulta.andWhere('tratamiento.tipo = :tipo', { tipo: filtros.tipo });
+    }
+
+    if (filtros.cultivo) {
+      consulta.andWhere('lower(siembra.tipoCultivo) LIKE lower(:cultivo)', {
+        cultivo: `%${filtros.cultivo}%`,
+      });
+    }
+
+    const tratamientos = await consulta
       .orderBy('tratamiento.fecha', 'DESC')
       .addOrderBy('tratamiento.id', 'DESC')
       .getMany();
