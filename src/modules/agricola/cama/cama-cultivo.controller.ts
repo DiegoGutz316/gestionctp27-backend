@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
@@ -55,6 +58,17 @@ export class CamaCultivoController {
   @RequierePermiso(ModuloSistema.AGRICOLA, NivelPermiso.LECTURA)
   obtener(@Param('id', ParseIntPipe) id: number) {
     return this.camaCultivoService.obtener(id);
+  }
+
+  @ApiOperation({
+    summary: 'Eliminar una cama de cultivo',
+    description:
+      'Solo si nunca se usó: una cama con siembras registradas responde 409.',
+  })
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  eliminar(@Param('id', ParseIntPipe) id: number) {
+    return this.camaCultivoService.eliminar(id);
   }
 
   @ApiOperation({
