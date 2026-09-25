@@ -15,6 +15,7 @@ import { CamaCultivo } from './entities/cama-cultivo.entity';
 import { EstadoCamaCultivo } from './enums/estado-cama-cultivo.enum';
 
 const PG_UNIQUE_VIOLATION = '23505';
+const PG_FOREIGN_KEY_VIOLATION = '23503';
 
 @Injectable()
 export class CamaCultivoService {
@@ -178,6 +179,45 @@ export class CamaCultivoService {
     }
 
     return camas;
+  }
+
+  /**
+   * Eliminar una cama solo tiene sentido cuando nunca se uso: si tiene
+   * siembras, borrarla se llevaria por delante el historial de produccion
+   * que cuelga de ellas. La clave foranea es RESTRICT y la base lo impediria
+   * igual, pero devolveria un 500; aqui se explica el motivo con un 409.
+   */
+  async eliminar(id: number): Promise<void> {
+    const cama = await this.buscarPorId(id);
+
+    const siembras = await this.siembrasRepo.count({
+      where: { cama: { id: cama.id } },
+    });
+
+    if (siembras > 0) {
+      throw new ConflictException(
+        `No se puede eliminar la cama "${cama.codigo}": tiene ${siembras} ` +
+          `${siembras === 1 ? 'siembra registrada' : 'siembras registradas'}.`,
+      );
+    }
+
+    try {
+      await this.camasRepo.remove(cama);
+    } catch (error) {
+      // Red de seguridad: entre la comprobacion y el borrado alguien pudo
+      // registrar una siembra en esta cama.
+      if (
+        error instanceof QueryFailedError &&
+        (error.driverError as { code?: string })?.code ===
+          PG_FOREIGN_KEY_VIOLATION
+      ) {
+        throw new ConflictException(
+          `No se puede eliminar la cama "${cama.codigo}": está en uso.`,
+        );
+      }
+
+      throw error;
+    }
   }
 
   private async buscarPorId(id: number): Promise<CamaCultivo> {
