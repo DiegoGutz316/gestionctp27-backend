@@ -1,4 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
+
+import { EstadoCamaCultivo } from '../cama/enums/estado-cama-cultivo.enum';
 import type { Repository } from 'typeorm';
 
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
@@ -19,6 +21,7 @@ describe('SiembraService', () => {
     id: 3,
     codigo: 'CAMA-003',
     ubicacion: 'Invernadero',
+    estado: EstadoCamaCultivo.DISPONIBLE,
   } as CamaCultivo;
   const dto: RegistrarSiembraDto = {
     camaId: 3,
@@ -126,6 +129,7 @@ function crearServicio(opciones: {
     save: jest.fn((valor: CamaCultivo) => Promise.resolve(valor)),
   };
   const siembrasRepo = {
+    findOne: jest.fn().mockResolvedValue(null),
     create: jest.fn((valor: object) => valor),
     save: jest.fn((valor: object) =>
       Promise.resolve({

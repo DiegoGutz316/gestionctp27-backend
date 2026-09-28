@@ -28,13 +28,14 @@ function transformarNumero({ value }: TransformFnParams): unknown {
 }
 
 /**
- * La pantalla lista todos los tratamientos de siembras activas y filtra por
- * ubicación, cama o tipo. `cultivo` se conserva porque antes era obligatorio.
+ * Los filtros son opcionales y se combinan. El cultivo no se guarda en el
+ * tratamiento: se busca en la siembra activa de la cama.
  */
 export class ConsultarTratamientosDto {
   @ApiPropertyOptional({
     example: 'Tomate',
-    maxLength: 120,
+    description:
+      'Coincidencia parcial e insensible a mayúsculas sobre el cultivo de la siembra activa',
   })
   @Transform(normalizarTexto)
   @IsOptional()

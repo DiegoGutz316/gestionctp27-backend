@@ -6,6 +6,7 @@ import { RolUsuario } from '../../usuarios/enums/rol-usuario.enum';
 import { Siembra } from '../siembra/entities/siembra.entity';
 import { CamaCultivoService } from './cama-cultivo.service';
 import { EstadoCamaCultivo } from './enums/estado-cama-cultivo.enum';
+import { Siembra } from '../siembra/entities/siembra.entity';
 import { CamaCultivo } from './entities/cama-cultivo.entity';
 
 describe('CamaCultivoService', () => {
@@ -171,7 +172,7 @@ describe('CamaCultivoService', () => {
     );
   });
 
-  it('filtra por ubicación', async () => {
+  it('filtra por ubicación del invernadero', async () => {
     const { service, consulta } = crearServicioParaListar([]);
 
     await service.listar({ ubicacion: 'Invernadero 1' });
@@ -380,19 +381,12 @@ describe('CamaCultivoService', () => {
         id: 1,
         codigo: 'CAMA-001',
         ubicacion: 'Invernadero 2',
-        estado: EstadoCamaCultivo.SEMBRADA,
         observaciones: 'Riego revisado.',
         actualizadoPor: actor.id,
       }),
     );
   });
 });
-
-function repositorioSiembrasVacio() {
-  return {
-    find: jest.fn().mockResolvedValue([] as Siembra[]),
-  };
-}
 
 function crearServicio(opciones: { duplicada: CamaCultivo | null }) {
   const camasRepo = {
@@ -465,4 +459,10 @@ function crearServicioParaListar(camas: CamaCultivo[]) {
   );
 
   return { service, consulta, siembrasRepo };
+}
+
+function repositorioSiembrasVacio() {
+  return {
+    find: jest.fn().mockResolvedValue([] as Siembra[]),
+  };
 }

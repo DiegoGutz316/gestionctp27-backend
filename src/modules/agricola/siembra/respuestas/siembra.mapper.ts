@@ -10,7 +10,9 @@ export interface SiembraRespuesta {
   tipoCultivo: string;
   fechaSiembra: string;
   cantidadSembrada: number;
-  finalizadaEn: Date | null;
+  finalizadaEn: string | null;
+  motivoFinalizacion: string | null;
+  motivoDetalle: string | null;
   creadoEn: Date;
   creadoPor: string;
 }
@@ -27,6 +29,8 @@ export function mapearSiembra(siembra: Siembra): SiembraRespuesta {
     fechaSiembra: siembra.fechaSiembra,
     cantidadSembrada: siembra.cantidadSembrada,
     finalizadaEn: siembra.finalizadaEn ?? null,
+    motivoFinalizacion: siembra.motivoFinalizacion ?? null,
+    motivoDetalle: siembra.motivoDetalle ?? null,
     creadoEn: siembra.creadoEn,
     creadoPor: siembra.creadoPor,
   };

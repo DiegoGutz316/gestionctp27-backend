@@ -82,6 +82,21 @@ export class ConsultarCosechasDto extends OmitType(PaginarDto, ['q'] as const) {
   @IsInt({ message: 'Seleccione una cama de cultivo válida' })
   camaId?: number;
 
+  /**
+   * La ubicación vive en la cama («Invernadero 1», «Invernadero 2»). Se compara
+   * entera y sin distinguir mayúsculas, para no mezclar un invernadero con otro.
+   */
+  @ApiPropertyOptional({
+    example: 'Invernadero 1',
+    description: 'Ubicación de la cama donde se hizo la cosecha',
+  })
+  @Transform(normalizarTexto)
+  @IsOptional()
+  @IsString({ message: 'Seleccione una ubicación válida' })
+  @MinLength(1, { message: 'Seleccione una ubicación válida' })
+  @MaxLength(120, { message: 'La ubicación no puede superar 120 caracteres' })
+  ubicacion?: string;
+
   @ApiPropertyOptional({
     example: 'Invernadero 1',
     minLength: 1,

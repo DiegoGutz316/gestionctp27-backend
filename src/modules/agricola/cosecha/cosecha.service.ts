@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,8 +13,8 @@ import {
 } from '../../../common/paginacion/helpers/paginar.helper';
 
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
-import { EstadoCamaCultivo } from '../cama/enums/estado-cama-cultivo.enum';
 import { Siembra } from '../siembra/entities/siembra.entity';
+import { SiembraService } from '../siembra/siembra.service';
 
 import { ConsultarCosechasDto } from './dto/consultar-cosechas.dto';
 import { RegistrarCosechaDto } from './dto/registrar-cosecha.dto';
@@ -34,6 +35,8 @@ export class CosechaService {
 
     @InjectRepository(Cosecha)
     private readonly cosechasRepo: Repository<Cosecha>,
+
+    private readonly siembraService: SiembraService,
   ) {}
 
   /**
@@ -56,6 +59,12 @@ export class CosechaService {
 
     if (!siembra) {
       throw new NotFoundException('La siembra seleccionada no existe.');
+    }
+
+    if (siembra.finalizadaEn) {
+      throw new ConflictException(
+        'No se puede registrar una cosecha en una siembra finalizada.',
+      );
     }
 
     // Ambas columnas son `date` y llegan como texto AAAA-MM-DD, formato en el
@@ -82,10 +91,9 @@ export class CosechaService {
         const creada = await manager.save(cosecha);
 
         if (dto.cerrarCiclo) {
-          siembra.finalizadaEn = new Date();
-          await manager.save(siembra);
-          siembra.cama.estado = EstadoCamaCultivo.DISPONIBLE;
+          this.siembraService.cerrarCiclo(siembra, actor.id);
           await manager.save(siembra.cama);
+          await manager.save(siembra);
         }
 
         return creada;

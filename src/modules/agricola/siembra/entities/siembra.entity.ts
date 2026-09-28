@@ -43,6 +43,30 @@ export class Siembra {
   })
   fechaSiembra: string;
 
+  /** Nula mientras el ciclo sigue activo. Al finalizar se conserva el registro. */
+  @Column({
+    name: 'finalizada_en',
+    type: 'date',
+    nullable: true,
+  })
+  finalizadaEn: string | null;
+
+  /** Por qué se cerró el ciclo cuando no hubo cosecha. Nulo si sigue activa o si cerró con cosecha. */
+  @Column({
+    name: 'motivo_finalizacion',
+    type: 'varchar',
+    length: 40,
+    nullable: true,
+  })
+  motivoFinalizacion: string | null;
+
+  @Column({
+    name: 'motivo_detalle',
+    type: 'text',
+    nullable: true,
+  })
+  motivoDetalle: string | null;
+
   @Column({
     name: 'cantidad_sembrada',
     type: 'numeric',
@@ -64,15 +88,4 @@ export class Siembra {
     nullable: false,
   })
   creadoPor: string;
-
-  /**
-   * Null mientras el ciclo sigue abierto. Al cerrarlo, la cama deja de
-   * mostrar este cultivo como actual.
-   */
-  @Column({
-    name: 'finalizada_en',
-    type: 'timestamptz',
-    nullable: true,
-  })
-  finalizadaEn: Date | null;
 }

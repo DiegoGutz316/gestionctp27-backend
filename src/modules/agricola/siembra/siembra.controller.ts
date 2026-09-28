@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { RequierePermiso } from '../../auth/decorators/requiere-permiso.decorator';
@@ -7,6 +16,7 @@ import { ModuloSistema } from '../../auth/enums/modulo-sistema.enum';
 import { NivelPermiso } from '../../auth/enums/nivel-permiso.enum';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { ConsultarSiembrasDto } from './dto/consultar-siembras.dto';
+import { FinalizarSiembraDto } from './dto/finalizar-siembra.dto';
 import { RegistrarSiembraDto } from './dto/registrar-siembra.dto';
 import { SiembraService } from './siembra.service';
 
@@ -24,6 +34,16 @@ export class SiembraController {
     @UsuarioActual() actor: UsuarioAutenticado,
   ) {
     return this.siembraService.registrar(dto, actor);
+  }
+
+  @ApiOperation({ summary: 'Finalizar el ciclo de una siembra' })
+  @Patch(':id/finalizar')
+  finalizar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: FinalizarSiembraDto,
+    @UsuarioActual() actor: UsuarioAutenticado,
+  ) {
+    return this.siembraService.finalizar(id, dto, actor);
   }
 
   @ApiOperation({ summary: 'Consultar siembras por cultivo o fecha' })

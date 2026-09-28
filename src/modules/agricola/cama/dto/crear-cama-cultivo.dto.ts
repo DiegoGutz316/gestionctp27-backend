@@ -1,14 +1,11 @@
 import { Transform, type TransformFnParams } from 'class-transformer';
 import {
-  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-
-import { EstadoCamaCultivo } from '../enums/estado-cama-cultivo.enum';
 
 function normalizarTexto({ value }: TransformFnParams): unknown {
   const valor: unknown = value;
@@ -50,19 +47,6 @@ export class CrearCamaCultivoDto {
     message: 'La ubicación no puede superar 120 caracteres',
   })
   ubicacion!: string;
-
-  @ApiPropertyOptional({
-    enum: EstadoCamaCultivo,
-    enumName: 'EstadoCamaCultivo',
-    example: EstadoCamaCultivo.DISPONIBLE,
-    description:
-      'Si se omite, la cama queda DISPONIBLE. El alta desde el formulario no envía este campo.',
-  })
-  @IsOptional()
-  @IsEnum(EstadoCamaCultivo, {
-    message: 'Seleccione un estado válido',
-  })
-  estado?: EstadoCamaCultivo;
 
   @ApiPropertyOptional({
     example: 'Cama con riego por goteo instalado.',

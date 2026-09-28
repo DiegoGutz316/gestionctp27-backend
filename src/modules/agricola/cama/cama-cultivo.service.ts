@@ -14,6 +14,10 @@ import { FiltrarCamasCultivoDto } from './dto/filtrar-camas-cultivo.dto';
 import { CamaCultivo } from './entities/cama-cultivo.entity';
 import { EstadoCamaCultivo } from './enums/estado-cama-cultivo.enum';
 
+export type CamaCultivoConCultivo = CamaCultivo & {
+  cultivoActual: string | null;
+};
+
 const PG_UNIQUE_VIOLATION = '23505';
 const PG_FOREIGN_KEY_VIOLATION = '23503';
 
@@ -29,7 +33,7 @@ export class CamaCultivoService {
   async crear(
     dto: CrearCamaCultivoDto,
     actor: UsuarioAutenticado,
-  ): Promise<CamaCultivo> {
+  ): Promise<CamaCultivoConCultivo> {
     const duplicada = await this.camasRepo.findOne({
       where: {
         codigo: dto.codigo,
@@ -43,7 +47,7 @@ export class CamaCultivoService {
     const cama = this.camasRepo.create({
       codigo: dto.codigo,
       ubicacion: dto.ubicacion,
-      estado: dto.estado ?? EstadoCamaCultivo.DISPONIBLE,
+      estado: EstadoCamaCultivo.DISPONIBLE,
       observaciones: dto.observaciones ?? null,
       creadoPor: actor.id,
     });
@@ -65,7 +69,9 @@ export class CamaCultivoService {
    * código o estado. `ubicacion` y `camaId` acotan el listado que pide la
    * pantalla de camas.
    */
-  async listar(filtros: FiltrarCamasCultivoDto): Promise<CamaCultivo[]> {
+  async listar(
+    filtros: FiltrarCamasCultivoDto,
+  ): Promise<CamaCultivoConCultivo[]> {
     const consulta = this.camasRepo.createQueryBuilder('cama');
 
     if (filtros.q) {
@@ -92,11 +98,10 @@ export class CamaCultivoService {
     return await this.conCultivoActual(await consulta.getMany());
   }
 
-  async obtener(id: number): Promise<CamaCultivo> {
-    const cama = await this.buscarPorId(id);
-    const [conCultivo] = await this.conCultivoActual([cama]);
+  async obtener(id: number): Promise<CamaCultivoConCultivo> {
+    const [cama] = await this.conCultivoActual([await this.buscarPorId(id)]);
 
-    return conCultivo;
+    return cama;
   }
 
   /**
@@ -109,7 +114,7 @@ export class CamaCultivoService {
     id: number,
     dto: EditarCamaCultivoDto,
     actor: UsuarioAutenticado,
-  ): Promise<CamaCultivo> {
+  ): Promise<CamaCultivoConCultivo> {
     const cama = await this.buscarPorId(id);
 
     const duplicada = await this.camasRepo
@@ -149,13 +154,13 @@ export class CamaCultivoService {
   }
 
   /**
-   * El cultivo no vive en la cama: es el tipo de la siembra que todavía no
-   * se ha cerrado. Si hay varias abiertas, gana la más reciente.
+   * El cultivo no se guarda en la cama: es el de la siembra que aún no
+   * finaliza. Si hay varias abiertas, gana la más reciente.
    */
   private async conCultivoActual(
     camas: CamaCultivo[],
-  ): Promise<CamaCultivo[]> {
-    if (camas.length === 0) return camas;
+  ): Promise<CamaCultivoConCultivo[]> {
+    if (camas.length === 0) return [];
 
     const abiertas = await this.siembrasRepo.find({
       where: {
@@ -174,11 +179,9 @@ export class CamaCultivoService {
       }
     }
 
-    for (const cama of camas) {
-      cama.cultivoActual = porCama.get(cama.id) ?? null;
-    }
-
-    return camas;
+    return camas.map((cama) =>
+      Object.assign(cama, { cultivoActual: porCama.get(cama.id) ?? null }),
+    );
   }
 
   /**

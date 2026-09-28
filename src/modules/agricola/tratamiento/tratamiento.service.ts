@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -32,14 +33,18 @@ export class TratamientoService {
     actor: UsuarioAutenticado,
   ): Promise<TratamientoRespuesta> {
     const siembra = await this.siembrasRepo.findOne({
-      where: {
-        id: dto.siembraId,
-      },
+      where: { id: dto.siembraId },
       relations: { cama: true },
     });
 
     if (!siembra) {
       throw new NotFoundException('La siembra seleccionada no existe.');
+    }
+
+    if (siembra.finalizadaEn) {
+      throw new ConflictException(
+        'No se puede registrar un tratamiento en una cama sin siembra activa.',
+      );
     }
 
     // El DTO solo descarta fechas futuras, asi que sin esto se podria registrar
@@ -71,8 +76,8 @@ export class TratamientoService {
   }
 
   /**
-   * La pantalla abre el historial completo de las siembras que siguen
-   * activas. Ubicación, cama, tipo y cultivo acotan esa lista.
+   * Solo siembras activas. La cama, la ubicación y el cultivo salen de esa
+   * relación; ubicación, cama, tipo y cultivo acotan la lista.
    */
   async consultar(
     filtros: ConsultarTratamientosDto,
@@ -84,13 +89,13 @@ export class TratamientoService {
       .where('siembra.finalizadaEn IS NULL');
 
     if (filtros.cultivo) {
-      consulta.andWhere('LOWER(siembra.tipoCultivo) = LOWER(:cultivo)', {
-        cultivo: filtros.cultivo,
+      consulta.andWhere('lower(siembra.tipoCultivo) LIKE lower(:cultivo)', {
+        cultivo: `%${filtros.cultivo}%`,
       });
     }
 
     if (filtros.ubicacion) {
-      consulta.andWhere('LOWER(cama.ubicacion) = LOWER(:ubicacion)', {
+      consulta.andWhere('lower(cama.ubicacion) = lower(:ubicacion)', {
         ubicacion: filtros.ubicacion,
       });
     }
