@@ -61,7 +61,6 @@ export class ExportacionReportesController {
     response: Response,
   ) {
     const reporte = await this.pecuaria.generar(dto);
-    await this.pecuaria.generar(dto);
 
     const archivo = await this.pdf.generar(
       documentoProduccionPecuaria(dto, reporte),
