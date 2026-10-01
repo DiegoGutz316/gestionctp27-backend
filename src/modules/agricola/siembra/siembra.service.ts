@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { IsNull, QueryFailedError, Repository } from 'typeorm';
 
 import { fechaDeHoy } from '../../../common/validacion/fecha-no-futura.validator';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
@@ -20,6 +20,12 @@ import {
   mapearSiembra,
   type SiembraRespuesta,
 } from './respuestas/siembra.mapper';
+
+const PG_UNIQUE_VIOLATION = '23505';
+const INDICE_SIEMBRA_ACTIVA = 'siembras_cama_activa_unica';
+
+const MENSAJE_CAMA_OCUPADA =
+  'La cama seleccionada ya tiene una siembra activa.';
 
 @Injectable()
 export class SiembraService {
@@ -41,9 +47,7 @@ export class SiembraService {
     }
 
     if (cama.estado !== EstadoCamaCultivo.DISPONIBLE) {
-      throw new ConflictException(
-        'La cama seleccionada ya tiene una siembra activa.',
-      );
+      throw new ConflictException(MENSAJE_CAMA_OCUPADA);
     }
 
     const activa = await this.siembrasRepo.findOne({
@@ -51,9 +55,7 @@ export class SiembraService {
     });
 
     if (activa) {
-      throw new ConflictException(
-        'La cama seleccionada ya tiene una siembra activa.',
-      );
+      throw new ConflictException(MENSAJE_CAMA_OCUPADA);
     }
 
     const siembra = this.siembrasRepo.create({
@@ -64,7 +66,8 @@ export class SiembraService {
       creadoPor: actor.id,
       finalizadaEn: null,
     });
-    const guardada = await this.siembrasRepo.save(siembra);
+    const guardada = await this.guardarSiembra(siembra);
+
     guardada.cama = cama;
 
     cama.estado = EstadoCamaCultivo.SEMBRADA;
@@ -148,5 +151,41 @@ export class SiembraService {
       .getMany();
 
     return siembras.map(mapearSiembra);
+  }
+
+  /**
+   * La comprobacion de "ya hay una siembra activa" y el INSERT no son
+   * atomicos: entre los dos cabe otra peticion, y las dos pasan el control.
+   * El indice unico de la base lo impide, pero ese rechazo llega como un
+   * error de driver y saldria como 500.
+   *
+   * Es el mismo conflicto que ya detecta la comprobacion previa, asi que se
+   * responde igual: 409 con el mismo mensaje. Solo se traduce la violacion de
+   * ESTE indice; cualquier otra se deja pasar para no esconderla.
+   */
+  private async guardarSiembra(siembra: Siembra): Promise<Siembra> {
+    try {
+      return await this.siembrasRepo.save(siembra);
+    } catch (error) {
+      if (this.esSiembraActivaDuplicada(error)) {
+        throw new ConflictException(MENSAJE_CAMA_OCUPADA);
+      }
+
+      throw error;
+    }
+  }
+
+  private esSiembraActivaDuplicada(error: unknown): boolean {
+    if (!(error instanceof QueryFailedError)) return false;
+
+    const driver = error.driverError as {
+      code?: string;
+      constraint?: string;
+    };
+
+    return (
+      driver?.code === PG_UNIQUE_VIOLATION &&
+      driver?.constraint === INDICE_SIEMBRA_ACTIVA
+    );
   }
 }
