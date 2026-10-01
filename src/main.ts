@@ -14,6 +14,11 @@ async function bootstrap() {
     origin: origenes,
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key'],
+
+    // Sin esto el navegador oculta la cabecera al JavaScript por ser otro
+    // origen, y las descargas de reportes se guardaban con un nombre generico
+    // en vez del que arma el backend con el periodo exportado.
+    exposedHeaders: ['Content-Disposition'],
   });
 
   const config = new DocumentBuilder()
