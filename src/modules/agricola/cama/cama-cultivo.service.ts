@@ -54,9 +54,9 @@ export class CamaCultivoService {
 
     try {
       const guardada = await this.camasRepo.save(cama);
-      guardada.cultivoActual = null;
 
-      return guardada;
+      // Una cama recien creada no tiene siembra, asi que no tiene cultivo.
+      return Object.assign(guardada, { cultivoActual: null });
     } catch (error) {
       this.relanzarSiCodigoDuplicado(error, dto.codigo);
 
