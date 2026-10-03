@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
+import { CLAVE_PUBLICO } from '../decorators/publico.decorator';
 import {
   CLAVE_PERMISO,
   type PermisoRequerido,
@@ -39,6 +40,16 @@ export class PermisosGuard implements CanActivate {
     );
 
     if (!requerido) return true;
+
+    // @Publico() ya dispensa el token. Si el controlador exige un permiso a
+    // nivel de clase, esta ruta igual debe quedar abierta: no hay usuario
+    // contra el cual evaluar la matriz.
+    const esPublico = this.reflector.getAllAndOverride<boolean>(CLAVE_PUBLICO, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (esPublico) return true;
 
     const solicitud = context.switchToHttp().getRequest<SolicitudAutenticada>();
     const usuario = solicitud.user;

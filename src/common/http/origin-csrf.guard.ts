@@ -35,9 +35,11 @@ export class OriginCsrfGuard implements CanActivate {
     const tieneBody =
       request.headers['transfer-encoding'] !== undefined ||
       (longitud !== undefined && longitud !== '0');
-    if (tieneBody && !request.is('application/json')) {
+    const esJson = request.is('application/json');
+    const esArchivo = request.is('multipart/form-data');
+    if (tieneBody && !esJson && !esArchivo) {
       throw new UnsupportedMediaTypeException(
-        'Las mutaciones con cuerpo requieren Content-Type application/json.',
+        'El cuerpo debe enviarse como JSON o como archivo (multipart/form-data).',
       );
     }
     return true;
