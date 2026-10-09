@@ -2,12 +2,14 @@ import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
 
 import { EditarAvisoDto } from './editar-aviso.dto';
+import { CategoriaAviso } from '../enums/categoria-aviso.enum';
 import { EstadoAviso } from '../enums/estado-aviso.enum';
 
 const datosValidos = {
   titulo: 'Feria agrícola institucional',
   descripcion: 'Se realizará la feria anual en el gimnasio del colegio.',
   fecha: '2026-11-15',
+  categoria: CategoriaAviso.ACADEMICOS,
   estado: EstadoAviso.ACTIVO,
 };
 
@@ -70,6 +72,30 @@ describe('EditarAvisoDto', () => {
     const camposInvalidos = validateSync(dto).map((error) => error.property);
 
     expect(camposInvalidos).toEqual(expect.arrayContaining(['estado']));
+  });
+
+  it('rechaza una categoría que no pertenece al catálogo', () => {
+    const dto = plainToInstance(EditarAvisoDto, {
+      ...datosValidos,
+      categoria: 'TODOS',
+    });
+
+    const camposInvalidos = validateSync(dto).map((error) => error.property);
+
+    expect(camposInvalidos).toEqual(expect.arrayContaining(['categoria']));
+  });
+
+  it('exige la categoría', () => {
+    const dto = plainToInstance(EditarAvisoDto, {
+      titulo: datosValidos.titulo,
+      descripcion: datosValidos.descripcion,
+      fecha: datosValidos.fecha,
+      estado: datosValidos.estado,
+    });
+
+    const camposInvalidos = validateSync(dto).map((error) => error.property);
+
+    expect(camposInvalidos).toEqual(expect.arrayContaining(['categoria']));
   });
 
   it('exige el estado', () => {

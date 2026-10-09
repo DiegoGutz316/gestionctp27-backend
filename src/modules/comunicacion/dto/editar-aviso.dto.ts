@@ -8,6 +8,7 @@ import {
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
+import { CategoriaAviso } from '../enums/categoria-aviso.enum';
 import { EstadoAviso } from '../enums/estado-aviso.enum';
 import { EsFechaDeAviso } from './fecha-aviso.validator';
 
@@ -48,6 +49,15 @@ export class EditarAvisoDto {
   @IsString({ message: 'La descripción es obligatoria' })
   @IsDefined({ message: 'La descripción es obligatoria' })
   descripcion!: string;
+
+  @ApiProperty({
+    enum: CategoriaAviso,
+    enumName: 'CategoriaAviso',
+    example: CategoriaAviso.EVENTOS,
+  })
+  @IsEnum(CategoriaAviso, { message: 'Seleccione una categoría válida' })
+  @IsDefined({ message: 'La categoría es obligatoria' })
+  categoria!: CategoriaAviso;
 
   @ApiProperty({ example: '2026-11-15', description: 'Fecha AAAA-MM-DD' })
   @Transform(normalizarTexto)

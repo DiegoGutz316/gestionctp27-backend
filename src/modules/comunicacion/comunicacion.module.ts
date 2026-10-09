@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { AuthModule } from '../auth/auth.module';
+
 import { AvisoController } from './aviso.controller';
 import { AvisoService } from './aviso.service';
 import { Aviso } from './entities/aviso.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Aviso])],
+  imports: [TypeOrmModule.forFeature([Aviso]), AuthModule],
   controllers: [AvisoController],
   providers: [AvisoService],
   exports: [AvisoService],

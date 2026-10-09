@@ -54,6 +54,7 @@ export class AvisoService {
     const aviso = this.avisosRepo.create({
       titulo: dto.titulo,
       descripcion: dto.descripcion,
+      categoria: dto.categoria,
       fecha: dto.fecha,
 
       // Un aviso recien publicado nace activo: es lo que lo deja disponible
@@ -70,26 +71,41 @@ export class AvisoService {
   }
 
   /**
-   * Backlog 5.6: "Los usuarios autorizados pueden visualizar los avisos
-   * activos" y "Los avisos inactivos no se muestran a los usuarios
-   * generales".
+   * Backlog 5.6: la lectura general solo recibe avisos activos.
    *
-   * El filtro por estado no es opcional ni configurable: este endpoint
-   * devuelve unicamente los activos. Dejarlo elegible abriria la puerta a que
-   * cualquiera con LECTURA pidiera los inactivos, que es justo lo que el
-   * criterio prohibe.
+   * Quien administra (permiso completo) puede pedir inactivos o el conjunto
+   * completo para el panel. Sin ese permiso, un pedido de inactivos no
+   * devuelve filas y cualquier otro filtro queda en activos.
    *
    * Orden: del aviso mas proximo al mas antiguo por su fecha, desempatando
    * por id para que dos del mismo dia no cambien de posicion entre consultas.
    */
   async consultar(
     filtros: ConsultarAvisosDto,
+    puedeAdministrar = false,
   ): Promise<ResultadoPaginado<AvisoRespuesta>> {
-    const consulta = this.avisosRepo
-      .createQueryBuilder('aviso')
-      .where('aviso.estado = :estado', { estado: EstadoAviso.ACTIVO })
-      .orderBy('aviso.fecha', 'DESC')
-      .addOrderBy('aviso.id', 'DESC');
+    const consulta = this.avisosRepo.createQueryBuilder('aviso');
+    const estado = filtros.estado;
+
+    if (estado === EstadoAviso.INACTIVO && !puedeAdministrar) {
+      consulta.where('1 = 0');
+    } else if (puedeAdministrar && estado === 'TODOS') {
+      // Sin filtro de estado: el panel necesita el conjunto completo.
+    } else if (puedeAdministrar && estado === EstadoAviso.INACTIVO) {
+      consulta.where('aviso.estado = :estado', {
+        estado: EstadoAviso.INACTIVO,
+      });
+    } else {
+      consulta.where('aviso.estado = :estado', { estado: EstadoAviso.ACTIVO });
+    }
+
+    if (filtros.q) {
+      consulta.andWhere('LOWER(aviso.titulo) LIKE LOWER(:q)', {
+        q: `%${filtros.q}%`,
+      });
+    }
+
+    consulta.orderBy('aviso.fecha', 'DESC').addOrderBy('aviso.id', 'DESC');
 
     const { entidades, total } = await paginarQueryBuilder(consulta, filtros);
 
@@ -105,9 +121,15 @@ export class AvisoService {
   ): Promise<ResultadoPaginado<AvisoPublico>> {
     const consulta = this.avisosRepo
       .createQueryBuilder('aviso')
-      .where('aviso.estado = :estado', { estado: EstadoAviso.ACTIVO })
-      .orderBy('aviso.fecha', 'DESC')
-      .addOrderBy('aviso.id', 'DESC');
+      .where('aviso.estado = :estado', { estado: EstadoAviso.ACTIVO });
+
+    if (filtros.categoria) {
+      consulta.andWhere('aviso.categoria = :categoria', {
+        categoria: filtros.categoria,
+      });
+    }
+
+    consulta.orderBy('aviso.fecha', 'DESC').addOrderBy('aviso.id', 'DESC');
 
     const { entidades, total } = await paginarQueryBuilder(consulta, filtros);
 
@@ -135,6 +157,7 @@ export class AvisoService {
 
     aviso.titulo = dto.titulo;
     aviso.descripcion = dto.descripcion;
+    aviso.categoria = dto.categoria;
     aviso.fecha = dto.fecha;
     aviso.estado = dto.estado;
     this.marcarModificacion(aviso, actor);
@@ -144,6 +167,7 @@ export class AvisoService {
     await this.avisosRepo.update(aviso.id, {
       titulo: aviso.titulo,
       descripcion: aviso.descripcion,
+      categoria: aviso.categoria,
       fecha: aviso.fecha,
       estado: aviso.estado,
       actualizadoEn: aviso.actualizadoEn,

@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, NotFoundException } from '@nest
 
 import { RolUsuario } from '../usuarios/enums/rol-usuario.enum';
 import { AvisoService } from './aviso.service';
+import { CategoriaAviso } from './enums/categoria-aviso.enum';
 import { EstadoAviso } from './enums/estado-aviso.enum';
 
 const actor = {
@@ -17,6 +18,7 @@ function avisoActivo() {
     titulo: 'Feria agrícola',
     descripcion: 'En el gimnasio del colegio.',
     fecha: '2026-11-15',
+    categoria: null,
     estado: EstadoAviso.ACTIVO,
     creadoEn: new Date('2026-10-01T12:00:00.000Z'),
     creadoPor: '22222222-2222-2222-2222-222222222222',
@@ -45,6 +47,7 @@ describe('AvisoService', () => {
         titulo: 'Feria del agricultor',
         descripcion: 'El sábado en la mañana.',
         fecha: '2026-11-20',
+        categoria: CategoriaAviso.EVENTOS,
         estado: EstadoAviso.ACTIVO,
       },
       actor,
@@ -69,6 +72,7 @@ describe('AvisoService', () => {
           titulo: 'Feria',
           descripcion: 'Detalle',
           fecha: '2026-11-20',
+          categoria: CategoriaAviso.EVENTOS,
           estado: EstadoAviso.ACTIVO,
         },
         actor,

@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
+import { CategoriaAviso } from '../enums/categoria-aviso.enum';
 import { EstadoAviso } from '../enums/estado-aviso.enum';
 
 /**
@@ -26,6 +27,13 @@ export class Aviso {
 
   @Column({ name: 'descripcion', type: 'text' })
   descripcion: string;
+
+  /**
+   * Nula solo en avisos anteriores a la categoría. Los nuevos la traen
+   * obligatoria desde el formulario.
+   */
+  @Column({ name: 'categoria', type: 'varchar', length: 20, nullable: true })
+  categoria: CategoriaAviso | null;
 
   /** Fecha de lo que se anuncia, no la de publicacion. Puede ser futura. */
   @Column({ name: 'fecha', type: 'date' })

@@ -27,6 +27,7 @@ import { RequierePermiso } from '../auth/decorators/requiere-permiso.decorator';
 import { UsuarioActual } from '../auth/decorators/usuario-actual.decorator';
 import { ModuloSistema } from '../auth/enums/modulo-sistema.enum';
 import { NivelPermiso } from '../auth/enums/nivel-permiso.enum';
+import { PermisosService } from '../auth/permisos.service';
 import type { UsuarioAutenticado } from '../auth/tipos/jwt-payload';
 
 import { AvisoService, type ArchivoFlyer } from './aviso.service';
@@ -60,16 +61,28 @@ class ErrorDeFlyerFilter implements ExceptionFilter {
 @Controller('comunicacion/avisos')
 @RequierePermiso(ModuloSistema.REPORTES, NivelPermiso.COMPLETO)
 export class AvisoController {
-  constructor(private readonly avisoService: AvisoService) {}
+  constructor(
+    private readonly avisoService: AvisoService,
+    private readonly permisos: PermisosService,
+  ) {}
 
   @ApiOperation({
-    summary: 'Consultar los avisos institucionales activos',
-    description: 'Solo devuelve los activos: los inactivos no se muestran.',
+    summary: 'Consultar los avisos institucionales',
+    description:
+      'La lectura recibe solo activos. Con permiso completo se puede filtrar por estado y buscar por título.',
   })
   @Get()
   @RequierePermiso(ModuloSistema.REPORTES, NivelPermiso.LECTURA)
-  consultar(@Query() filtros: ConsultarAvisosDto) {
-    return this.avisoService.consultar(filtros);
+  async consultar(
+    @Query() filtros: ConsultarAvisosDto,
+    @UsuarioActual() actor: UsuarioAutenticado,
+  ) {
+    const puedeAdministrar = await this.permisos.puede(
+      actor.rol,
+      ModuloSistema.REPORTES,
+      NivelPermiso.COMPLETO,
+    );
+    return this.avisoService.consultar(filtros, puedeAdministrar);
   }
 
   @ApiOperation({
