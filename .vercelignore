@@ -1,0 +1,7 @@
+# Lo que no necesita viajar al despliegue.
+node_modules
+.env
+.env.*
+test
+*.spec.ts
+*.spec.js

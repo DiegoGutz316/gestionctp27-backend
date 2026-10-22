@@ -27,3 +27,5 @@ coverage/
 Thumbs.db
 
 _entrega-1.1/
+.vercel
+.env*
