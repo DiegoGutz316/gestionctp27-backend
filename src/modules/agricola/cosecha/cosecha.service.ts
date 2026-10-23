@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, type SelectQueryBuilder } from 'typeorm';
 
+import { patronContiene } from '../../../common/consultas/patron-like';
 import {
   crearResultadoPaginado,
   paginarQueryBuilder,
@@ -162,7 +163,7 @@ export class CosechaService {
   ): void {
     if (filtros.cultivo) {
       consulta.andWhere('lower(siembra.tipoCultivo) LIKE lower(:cultivo)', {
-        cultivo: `%${filtros.cultivo}%`,
+        cultivo: patronContiene(filtros.cultivo),
       });
     }
 

@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 
+import { patronContiene } from '../../../common/consultas/patron-like';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { Siembra } from '../siembra/entities/siembra.entity';
 import { ConsultarCultivosDto } from './dto/consultar-cultivos.dto';
@@ -92,7 +93,7 @@ export class CultivoService {
 
     if (filtros.q) {
       consulta.andWhere('cultivo.nombreNormalizado LIKE :q', {
-        q: `%${normalizarNombre(filtros.q)}%`,
+        q: patronContiene(normalizarNombre(filtros.q)),
       });
     }
 

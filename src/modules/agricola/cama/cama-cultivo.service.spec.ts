@@ -199,9 +199,11 @@ describe('CamaCultivoService', () => {
 
     await service.listar({ q: 'en_uso' });
 
+    // El «_» va escapado: el estado se llama literalmente EN_USO, así que la
+    // búsqueda sigue encontrándolo sin que «_» funcione como comodín.
     expect(consulta.andWhere).toHaveBeenCalledWith(
       expect.stringContaining('lower('),
-      { q: '%en_uso%' },
+      { q: String.raw`%en\_uso%` },
     );
   });
 

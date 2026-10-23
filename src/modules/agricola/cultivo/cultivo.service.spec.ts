@@ -154,6 +154,18 @@ describe('CultivoService', () => {
       );
     });
 
+    it('los comodines de LIKE en la búsqueda se buscan literalmente', async () => {
+      const qb = crearQueryBuilderSimulado();
+      cultivos.createQueryBuilder.mockReturnValue(qb);
+
+      await servicio.consultar({ q: '100% ma_z' });
+
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        'cultivo.nombreNormalizado LIKE :q',
+        { q: String.raw`%100\% ma\_z%` },
+      );
+    });
+
     it('soloActivos=false no filtra', async () => {
       const qb = crearQueryBuilderSimulado();
       cultivos.createQueryBuilder.mockReturnValue(qb);

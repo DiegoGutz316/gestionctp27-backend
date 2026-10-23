@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { patronContiene } from '../../../common/consultas/patron-like';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { Siembra } from '../siembra/entities/siembra.entity';
 
@@ -97,7 +98,7 @@ export class TratamientoService {
 
     if (filtros.cultivo) {
       consulta.andWhere('lower(siembra.tipoCultivo) LIKE lower(:cultivo)', {
-        cultivo: `%${filtros.cultivo}%`,
+        cultivo: patronContiene(filtros.cultivo),
       });
     }
 
