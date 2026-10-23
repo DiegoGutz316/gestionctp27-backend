@@ -89,6 +89,7 @@ export class PeriodoController {
   }
 
   @Patch(':id/fondos/:fondoId/informe')
+  @RequierePermiso(ModuloSistema.LIBRO_CAJA, NivelPermiso.LECTURA)
   @ApiOperation({
     summary: 'Guardar observaciones y firmas del informe económico',
   })

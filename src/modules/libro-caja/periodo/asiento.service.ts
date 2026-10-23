@@ -22,6 +22,8 @@ import {
 
 const PG_UNIQUE_VIOLATION = '23505';
 
+type OperacionAsiento = 'registrar' | 'corregir' | 'anular';
+
 @Injectable()
 export class AsientoService {
   constructor(
@@ -92,6 +94,7 @@ export class AsientoService {
           manager,
           fondo.montoSolicitado ?? 0,
           [...existentes, nuevo],
+          'registrar',
         );
         const creado = guardados.find(
           (asiento) =>
@@ -160,6 +163,7 @@ export class AsientoService {
         manager,
         fondo.montoSolicitado ?? 0,
         existentes,
+        'corregir',
       );
     });
 
@@ -191,6 +195,7 @@ export class AsientoService {
         manager,
         fondo.montoSolicitado ?? 0,
         existentes.filter((asiento) => asiento.id !== actual.id),
+        'anular',
       );
     });
 
@@ -244,9 +249,10 @@ export class AsientoService {
     manager: import('typeorm').EntityManager,
     fondoInicial: number,
     asientos: AsientoCaja[],
+    operacion: OperacionAsiento,
   ): Promise<AsientoCaja[]> {
     const ordenados = [...asientos].sort(compararAsientos);
-    exigirSaldoNoNegativo(fondoInicial, ordenados);
+    exigirSaldoNoNegativo(fondoInicial, ordenados, operacion);
     if (ordenados.length === 0) return [];
 
     ordenados.forEach((asiento, indice) => {
@@ -289,16 +295,25 @@ function redondearColones(valor: number): number {
 function exigirSaldoNoNegativo(
   fondoInicial: number,
   asientos: AsientoCaja[],
+  operacion: OperacionAsiento,
 ): void {
   let saldo = redondearColones(fondoInicial);
   for (const asiento of asientos) {
     saldo = redondearColones(saldo + asiento.ingresos - asiento.egresos);
     if (saldo < 0) {
-      throw new BadRequestException(
-        'Ese egreso deja el saldo del libro en negativo. Revise el monto o el orden de las fechas.',
-      );
+      throw new BadRequestException(mensajeSaldoNegativo(operacion));
     }
   }
+}
+
+function mensajeSaldoNegativo(operacion: OperacionAsiento): string {
+  if (operacion === 'corregir') {
+    return 'Esa corrección deja el saldo del libro en negativo. Revise el monto o la fecha.';
+  }
+  if (operacion === 'anular') {
+    return 'Anular ese asiento deja el saldo del libro en negativo.';
+  }
+  return 'Ese egreso deja el saldo del libro en negativo. Revise el monto o el orden de las fechas.';
 }
 
 function huellaAsiento(

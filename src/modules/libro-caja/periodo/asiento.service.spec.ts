@@ -93,6 +93,28 @@ describe('AsientoService', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('rechaza un egreso que deja el saldo en negativo', async () => {
+    const manager = {
+      findOne: jest.fn().mockResolvedValue({
+        ...fondoAbierto,
+        montoSolicitado: 0,
+      }),
+      find: jest.fn().mockResolvedValue([]),
+      create: jest.fn((_entidad: unknown, valor: object) => valor),
+    };
+    const service = crearServicio(manager);
+
+    await expect(
+      service.crear(
+        1,
+        5,
+        { ...dto, ingresos: 0, egresos: 10 },
+        actor,
+        CLAVE,
+      ),
+    ).rejects.toThrow('Ese egreso deja el saldo del libro en negativo');
+  });
+
   it('rechaza una fecha fuera del periodo', async () => {
     const manager = {
       findOne: jest.fn().mockResolvedValue(fondoAbierto),

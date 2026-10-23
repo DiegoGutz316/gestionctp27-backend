@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import {
   crearResultadoPaginado,
   paginarQueryBuilder,
@@ -12,6 +12,10 @@ import {
 import type { ResultadoPaginado } from '../../../common/paginacion/tipos/resultado-paginado';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { LibroCajaPolicy } from '../libro-caja.policy';
+import { FondoCaja } from '../periodo/entities/fondo-caja.entity';
+import { PeriodoCaja } from '../periodo/entities/periodo-caja.entity';
+import { EstadoFondo } from '../periodo/enums/estado-fondo.enum';
+import { EstadoPeriodo } from '../periodo/enums/estado-periodo.enum';
 import { CrearDepartamentoDto } from './dto/crear-departamento.dto';
 import { EditarDepartamentoDto } from './dto/editar-departamento.dto';
 import { FiltrarDepartamentosDto } from './dto/filtrar-departamentos.dto';
@@ -28,6 +32,7 @@ export class DepartamentoService {
   constructor(
     @InjectRepository(DepartamentoCaja)
     private readonly departamentosRepo: Repository<DepartamentoCaja>,
+    private readonly dataSource: DataSource,
     private readonly policy: LibroCajaPolicy,
   ) {}
 
@@ -80,18 +85,39 @@ export class DepartamentoService {
     this.policy.exigirAdministrador(actor);
     await this.asegurarNombreLibre(dto.nombreUnidad);
 
-    const departamento = this.departamentosRepo.create({
-      nombreUnidad: dto.nombreUnidad,
-      tipoActividad: dto.tipoActividad,
-      activo: true,
-      creadoPor: actor.id,
-      actualizadoPor: null,
-    });
-
     try {
-      return mapearDepartamento(
-        await this.departamentosRepo.save(departamento),
-      );
+      return await this.dataSource.transaction(async (manager) => {
+        const departamento = await manager.save(
+          DepartamentoCaja,
+          manager.create(DepartamentoCaja, {
+            nombreUnidad: dto.nombreUnidad,
+            tipoActividad: dto.tipoActividad,
+            activo: true,
+            creadoPor: actor.id,
+            actualizadoPor: null,
+          }),
+        );
+
+        const abierto = await manager.findOne(PeriodoCaja, {
+          where: { estado: EstadoPeriodo.ABIERTO },
+        });
+        if (abierto) {
+          await manager.save(
+            FondoCaja,
+            manager.create(FondoCaja, {
+              periodo: abierto,
+              departamento,
+              montoSolicitado: null,
+              estado: EstadoFondo.PENDIENTE,
+              solicitadoEn: null,
+              solicitadoPor: null,
+              pieInforme: null,
+            }),
+          );
+        }
+
+        return mapearDepartamento(departamento);
+      });
     } catch (error) {
       this.relanzarSiEsDuplicado(error, dto.nombreUnidad);
       throw error;
