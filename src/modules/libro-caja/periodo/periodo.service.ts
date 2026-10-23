@@ -263,7 +263,7 @@ export class PeriodoService {
     dto: GuardarPieInformeDto,
     actor: UsuarioAutenticado,
   ): Promise<FondoCajaRespuesta> {
-    this.policy.exigirRegistroAsiento(actor);
+    this.policy.exigirGuardarPie(actor);
 
     const fondosRepo = this.dataSource.getRepository(FondoCaja);
     const fondo = await fondosRepo.findOne({

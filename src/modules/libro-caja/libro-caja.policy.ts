@@ -26,6 +26,18 @@ export class LibroCajaPolicy {
     );
   }
 
+  exigirGuardarPie(actor: UsuarioAutenticado): void {
+    if (
+      this.esDocenteOAdministrador(actor) ||
+      actor.rol === RolUsuario.DIRECTORA
+    ) {
+      return;
+    }
+    throw new ForbiddenException(
+      'No puede modificar el informe económico.',
+    );
+  }
+
   private esDocenteOAdministrador(actor: UsuarioAutenticado): boolean {
     return (
       actor.rol === RolUsuario.ADMINISTRADOR ||

@@ -48,4 +48,19 @@ describe('LibroCajaPolicy', () => {
       policy.exigirRegistroAsiento(actor(RolUsuario.DIRECTORA)),
     ).toThrow(ForbiddenException);
   });
+
+  it('permite a la directora guardar el pie del informe', () => {
+    expect(() =>
+      policy.exigirGuardarPie(actor(RolUsuario.DIRECTORA)),
+    ).not.toThrow();
+    expect(() =>
+      policy.exigirGuardarPie(actor(RolUsuario.ADMINISTRADOR)),
+    ).not.toThrow();
+    expect(() =>
+      policy.exigirGuardarPie(actor(RolUsuario.DOCENTE_AGRICOLA)),
+    ).not.toThrow();
+    expect(() => policy.exigirGuardarPie(actor(RolUsuario.ESTUDIANTE))).toThrow(
+      ForbiddenException,
+    );
+  });
 });
