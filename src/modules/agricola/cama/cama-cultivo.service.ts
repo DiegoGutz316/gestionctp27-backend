@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, QueryFailedError, Repository } from 'typeorm';
 
+import { patronContiene } from '../../../common/consultas/patron-like';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { Siembra } from '../siembra/entities/siembra.entity';
 import { CrearCamaCultivoDto } from './dto/crear-cama-cultivo.dto';
@@ -78,7 +79,7 @@ export class CamaCultivoService {
       consulta.andWhere(
         `(lower(cama.codigo) LIKE lower(:q)
           OR lower(cama.estado) LIKE lower(:q))`,
-        { q: `%${filtros.q}%` },
+        { q: patronContiene(filtros.q) },
       );
     }
 

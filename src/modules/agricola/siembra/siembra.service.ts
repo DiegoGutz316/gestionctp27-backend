@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, QueryFailedError, Repository } from 'typeorm';
 
+import { patronContiene } from '../../../common/consultas/patron-like';
 import { fechaDeHoy } from '../../../common/validacion/fecha-no-futura.validator';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { CamaCultivo } from '../cama/entities/cama-cultivo.entity';
@@ -192,7 +193,7 @@ export class SiembraService {
 
     if (filtros.cultivo) {
       consulta.andWhere('lower(siembra.tipoCultivo) LIKE lower(:cultivo)', {
-        cultivo: `%${filtros.cultivo}%`,
+        cultivo: patronContiene(filtros.cultivo),
       });
     }
 
