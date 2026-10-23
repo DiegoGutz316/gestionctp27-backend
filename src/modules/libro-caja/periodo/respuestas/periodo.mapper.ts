@@ -1,5 +1,6 @@
 import type { DepartamentoCajaRespuesta } from '../../departamento/respuestas/departamento.mapper';
 import { mapearDepartamento } from '../../departamento/respuestas/departamento.mapper';
+import type { PieInformeCaja } from '../entities/fondo-caja.entity';
 import type { FondoCaja } from '../entities/fondo-caja.entity';
 import type { PeriodoCaja } from '../entities/periodo-caja.entity';
 import type { EstadoFondo } from '../enums/estado-fondo.enum';
@@ -11,6 +12,7 @@ export interface FondoCajaRespuesta {
   estado: EstadoFondo;
   solicitadoEn: Date | null;
   departamento: DepartamentoCajaRespuesta;
+  pieInforme: PieInformeCaja | null;
   creadoEn: Date;
   actualizadoEn: Date;
 }
@@ -36,6 +38,7 @@ export function mapearFondo(fondo: FondoCaja): FondoCajaRespuesta {
     estado: fondo.estado,
     solicitadoEn: fondo.solicitadoEn,
     departamento: mapearDepartamento(fondo.departamento),
+    pieInforme: fondo.pieInforme ?? null,
     creadoEn: fondo.creadoEn,
     actualizadoEn: fondo.actualizadoEn,
   };

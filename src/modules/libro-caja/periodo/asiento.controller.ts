@@ -1,9 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Headers,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
 } from '@nestjs/common';
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -14,6 +17,7 @@ import { NivelPermiso } from '../../auth/enums/nivel-permiso.enum';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { AsientoService } from './asiento.service';
 import { CrearAsientoDto } from './dto/crear-asiento.dto';
+import { IdempotencyKeyPipe } from './pipes/idempotency-key.pipe';
 
 @ApiTags('Libro de caja - Asientos')
 @ApiCookieAuth('cookie')
@@ -44,7 +48,38 @@ export class AsientoController {
     @Param('fondoId', ParseIntPipe) fondoId: number,
     @Body() dto: CrearAsientoDto,
     @UsuarioActual() actor: UsuarioAutenticado,
+    @Headers('idempotency-key') claveRecibida: string,
   ) {
-    return this.asientoService.crear(periodoId, fondoId, dto, actor);
+    const clave = new IdempotencyKeyPipe().transform(claveRecibida);
+    return this.asientoService.crear(periodoId, fondoId, dto, actor, clave);
+  }
+
+  @Patch(':asientoId')
+  @ApiOperation({ summary: 'Corregir un asiento de un periodo abierto' })
+  actualizar(
+    @Param('periodoId', ParseIntPipe) periodoId: number,
+    @Param('fondoId', ParseIntPipe) fondoId: number,
+    @Param('asientoId', ParseIntPipe) asientoId: number,
+    @Body() dto: CrearAsientoDto,
+    @UsuarioActual() actor: UsuarioAutenticado,
+  ) {
+    return this.asientoService.actualizar(
+      periodoId,
+      fondoId,
+      asientoId,
+      dto,
+      actor,
+    );
+  }
+
+  @Delete(':asientoId')
+  @ApiOperation({ summary: 'Anular un asiento de un periodo abierto' })
+  eliminar(
+    @Param('periodoId', ParseIntPipe) periodoId: number,
+    @Param('fondoId', ParseIntPipe) fondoId: number,
+    @Param('asientoId', ParseIntPipe) asientoId: number,
+    @UsuarioActual() actor: UsuarioAutenticado,
+  ) {
+    return this.asientoService.eliminar(periodoId, fondoId, asientoId, actor);
   }
 }
