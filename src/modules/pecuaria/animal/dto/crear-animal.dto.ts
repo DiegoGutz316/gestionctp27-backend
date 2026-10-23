@@ -9,6 +9,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+import { EsFechaNoFutura } from '../../../../common/validacion/fecha-no-futura.validator';
 import { EspecieAnimal } from '../enums/especie-animal.enum';
 import { EstadoAnimal } from '../enums/estado-animal.enum';
 import { CategoriaBovina } from '../enums/categoria-bovina.enum';
@@ -83,9 +84,13 @@ export class CrearAnimalDto {
 
   @ApiProperty({
     example: '2024-03-15',
+    description: 'Fecha de nacimiento; no puede ser futura',
+  })
+  @EsFechaNoFutura({
+    message: 'La fecha de nacimiento no puede ser futura',
   })
   @IsDateString(
-    {},
+    { strict: true },
     {
       message: 'La fecha de nacimiento debe tener un formato de fecha válido',
     },
