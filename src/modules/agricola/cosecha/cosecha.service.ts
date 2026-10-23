@@ -24,6 +24,7 @@ import {
   mapearCosecha,
   type CosechaRespuesta,
   type ResultadoCosechas,
+  type TotalPorCultivo,
   type TotalPorUnidad,
 } from './respuestas/cosecha.mapper';
 
@@ -138,6 +139,7 @@ export class CosechaService {
     return {
       ...crearResultadoPaginado(entidades.map(mapearCosecha), filtros, total),
       totales: await this.totalizar(filtros),
+      totalesPorCultivo: await this.totalizarPorCultivo(filtros),
     };
   }
 
@@ -193,6 +195,37 @@ export class CosechaService {
    * Se agrupa por unidad porque kilos y unidades no se suman entre si. La
    * suma la hace la base y no el servidor, que solo ve una pagina.
    */
+  /**
+   * Cuanto se produjo de cada cultivo, sin mezclar unidades: un cultivo que se
+   * cosecha a veces en kilos y a veces por unidad aparece con una fila de cada.
+   */
+  private async totalizarPorCultivo(
+    filtros: ConsultarCosechasDto,
+  ): Promise<TotalPorCultivo[]> {
+    const consulta = this.cosechasRepo
+      .createQueryBuilder('cosecha')
+      .innerJoin('cosecha.siembra', 'siembra')
+      .innerJoin('siembra.cama', 'cama');
+
+    this.aplicarFiltros(consulta, filtros);
+
+    const filas = await consulta
+      .select('siembra.tipoCultivo', 'cultivo')
+      .addSelect('cosecha.unidadMedida', 'unidad')
+      .addSelect('SUM(cosecha.cantidadObtenida)', 'cantidad')
+      .groupBy('siembra.tipoCultivo')
+      .addGroupBy('cosecha.unidadMedida')
+      .orderBy('siembra.tipoCultivo', 'ASC')
+      .addOrderBy('cosecha.unidadMedida', 'ASC')
+      .getRawMany<{ cultivo: string; unidad: UnidadMedida; cantidad: string }>();
+
+    return filas.map((fila) => ({
+      cultivo: fila.cultivo,
+      unidadMedida: fila.unidad,
+      cantidad: Number(fila.cantidad),
+    }));
+  }
+
   private async totalizar(
     filtros: ConsultarCosechasDto,
   ): Promise<TotalPorUnidad[]> {

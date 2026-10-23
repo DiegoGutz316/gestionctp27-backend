@@ -21,7 +21,9 @@ import {
 
 import { EsFechaNoFutura } from '../../../../common/validacion/fecha-no-futura.validator';
 import { TieneMaximoDosDecimales } from '../../siembra/dto/dos-decimales.validator';
+import { ActividadAgricola } from '../enums/actividad-agricola.enum';
 import { TipoTratamiento } from '../enums/tipo-tratamiento.enum';
+import { ProductoSegunActividad } from './producto-segun-actividad.validator';
 import { UnidadTratamiento } from '../enums/unidad-tratamiento.enum';
 
 const CANTIDAD_MAXIMA = 9_999_999_999.99;
@@ -65,6 +67,7 @@ function normalizarObservaciones({
     : texto;
 }
 
+@ProductoSegunActividad()
 export class RegistrarTratamientoDto {
   @ApiProperty({
     type: Number,
@@ -84,26 +87,38 @@ export class RegistrarTratamientoDto {
   siembraId!: number;
 
   @ApiProperty({
+    enum: ActividadAgricola,
+    enumName: 'ActividadAgricola',
+    example: ActividadAgricola.RIEGO,
+    description: 'Riego, limpieza, fertilización o tratamiento',
+  })
+  @IsEnum(ActividadAgricola, {
+    message: 'Seleccione una actividad válida',
+  })
+  @IsDefined({
+    message: 'Seleccione la actividad realizada',
+  })
+  actividad!: ActividadAgricola;
+
+  @ApiPropertyOptional({
     enum: TipoTratamiento,
     enumName: 'TipoTratamiento',
     example: TipoTratamiento.FERTILIZANTE,
+    description: 'Solo cuando la actividad aplica un producto',
   })
+  @IsOptional()
   @IsEnum(TipoTratamiento, {
     message: 'Seleccione un tipo de tratamiento válido',
   })
-  @IsDefined({
-    message: 'Seleccione un tipo de tratamiento',
-  })
-  tipo!: TipoTratamiento;
+  tipo?: TipoTratamiento;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'Fertilizante NPK 10-30-10',
     maxLength: 120,
+    description: 'Solo cuando la actividad aplica un producto',
   })
   @Transform(normalizarTexto)
-  @IsDefined({
-    message: 'El producto aplicado es obligatorio',
-  })
+  @IsOptional()
   @IsString({
     message: 'El producto aplicado es obligatorio',
   })
@@ -114,7 +129,7 @@ export class RegistrarTratamientoDto {
     message:
       'El producto aplicado no puede superar 120 caracteres',
   })
-  producto!: string;
+  producto?: string;
 
   @ApiProperty({
     example: '2026-09-17',
@@ -129,16 +144,15 @@ export class RegistrarTratamientoDto {
   })
   fecha!: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: Number,
     minimum: 0,
     exclusiveMinimum: true,
     example: 2.5,
+    description: 'Solo cuando la actividad aplica un producto',
   })
   @Transform(transformarNumero)
-  @IsDefined({
-    message: 'La cantidad aplicada es obligatoria',
-  })
+  @IsOptional()
   @IsNumber({}, { message: 'La cantidad aplicada debe ser un número válido' })
   @TieneMaximoDosDecimales({
     message: 'La cantidad aplicada admite como máximo 2 decimales',
@@ -151,20 +165,19 @@ export class RegistrarTratamientoDto {
     message:
       'La cantidad aplicada supera el máximo permitido',
   })
-  cantidad!: number;
+  cantidad?: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     enum: UnidadTratamiento,
     enumName: 'UnidadTratamiento',
     example: UnidadTratamiento.KG,
+    description: 'Solo cuando la actividad aplica un producto',
   })
+  @IsOptional()
   @IsEnum(UnidadTratamiento, {
     message: 'Seleccione una unidad válida',
   })
-  @IsDefined({
-    message: 'Seleccione una unidad',
-  })
-  unidad!: UnidadTratamiento;
+  unidad?: UnidadTratamiento;
 
   @ApiPropertyOptional({
     example:

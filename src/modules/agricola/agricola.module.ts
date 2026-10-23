@@ -5,6 +5,10 @@ import { CamaCultivoController } from './cama/cama-cultivo.controller';
 import { CamaCultivoService } from './cama/cama-cultivo.service';
 import { CamaCultivo } from './cama/entities/cama-cultivo.entity';
 
+import { Cultivo } from './cultivo/entities/cultivo.entity';
+import { CultivoController } from './cultivo/cultivo.controller';
+import { CultivoService } from './cultivo/cultivo.service';
+
 import { Siembra } from './siembra/entities/siembra.entity';
 import { SiembraController } from './siembra/siembra.controller';
 import { SiembraService } from './siembra/siembra.service';
@@ -21,6 +25,7 @@ import { TratamientoService } from './tratamiento/tratamiento.service';
   imports: [
     TypeOrmModule.forFeature([
       CamaCultivo,
+      Cultivo,
       Siembra,
       TratamientoAgricola,
       Cosecha,
@@ -28,12 +33,14 @@ import { TratamientoService } from './tratamiento/tratamiento.service';
   ],
   controllers: [
     CamaCultivoController,
+    CultivoController,
     SiembraController,
     TratamientoController,
     CosechaController,
   ],
   providers: [
     CamaCultivoService,
+    CultivoService,
     SiembraService,
     TratamientoService,
     CosechaService,

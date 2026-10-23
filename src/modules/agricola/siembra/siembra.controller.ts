@@ -52,4 +52,15 @@ export class SiembraController {
   consultar(@Query() filtros: ConsultarSiembrasDto) {
     return this.siembraService.consultar(filtros);
   }
+
+  @ApiOperation({
+    summary: 'Historial completo de una siembra',
+    description:
+      'La siembra con sus cuidados, sus cosechas y los totales del ciclo.',
+  })
+  @Get(':id')
+  @RequierePermiso(ModuloSistema.AGRICOLA, NivelPermiso.LECTURA)
+  obtenerDetalle(@Param('id', ParseIntPipe) id: number) {
+    return this.siembraService.obtenerDetalle(id);
+  }
 }
