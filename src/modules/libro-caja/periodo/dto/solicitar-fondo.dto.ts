@@ -1,9 +1,9 @@
 import { Transform } from 'class-transformer';
-import { IsDefined, IsNumber, Max, Min } from 'class-validator';
+import { IsDefined } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { transformarNumero } from './transformar-numero';
-import { TieneDecimalesPermitidos } from './dos-decimales.validator';
-import { VALOR_MAXIMO, VALOR_MAXIMO_TEXTO } from './limites-numericos';
+import { VALOR_MAXIMO } from './limites-numericos';
+import { MontoCaja } from './monto-caja.validator';
 
 export class SolicitarFondoDto {
   @ApiProperty({
@@ -16,13 +16,6 @@ export class SolicitarFondoDto {
   })
   @Transform(transformarNumero)
   @IsDefined({ message: 'El monto solicitado es obligatorio' })
-  @IsNumber({}, { message: 'El monto solicitado debe ser un número válido' })
-  @TieneDecimalesPermitidos({
-    message: 'El monto admite como máximo 2 decimales',
-  })
-  @Min(0, { message: 'El monto solicitado no puede ser negativo' })
-  @Max(VALOR_MAXIMO, {
-    message: `El monto solicitado no puede superar ${VALOR_MAXIMO_TEXTO}`,
-  })
+  @MontoCaja('El monto solicitado')
   montoSolicitado!: number;
 }

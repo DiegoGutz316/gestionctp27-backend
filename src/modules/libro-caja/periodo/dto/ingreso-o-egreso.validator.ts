@@ -15,6 +15,9 @@ export function esIngresoOEgresoExclusivo(objeto: {
   if (!esMonto(objeto.ingresos) || !esMonto(objeto.egresos)) {
     return true;
   }
+  if (objeto.ingresos < 0 || objeto.egresos < 0) {
+    return true;
+  }
 
   const hayIngreso = objeto.ingresos > 0;
   const hayEgreso = objeto.egresos > 0;

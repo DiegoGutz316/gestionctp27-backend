@@ -22,4 +22,8 @@ describe('esIngresoOEgresoExclusivo', () => {
       false,
     );
   });
+
+  it('deja el monto negativo a su propio validador', () => {
+    expect(esIngresoOEgresoExclusivo({ ingresos: -1, egresos: 0 })).toBe(true);
+  });
 });

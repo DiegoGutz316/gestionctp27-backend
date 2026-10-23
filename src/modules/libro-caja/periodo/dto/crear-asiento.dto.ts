@@ -2,17 +2,14 @@ import { Transform, type TransformFnParams } from 'class-transformer';
 import {
   IsDefined,
   IsNotEmpty,
-  IsNumber,
   IsString,
-  Max,
   MaxLength,
-  Min,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { EsFechaIso } from './fecha-periodo.validator';
 import { IngresoOEgresoExclusivo } from './ingreso-o-egreso.validator';
-import { TieneDecimalesPermitidos } from './dos-decimales.validator';
-import { VALOR_MAXIMO, VALOR_MAXIMO_TEXTO } from './limites-numericos';
+import { VALOR_MAXIMO } from './limites-numericos';
+import { MontoCaja } from './monto-caja.validator';
 import { transformarNumeroOCero } from './transformar-numero';
 
 function normalizarTexto({ value }: TransformFnParams): unknown {
@@ -67,14 +64,7 @@ export class CrearAsientoDto {
     description: 'Ingreso en colones. Debe ser 0 si el asiento es un egreso.',
   })
   @Transform(transformarNumeroOCero)
-  @IsNumber({}, { message: 'El ingreso debe ser un número válido' })
-  @TieneDecimalesPermitidos({
-    message: 'El ingreso admite como máximo 2 decimales',
-  })
-  @Min(0, { message: 'El ingreso no puede ser negativo' })
-  @Max(VALOR_MAXIMO, {
-    message: `El ingreso no puede superar ${VALOR_MAXIMO_TEXTO}`,
-  })
+  @MontoCaja('El ingreso')
   ingresos!: number;
 
   @ApiProperty({
@@ -85,13 +75,6 @@ export class CrearAsientoDto {
     description: 'Egreso en colones. Debe ser 0 si el asiento es un ingreso.',
   })
   @Transform(transformarNumeroOCero)
-  @IsNumber({}, { message: 'El egreso debe ser un número válido' })
-  @TieneDecimalesPermitidos({
-    message: 'El egreso admite como máximo 2 decimales',
-  })
-  @Min(0, { message: 'El egreso no puede ser negativo' })
-  @Max(VALOR_MAXIMO, {
-    message: `El egreso no puede superar ${VALOR_MAXIMO_TEXTO}`,
-  })
+  @MontoCaja('El egreso')
   egresos!: number;
 }

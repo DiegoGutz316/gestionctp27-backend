@@ -26,8 +26,8 @@ export class IdempotenciaAsiento {
   @Column({ type: 'char', length: 64 })
   huella: string;
 
-  @Column({ name: 'asiento_id', type: 'integer' })
-  asientoId: number;
+  @Column({ name: 'asiento_id', type: 'integer', nullable: true })
+  asientoId: number | null;
 
   @CreateDateColumn({ name: 'creado_en', type: 'timestamptz' })
   creadoEn: Date;

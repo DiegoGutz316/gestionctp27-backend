@@ -1,16 +1,9 @@
 import { Transform } from 'class-transformer';
-import {
-  IsDefined,
-  IsInt,
-  IsNumber,
-  IsPositive,
-  Max,
-  Min,
-} from 'class-validator';
+import { IsDefined, IsInt, IsPositive } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { transformarNumero } from './transformar-numero';
-import { TieneDecimalesPermitidos } from './dos-decimales.validator';
-import { VALOR_MAXIMO, VALOR_MAXIMO_TEXTO } from './limites-numericos';
+import { VALOR_MAXIMO } from './limites-numericos';
+import { MontoCaja } from './monto-caja.validator';
 
 export class FondoInicialDto {
   @ApiProperty({ type: Number, minimum: 1, example: 1 })
@@ -30,13 +23,6 @@ export class FondoInicialDto {
   })
   @Transform(transformarNumero)
   @IsDefined({ message: 'El fondo del departamento es obligatorio' })
-  @IsNumber({}, { message: 'El fondo debe ser un número válido' })
-  @TieneDecimalesPermitidos({
-    message: 'El fondo admite como máximo 2 decimales',
-  })
-  @Min(0, { message: 'El fondo no puede ser negativo' })
-  @Max(VALOR_MAXIMO, {
-    message: `El fondo no puede superar ${VALOR_MAXIMO_TEXTO}`,
-  })
+  @MontoCaja('El fondo')
   monto!: number;
 }

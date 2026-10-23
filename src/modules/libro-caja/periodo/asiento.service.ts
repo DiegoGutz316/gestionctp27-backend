@@ -24,6 +24,12 @@ const PG_UNIQUE_VIOLATION = '23505';
 
 type OperacionAsiento = 'registrar' | 'corregir' | 'anular';
 
+export const MENSAJE_CLAVE_OTRA_SOLICITUD =
+  'La clave Idempotency-Key ya fue usada con otra solicitud.';
+
+export const MENSAJE_CLAVE_ANULADA =
+  'La clave Idempotency-Key corresponde a un asiento que ya fue anulado. Si estos datos son otro movimiento, envíelo otra vez.';
+
 @Injectable()
 export class AsientoService {
   constructor(
@@ -59,20 +65,16 @@ export class AsientoService {
     this.policy.exigirRegistroAsiento(actor);
     const huella = huellaAsiento(periodoId, fondoId, dto);
 
-    const previa = await this.idempotenciaRepo.findOne({
-      where: { responsableId: actor.id, clave },
-    });
-    if (previa) {
-      if (previa.huella !== huella) {
-        throw new ConflictException(
-          'La clave Idempotency-Key ya fue usada con otra solicitud.',
-        );
-      }
-      return this.listar(periodoId, fondoId);
-    }
-
     try {
       await this.dataSource.transaction(async (manager) => {
+        const previa = await manager.findOne(IdempotenciaAsiento, {
+          where: { responsableId: actor.id, clave },
+        });
+        if (previa) {
+          await this.exigirClaveReutilizable(manager, previa, huella);
+          return;
+        }
+
         const fondo = await this.bloquearFondo(manager, periodoId, fondoId);
         this.exigirLibroAbierto(fondo);
         this.exigirFechaEnPeriodo(dto.fecha, fondo);
@@ -104,13 +106,18 @@ export class AsientoService {
             asiento.egresos === dto.egresos &&
             !existentes.some((previo) => previo.id === asiento.id),
         );
+        if (!creado?.id) {
+          throw new ConflictException(
+            'No se pudo confirmar el asiento registrado.',
+          );
+        }
         await manager.save(
           IdempotenciaAsiento,
           manager.create(IdempotenciaAsiento, {
             responsableId: actor.id,
             clave,
             huella,
-            asientoId: creado?.id ?? guardados.at(-1)?.id ?? 0,
+            asientoId: creado.id,
           }),
         );
       });
@@ -119,12 +126,15 @@ export class AsientoService {
         const repetida = await this.idempotenciaRepo.findOne({
           where: { responsableId: actor.id, clave },
         });
-        if (repetida?.huella === huella) {
-          return this.listar(periodoId, fondoId);
+        if (!repetida) {
+          throw new ConflictException(MENSAJE_CLAVE_OTRA_SOLICITUD);
         }
-        throw new ConflictException(
-          'La clave Idempotency-Key ya fue usada con otra solicitud.',
+        await this.exigirClaveReutilizable(
+          this.asientosRepo.manager,
+          repetida,
+          huella,
         );
+        return this.listar(periodoId, fondoId);
       }
       throw error;
     }
@@ -190,6 +200,12 @@ export class AsientoService {
         throw new NotFoundException('El asiento no existe en este libro.');
       }
 
+      await manager
+        .createQueryBuilder()
+        .update(IdempotenciaAsiento)
+        .set({ asientoId: null })
+        .where('asiento_id = :id', { id: actual.id })
+        .execute();
       await manager.delete(AsientoCaja, actual.id);
       await this.guardarEnOrden(
         manager,
@@ -200,6 +216,30 @@ export class AsientoService {
     });
 
     return this.listar(periodoId, fondoId);
+  }
+
+  /**
+   * La clave solo se reutiliza si el asiento sigue en el libro.
+   * Si se anuló, el cliente debe enviar otra clave: reutilizarla no recrea
+   * el movimiento ni finge un alta.
+   */
+  private async exigirClaveReutilizable(
+    manager: Pick<import('typeorm').EntityManager, 'findOne'>,
+    previa: IdempotenciaAsiento,
+    huella: string,
+  ): Promise<void> {
+    if (previa.huella !== huella) {
+      throw new ConflictException(MENSAJE_CLAVE_OTRA_SOLICITUD);
+    }
+    if (!previa.asientoId) {
+      throw new ConflictException(MENSAJE_CLAVE_ANULADA);
+    }
+    const vivo = await manager.findOne(AsientoCaja, {
+      where: { id: previa.asientoId },
+    });
+    if (!vivo) {
+      throw new ConflictException(MENSAJE_CLAVE_ANULADA);
+    }
   }
 
   private async bloquearFondo(
