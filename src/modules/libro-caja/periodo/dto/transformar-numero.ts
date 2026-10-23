@@ -1,5 +1,9 @@
 import type { TransformFnParams } from 'class-transformer';
 
+export function esNumeroFinito(valor: unknown): valor is number {
+  return typeof valor === 'number' && Number.isFinite(valor);
+}
+
 /** Convierte números enviados como texto sin aceptar campos vacíos como cero. */
 export function transformarNumero({ value }: TransformFnParams): unknown {
   const valor: unknown = value;
