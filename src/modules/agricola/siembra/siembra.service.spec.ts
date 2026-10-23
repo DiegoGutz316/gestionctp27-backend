@@ -6,6 +6,11 @@ import type { Repository } from 'typeorm';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { RolUsuario } from '../../usuarios/enums/rol-usuario.enum';
 import { CamaCultivo } from '../cama/entities/cama-cultivo.entity';
+import type { Cosecha } from '../cosecha/entities/cosecha.entity';
+import type { CultivoService } from '../cultivo/cultivo.service';
+import type { Cultivo } from '../cultivo/entities/cultivo.entity';
+import { TipoCultivo } from '../cultivo/enums/tipo-cultivo.enum';
+import type { TratamientoAgricola } from '../tratamiento/entities/tratamiento-agricola.entity';
 import type { RegistrarSiembraDto } from './dto/registrar-siembra.dto';
 import { Siembra } from './entities/siembra.entity';
 import { SiembraService } from './siembra.service';
@@ -23,20 +28,26 @@ describe('SiembraService', () => {
     ubicacion: 'Invernadero',
     estado: EstadoCamaCultivo.DISPONIBLE,
   } as CamaCultivo;
+  const cultivo = {
+    id: 7,
+    nombre: 'Tomate',
+    tipo: TipoCultivo.HORTALIZA,
+  } as Cultivo;
   const dto: RegistrarSiembraDto = {
     camaId: 3,
-    tipoCultivo: 'Tomate',
+    cultivoId: 7,
     fechaSiembra: '2026-09-15',
     cantidadSembrada: 25.5,
   };
 
   it('registra la siembra asociada a la cama y al usuario', async () => {
-    const { service, siembrasRepo } = crearServicio({ cama });
+    const { service, siembrasRepo } = crearServicio({ cama, cultivo });
 
     const resultado = await service.registrar(dto, actor);
 
     expect(siembrasRepo.create).toHaveBeenCalledWith({
       cama,
+      cultivo,
       tipoCultivo: 'Tomate',
       fechaSiembra: '2026-09-15',
       cantidadSembrada: 25.5,
@@ -54,7 +65,7 @@ describe('SiembraService', () => {
   });
 
   it('rechaza el registro cuando la cama no existe', async () => {
-    const { service, siembrasRepo } = crearServicio({ cama: null });
+    const { service, siembrasRepo } = crearServicio({ cama: null, cultivo });
 
     await expect(service.registrar(dto, actor)).rejects.toBeInstanceOf(
       NotFoundException,
@@ -66,6 +77,7 @@ describe('SiembraService', () => {
     const registro = crearRegistro(cama, actor.id);
     const { service, consulta } = crearServicio({
       cama,
+      cultivo,
       registros: [registro],
     });
 
@@ -80,7 +92,7 @@ describe('SiembraService', () => {
   });
 
   it('filtra por cultivo y fecha', async () => {
-    const { service, consulta } = crearServicio({ cama, registros: [] });
+    const { service, consulta } = crearServicio({ cama, cultivo, registros: [] });
 
     await service.consultar({ cultivo: 'tom', fecha: '2026-09-15' });
 
@@ -95,7 +107,7 @@ describe('SiembraService', () => {
   });
 
   it('devuelve un listado vacío cuando no hay coincidencias', async () => {
-    const { service } = crearServicio({ cama, registros: [] });
+    const { service } = crearServicio({ cama, cultivo, registros: [] });
 
     await expect(service.consultar({ cultivo: 'Café' })).resolves.toEqual([]);
   });
@@ -115,6 +127,7 @@ function crearRegistro(cama: CamaCultivo, creadoPor: string): Siembra {
 
 function crearServicio(opciones: {
   cama: CamaCultivo | null;
+  cultivo?: Cultivo;
   registros?: Siembra[];
 }) {
   const consulta = {
@@ -140,10 +153,19 @@ function crearServicio(opciones: {
     ),
     createQueryBuilder: jest.fn().mockReturnValue(consulta),
   };
+  const cuidadosRepo = { find: jest.fn().mockResolvedValue([]) };
+  const cosechasRepo = { find: jest.fn().mockResolvedValue([]) };
+  const cultivoService = {
+    obtener: jest.fn().mockResolvedValue(opciones.cultivo ?? null),
+  };
+
   const service = new SiembraService(
     camasRepo as unknown as Repository<CamaCultivo>,
     siembrasRepo as unknown as Repository<Siembra>,
+    cuidadosRepo as unknown as Repository<TratamientoAgricola>,
+    cosechasRepo as unknown as Repository<Cosecha>,
+    cultivoService as unknown as CultivoService,
   );
 
-  return { service, siembrasRepo, consulta };
+  return { service, siembrasRepo, consulta, cultivoService };
 }

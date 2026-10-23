@@ -27,6 +27,15 @@ function avisoActivo() {
   };
 }
 
+function consultaDeFlyer(aviso: { flyer: Buffer; flyerTipo: string } | null) {
+  return {
+    addSelect: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    getOne: jest.fn().mockResolvedValue(aviso),
+  };
+}
+
 function repositorio(aviso: ReturnType<typeof avisoActivo> | null = avisoActivo()) {
   return {
     findOneBy: jest.fn().mockResolvedValue(aviso),
@@ -145,6 +154,41 @@ describe('AvisoService', () => {
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(repo.update).not.toHaveBeenCalled();
+  });
+
+  it('el flyer público solo sale si el aviso está activo', async () => {
+    const builder = consultaDeFlyer({
+      flyer: Buffer.from('imagen'),
+      flyerTipo: 'image/png',
+    });
+    const repo = {
+      ...repositorio(),
+      createQueryBuilder: jest.fn().mockReturnValue(builder),
+    };
+    const service = new AvisoService(repo as never);
+
+    await service.obtenerFlyer(7);
+
+    expect(builder.andWhere).toHaveBeenCalledWith('aviso.estado = :estado', {
+      estado: EstadoAviso.ACTIVO,
+    });
+  });
+
+  it('el flyer del panel sale aunque el aviso esté inactivo', async () => {
+    const builder = consultaDeFlyer({
+      flyer: Buffer.from('imagen'),
+      flyerTipo: 'image/png',
+    });
+    const repo = {
+      ...repositorio(),
+      createQueryBuilder: jest.fn().mockReturnValue(builder),
+    };
+    const service = new AvisoService(repo as never);
+
+    const archivo = await service.obtenerFlyer(7, { incluirInactivos: true });
+
+    expect(builder.andWhere).not.toHaveBeenCalled();
+    expect(archivo.tipo).toBe('image/png');
   });
 
   it('responde que el aviso no existe al desactivarlo', async () => {
