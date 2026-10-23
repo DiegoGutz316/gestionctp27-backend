@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import {
   crearResultadoPaginado,
   paginarQueryBuilder,
@@ -32,6 +32,8 @@ import {
   type PeriodoCajaRespuesta,
   type PeriodoCajaResumenRespuesta,
 } from './respuestas/periodo.mapper';
+
+const PG_UNIQUE_VIOLATION = '23505';
 
 @Injectable()
 export class PeriodoService {
@@ -69,7 +71,61 @@ export class PeriodoService {
   }
 
   async obtener(id: number): Promise<PeriodoCajaRespuesta> {
+    await this.incorporarDepartamentosActivos(id);
     return mapearPeriodo(await this.buscarConFondos(id));
+  }
+
+  /**
+   * Un departamento creado después de abrir el periodo no trae fondo.
+   * Al consultar el periodo abierto se le crea uno pendiente, para que
+   * aparezca en la lista y se pueda solicitar el monto inicial.
+   */
+  private async incorporarDepartamentosActivos(id: number): Promise<void> {
+    const periodo = await this.periodosRepo.findOne({ where: { id } });
+    if (!periodo || periodo.estado !== EstadoPeriodo.ABIERTO) return;
+
+    try {
+      await this.dataSource.transaction(async (manager) => {
+        const departamentos = await manager.find(DepartamentoCaja, {
+          where: { activo: true },
+          order: { nombreUnidad: 'ASC', id: 'ASC' },
+        });
+        const fondos = await manager.find(FondoCaja, {
+          where: { periodo: { id: periodo.id } },
+          relations: { departamento: true },
+        });
+        const presentes = new Set(
+          fondos.map((fondo) => fondo.departamento.id),
+        );
+        const faltantes = departamentos.filter(
+          (departamento) => !presentes.has(departamento.id),
+        );
+        if (faltantes.length === 0) return;
+
+        await manager.save(
+          FondoCaja,
+          faltantes.map((departamento) =>
+            manager.create(FondoCaja, {
+              periodo,
+              departamento,
+              montoSolicitado: null,
+              estado: EstadoFondo.PENDIENTE,
+              solicitadoEn: null,
+              solicitadoPor: null,
+              pieInforme: null,
+            }),
+          ),
+        );
+      });
+    } catch (error) {
+      if (
+        error instanceof QueryFailedError &&
+        (error.driverError as { code?: string })?.code === PG_UNIQUE_VIOLATION
+      ) {
+        return;
+      }
+      throw error;
+    }
   }
 
   /**

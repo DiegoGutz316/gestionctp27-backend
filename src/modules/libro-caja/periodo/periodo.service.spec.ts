@@ -2,7 +2,9 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 import type { DataSource, EntityManager } from 'typeorm';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { RolUsuario } from '../../usuarios/enums/rol-usuario.enum';
+import { DepartamentoCaja } from '../departamento/entities/departamento-caja.entity';
 import { LibroCajaPolicy } from '../libro-caja.policy';
+import { FondoCaja } from './entities/fondo-caja.entity';
 import { EstadoFondo } from './enums/estado-fondo.enum';
 import { EstadoPeriodo } from './enums/estado-periodo.enum';
 import { PeriodoService } from './periodo.service';
@@ -134,6 +136,106 @@ describe('PeriodoService', () => {
         actor,
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('al consultar un periodo abierto agrega los departamentos activos que faltan', async () => {
+    const ahora = new Date('2026-09-04T18:54:31.000Z');
+    const agricola = {
+      id: 1,
+      nombreUnidad: 'Agricola',
+      tipoActividad: 'Produccion agricola',
+      activo: true,
+      creadoEn: ahora,
+      actualizadoEn: ahora,
+    };
+    const gallina = {
+      id: 3,
+      nombreUnidad: 'Gallina',
+      tipoActividad: 'Pro Pecuaria',
+      activo: true,
+      creadoEn: ahora,
+      actualizadoEn: ahora,
+    };
+    const periodo = {
+      id: 4,
+      nombre: 'I Periodo 2026',
+      fechaInicio: '2026-09-04',
+      fechaFin: '2026-12-17',
+      estado: EstadoPeriodo.ABIERTO,
+      creadoEn: ahora,
+      actualizadoEn: ahora,
+    };
+    const fondoAgricola = {
+      id: 9,
+      montoSolicitado: 100000,
+      estado: EstadoFondo.SOLICITADO,
+      solicitadoEn: ahora,
+      pieInforme: null,
+      creadoEn: ahora,
+      actualizadoEn: ahora,
+      departamento: agricola,
+    };
+    const fondoGallina = {
+      ...fondoAgricola,
+      id: 10,
+      montoSolicitado: null,
+      estado: EstadoFondo.PENDIENTE,
+      solicitadoEn: null,
+      departamento: gallina,
+    };
+    const guardados: Array<{ departamento: { id: number } }> = [];
+    const manager = {
+      find: jest.fn((entidad: unknown) => {
+        if (entidad === DepartamentoCaja) {
+          return Promise.resolve([agricola, gallina]);
+        }
+        if (entidad === FondoCaja) {
+          return Promise.resolve([fondoAgricola]);
+        }
+        return Promise.resolve([]);
+      }),
+      create: jest.fn((_entidad: unknown, valor: object) => valor),
+      save: jest.fn((_entidad: unknown, valor: Array<{ departamento: { id: number } }>) => {
+        guardados.push(...valor);
+        return Promise.resolve(valor);
+      }),
+    };
+    const periodosRepo = {
+      findOne: jest.fn().mockResolvedValue(periodo),
+      createQueryBuilder: jest.fn().mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue({
+          ...periodo,
+          fondos: [fondoAgricola, fondoGallina],
+        }),
+      }),
+    };
+    const service = new PeriodoService(
+      periodosRepo as never,
+      {
+        transaction: jest.fn((operacion: (m: EntityManager) => unknown) =>
+          operacion(manager as unknown as EntityManager),
+        ),
+      } as DataSource,
+      policy,
+    );
+
+    const resultado = await service.obtener(4);
+
+    expect(guardados.map((fondo) => fondo.departamento.id)).toEqual([3]);
+    expect(guardados[0]).toEqual(
+      expect.objectContaining({
+        estado: EstadoFondo.PENDIENTE,
+        montoSolicitado: null,
+      }),
+    );
+    expect(resultado.fondos.map((fondo) => fondo.departamento.nombreUnidad)).toEqual([
+      'Agricola',
+      'Gallina',
+    ]);
   });
 
   it('no abre un periodo si ya hay otro abierto', async () => {
