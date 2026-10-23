@@ -2,7 +2,7 @@ import type { Aviso } from '../entities/aviso.entity';
 import type { CategoriaAviso } from '../enums/categoria-aviso.enum';
 import type { EstadoAviso } from '../enums/estado-aviso.enum';
 
-/** Lo que ve una familia en la página pública: sin autores ni auditoría. */
+/** Lo que ve una familia en la página pública: sin autores. */
 export interface AvisoPublico {
   id: number;
   titulo: string;
@@ -10,6 +10,8 @@ export interface AvisoPublico {
   fecha: string;
   categoria: CategoriaAviso | null;
   tieneFlyer: boolean;
+  /** Momento en que se publicó. Permite distinguirlo de la fecha de la actividad. */
+  creadoEn: string;
 }
 
 export interface AvisoRespuesta {
@@ -34,6 +36,10 @@ export function mapearAvisoPublico(aviso: Aviso): AvisoPublico {
     fecha: aviso.fecha,
     categoria: aviso.categoria ?? null,
     tieneFlyer: aviso.flyerTipo != null,
+    creadoEn:
+      aviso.creadoEn instanceof Date
+        ? aviso.creadoEn.toISOString()
+        : String(aviso.creadoEn),
   };
 }
 
