@@ -257,16 +257,26 @@ export class AvisoService {
     return mapearAviso(aviso);
   }
 
-  /** Solo los avisos activos exponen el flyer en la página pública. */
+  /**
+   * La página pública solo recibe el flyer de un aviso activo.
+   * El panel, con sesión, también lo pide de un aviso inactivo.
+   */
   async obtenerFlyer(
     id: number,
+    opciones?: { incluirInactivos?: boolean },
   ): Promise<{ contenido: Buffer; tipo: string }> {
-    const aviso = await this.avisosRepo
+    const consulta = this.avisosRepo
       .createQueryBuilder('aviso')
       .addSelect('aviso.flyer')
-      .where('aviso.id = :id', { id })
-      .andWhere('aviso.estado = :estado', { estado: EstadoAviso.ACTIVO })
-      .getOne();
+      .where('aviso.id = :id', { id });
+
+    if (!opciones?.incluirInactivos) {
+      consulta.andWhere('aviso.estado = :estado', {
+        estado: EstadoAviso.ACTIVO,
+      });
+    }
+
+    const aviso = await consulta.getOne();
 
     if (!aviso?.flyer || !aviso.flyerTipo) {
       throw new NotFoundException('Este aviso no tiene flyer.');

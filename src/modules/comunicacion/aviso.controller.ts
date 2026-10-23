@@ -122,7 +122,26 @@ export class AvisoController {
     return this.avisoService.desactivar(id, actor);
   }
 
-  @ApiOperation({ summary: 'Consultar un aviso institucional por id' })
+  @ApiOperation({
+    summary: 'Flyer de un aviso para el panel',
+    description:
+      'Requiere sesión. Devuelve la imagen aunque el aviso esté inactivo.',
+  })
+  @Get(':id/flyer/gestion')
+  @RequierePermiso(ModuloSistema.REPORTES, NivelPermiso.LECTURA)
+  async flyerGestion(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<StreamableFile> {
+    const archivo = await this.avisoService.obtenerFlyer(id, {
+      incluirInactivos: true,
+    });
+
+    return new StreamableFile(archivo.contenido, {
+      type: archivo.tipo,
+      disposition: 'inline',
+    });
+  }
+
   @ApiOperation({
     summary: 'Flyer de un aviso activo',
     description:
@@ -162,6 +181,7 @@ export class AvisoController {
     return this.avisoService.quitarFlyer(id, actor);
   }
 
+  @ApiOperation({ summary: 'Consultar un aviso institucional por id' })
   @Get(':id')
   obtener(@Param('id', ParseIntPipe) id: number) {
     return this.avisoService.obtener(id);
