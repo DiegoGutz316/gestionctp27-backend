@@ -84,41 +84,46 @@ export class PeriodoService {
     const periodo = await this.periodosRepo.findOne({ where: { id } });
     if (!periodo || periodo.estado !== EstadoPeriodo.ABIERTO) return;
 
-    try {
-      await this.dataSource.transaction(async (manager) => {
-        const departamentos = await manager.find(DepartamentoCaja, {
-          where: { activo: true },
-          order: { nombreUnidad: 'ASC', id: 'ASC' },
+    await this.dataSource.transaction(async (manager) => {
+      const fondos = await manager.find(FondoCaja, {
+        where: { periodo: { id: periodo.id } },
+        relations: { departamento: true },
+      });
+
+      for (const fondo of fondos) {
+        if (fondo.departamento?.activo === true) continue;
+        const asientos = await manager.count(AsientoCaja, {
+          where: { fondo: { id: fondo.id } },
         });
-        const fondos = await manager.find(FondoCaja, {
-          where: { periodo: { id: periodo.id } },
-          relations: { departamento: true },
-        });
-        for (const fondo of fondos) {
-          if (fondo.departamento.activo) continue;
-          const asientos = await manager.count(AsientoCaja, {
-            where: { fondo: { id: fondo.id } },
-          });
-          if (asientos === 0) {
-            await manager.delete(FondoCaja, fondo.id);
-          }
+        if (asientos === 0) {
+          await manager.delete(FondoCaja, fondo.id);
         }
+      }
 
-        const presentes = new Set(
-          fondos
-            .filter((fondo) => fondo.departamento.activo)
-            .map((fondo) => fondo.departamento.id),
-        );
-        const faltantes = departamentos.filter(
-          (departamento) => !presentes.has(departamento.id),
-        );
-        if (faltantes.length === 0) return;
+      const filas = await manager
+        .createQueryBuilder(FondoCaja, 'fondo')
+        .select('fondo.departamento_id', 'departamentoId')
+        .where('fondo.periodo_id = :periodoId', { periodoId: periodo.id })
+        .getRawMany<{ departamentoId: string | number }>();
 
-        await manager.save(
-          FondoCaja,
-          faltantes.map((departamento) =>
+      const presentes = new Set(
+        filas.map((fila) => Number(fila.departamentoId)),
+      );
+
+      const departamentos = await manager.find(DepartamentoCaja, {
+        where: { activo: true },
+        order: { nombreUnidad: 'ASC', id: 'ASC' },
+      });
+
+      for (const departamento of departamentos) {
+        const departamentoId = Number(departamento.id);
+        if (presentes.has(departamentoId)) continue;
+
+        try {
+          await manager.save(
+            FondoCaja,
             manager.create(FondoCaja, {
-              periodo,
+              periodo: { id: periodo.id } as PeriodoCaja,
               departamento,
               montoSolicitado: null,
               estado: EstadoFondo.PENDIENTE,
@@ -126,18 +131,21 @@ export class PeriodoService {
               solicitadoPor: null,
               pieInforme: null,
             }),
-          ),
-        );
-      });
-    } catch (error) {
-      if (
-        error instanceof QueryFailedError &&
-        (error.driverError as { code?: string })?.code === PG_UNIQUE_VIOLATION
-      ) {
-        return;
+          );
+          presentes.add(departamentoId);
+        } catch (error) {
+          if (
+            error instanceof QueryFailedError &&
+            (error.driverError as { code?: string })?.code ===
+              PG_UNIQUE_VIOLATION
+          ) {
+            presentes.add(departamentoId);
+            continue;
+          }
+          throw error;
+        }
       }
-      throw error;
-    }
+    });
   }
 
   /**

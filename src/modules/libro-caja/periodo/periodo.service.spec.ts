@@ -194,11 +194,18 @@ describe('PeriodoService', () => {
         }
         return Promise.resolve([]);
       }),
-      create: jest.fn((_entidad: unknown, valor: object) => valor),
-      save: jest.fn((_entidad: unknown, valor: Array<{ departamento: { id: number } }>) => {
-        guardados.push(...valor);
-        return Promise.resolve(valor);
+      createQueryBuilder: jest.fn().mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockResolvedValue([{ departamentoId: 1 }]),
       }),
+      create: jest.fn((_entidad: unknown, valor: object) => valor),
+      save: jest.fn(
+        (_entidad: unknown, valor: { departamento: { id: number } }) => {
+          guardados.push(valor);
+          return Promise.resolve(valor);
+        },
+      ),
     };
     const periodosRepo = {
       findOne: jest.fn().mockResolvedValue(periodo),
@@ -281,6 +288,11 @@ describe('PeriodoService', () => {
         if (entidad === DepartamentoCaja) return Promise.resolve([agricola]);
         if (entidad === FondoCaja) return Promise.resolve([fondoGallina]);
         return Promise.resolve([]);
+      }),
+      createQueryBuilder: jest.fn().mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockResolvedValue([]),
       }),
       count: jest.fn().mockResolvedValue(0),
       delete: jest.fn((_entidad: unknown, id: number) => {
