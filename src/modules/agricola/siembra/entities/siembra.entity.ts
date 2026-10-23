@@ -10,6 +10,8 @@ import {
 } from 'typeorm';
 
 import { CamaCultivo } from '../../cama/entities/cama-cultivo.entity';
+import { Cultivo } from '../../cultivo/entities/cultivo.entity';
+import { UnidadSiembra } from '../enums/unidad-siembra.enum';
 
 const numericTransformer: ValueTransformer = {
   to: (value: number) => value,
@@ -30,6 +32,19 @@ export class Siembra {
   @JoinColumn({ name: 'cama_id' })
   cama: CamaCultivo;
 
+  @ManyToOne(() => Cultivo, {
+    nullable: false,
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({ name: 'cultivo_id' })
+  cultivo: Cultivo;
+
+  /**
+   * El nombre del cultivo tal como estaba al sembrar.
+   *
+   * Lo leen los filtros, los reportes y las exportaciones, y deja constancia
+   * aunque despues se renombre el cultivo en el catalogo.
+   */
   @Column({
     name: 'tipo_cultivo',
     type: 'varchar',
@@ -75,6 +90,14 @@ export class Siembra {
     transformer: numericTransformer,
   })
   cantidadSembrada: number;
+
+  /** En que se cuenta lo sembrado: semillas o plantulas, o peso a granel. */
+  @Column({
+    name: 'unidad_sembrada',
+    type: 'varchar',
+    length: 20,
+  })
+  unidadSembrada: UnidadSiembra;
 
   @CreateDateColumn({
     name: 'creado_en',

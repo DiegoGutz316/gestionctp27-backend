@@ -1,4 +1,5 @@
 import type { TratamientoAgricola } from '../entities/tratamiento-agricola.entity';
+import type { ActividadAgricola } from '../enums/actividad-agricola.enum';
 import type { TipoTratamiento } from '../enums/tipo-tratamiento.enum';
 import type { UnidadTratamiento } from '../enums/unidad-tratamiento.enum';
 
@@ -13,11 +14,12 @@ export interface TratamientoRespuesta {
       ubicacion: string;
     };
   };
-  tipo: TipoTratamiento;
-  producto: string;
+  actividad: ActividadAgricola;
+  tipo: TipoTratamiento | null;
+  producto: string | null;
   fecha: string;
-  cantidad: number;
-  unidad: UnidadTratamiento;
+  cantidad: number | null;
+  unidad: UnidadTratamiento | null;
   observaciones: string | null;
   creadoEn: Date;
   creadoPor: string;
@@ -37,6 +39,7 @@ export function mapearTratamiento(
         ubicacion: tratamiento.siembra.cama.ubicacion,
       },
     },
+    actividad: tratamiento.actividad,
     tipo: tratamiento.tipo,
     producto: tratamiento.producto,
     fecha: tratamiento.fecha,

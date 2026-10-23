@@ -1,6 +1,7 @@
 import { Transform, type TransformFnParams } from 'class-transformer';
 import {
   IsDefined,
+  IsEnum,
   IsInt,
   IsNumber,
   IsPositive,
@@ -11,6 +12,7 @@ import {
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
+import { UnidadSiembra } from '../enums/unidad-siembra.enum';
 import { EsFechaNoFutura } from '../../../../common/validacion/fecha-no-futura.validator';
 import { TieneMaximoDosDecimales } from './dos-decimales.validator';
 import { transformarNumero } from './transformar-numero';
@@ -29,15 +31,17 @@ export class RegistrarSiembraDto {
   @IsPositive({ message: 'Seleccione una cama de cultivo válida' })
   camaId!: number;
 
-  @ApiProperty({ example: 'Tomate', maxLength: 120 })
-  @Transform(normalizarTexto)
-  @IsDefined({ message: 'El tipo de cultivo es obligatorio' })
-  @IsString({ message: 'El tipo de cultivo es obligatorio' })
-  @MinLength(1, { message: 'El tipo de cultivo es obligatorio' })
-  @MaxLength(120, {
-    message: 'El tipo de cultivo no puede superar 120 caracteres',
+    @ApiProperty({
+    type: Number,
+    minimum: 1,
+    example: 1,
+    description: 'Cultivo del catálogo que se siembra',
   })
-  tipoCultivo!: string;
+  @Transform(transformarNumero)
+  @IsDefined({ message: 'Seleccione un cultivo' })
+  @IsInt({ message: 'Seleccione un cultivo válido' })
+  @IsPositive({ message: 'Seleccione un cultivo válido' })
+  cultivoId!: number;
 
   @ApiProperty({ example: '2026-09-15', description: 'Fecha AAAA-MM-DD' })
   @IsDefined({ message: 'La fecha de siembra es obligatoria' })
@@ -63,4 +67,16 @@ export class RegistrarSiembraDto {
     message: 'La cantidad sembrada supera el máximo permitido',
   })
   cantidadSembrada!: number;
+
+  @ApiProperty({
+    enum: UnidadSiembra,
+    enumName: 'UnidadSiembra',
+    example: UnidadSiembra.UNIDADES,
+    description: 'En qué se cuenta lo sembrado',
+  })
+  @IsEnum(UnidadSiembra, {
+    message: 'Seleccione una unidad válida',
+  })
+  @IsDefined({ message: 'Seleccione la unidad de lo sembrado' })
+  unidadSembrada!: UnidadSiembra;
 }

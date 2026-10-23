@@ -10,14 +10,22 @@ import { IsNull, QueryFailedError, Repository } from 'typeorm';
 import { fechaDeHoy } from '../../../common/validacion/fecha-no-futura.validator';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { CamaCultivo } from '../cama/entities/cama-cultivo.entity';
+import { CultivoService } from '../cultivo/cultivo.service';
 import { EstadoCamaCultivo } from '../cama/enums/estado-cama-cultivo.enum';
+import { Cosecha } from '../cosecha/entities/cosecha.entity';
+import { mapearCosecha } from '../cosecha/respuestas/cosecha.mapper';
+import { TratamientoAgricola } from '../tratamiento/entities/tratamiento-agricola.entity';
+import { mapearTratamiento } from '../tratamiento/respuestas/tratamiento.mapper';
 import { ConsultarSiembrasDto } from './dto/consultar-siembras.dto';
 import { FinalizarSiembraDto } from './dto/finalizar-siembra.dto';
 import { RegistrarSiembraDto } from './dto/registrar-siembra.dto';
 import { MotivoFinalizacionSiembra } from './enums/motivo-finalizacion.enum';
 import { Siembra } from './entities/siembra.entity';
 import {
+  contarPorActividad,
   mapearSiembra,
+  totalizarPorUnidad,
+  type SiembraDetalle,
   type SiembraRespuesta,
 } from './respuestas/siembra.mapper';
 
@@ -34,13 +42,59 @@ export class SiembraService {
     private readonly camasRepo: Repository<CamaCultivo>,
     @InjectRepository(Siembra)
     private readonly siembrasRepo: Repository<Siembra>,
+    @InjectRepository(TratamientoAgricola)
+    private readonly cuidadosRepo: Repository<TratamientoAgricola>,
+    @InjectRepository(Cosecha)
+    private readonly cosechasRepo: Repository<Cosecha>,
+    private readonly cultivoService: CultivoService,
   ) {}
+
+  /**
+   * Todo lo de una siembra en un solo lugar: que se sembro, que cuidados
+   * recibio y cuanto se cosecho.
+   *
+   * Es la vista que ordena el modulo. La huerta se piensa por ciclo —en la
+   * cama C-01 se siembra lechuga, se riega, se trata y se cosecha— y al
+   * cerrarlo la cama queda libre pero el historial se conserva.
+   */
+  async obtenerDetalle(id: number): Promise<SiembraDetalle> {
+    const siembra = await this.siembrasRepo.findOne({
+      where: { id },
+      relations: { cama: true },
+    });
+
+    if (!siembra) {
+      throw new NotFoundException('La siembra no existe.');
+    }
+
+    const [cuidados, cosechas] = await Promise.all([
+      this.cuidadosRepo.find({
+        where: { siembra: { id } },
+        relations: { siembra: { cama: true } },
+        order: { fecha: 'DESC', id: 'DESC' },
+      }),
+      this.cosechasRepo.find({
+        where: { siembra: { id } },
+        relations: { siembra: { cama: true } },
+        order: { fecha: 'DESC', id: 'DESC' },
+      }),
+    ]);
+
+    return {
+      siembra: mapearSiembra(siembra),
+      cuidados: cuidados.map(mapearTratamiento),
+      cosechas: cosechas.map(mapearCosecha),
+      produccion: totalizarPorUnidad(cosechas),
+      cuidadosPorActividad: contarPorActividad(cuidados),
+    };
+  }
 
   async registrar(
     dto: RegistrarSiembraDto,
     actor: UsuarioAutenticado,
   ): Promise<SiembraRespuesta> {
     const cama = await this.camasRepo.findOne({ where: { id: dto.camaId } });
+    const cultivo = await this.cultivoService.obtener(dto.cultivoId);
 
     if (!cama) {
       throw new NotFoundException('La cama de cultivo seleccionada no existe.');
@@ -60,9 +114,12 @@ export class SiembraService {
 
     const siembra = this.siembrasRepo.create({
       cama,
-      tipoCultivo: dto.tipoCultivo,
+      cultivo,
+      // Copia del nombre al momento de sembrar: lo leen filtros y reportes.
+      tipoCultivo: cultivo.nombre,
       fechaSiembra: dto.fechaSiembra,
       cantidadSembrada: dto.cantidadSembrada,
+      unidadSembrada: dto.unidadSembrada,
       creadoPor: actor.id,
       finalizadaEn: null,
     });

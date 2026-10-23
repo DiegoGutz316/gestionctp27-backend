@@ -53,6 +53,13 @@ export function mapearCosecha(cosecha: Cosecha): CosechaRespuesta {
  * Va agrupado por unidad porque kilos y unidades no se pueden sumar en un
  * mismo numero: 50 kg de tomate y 120 lechugas no son 170 de nada.
  */
+/** Produccion acumulada de un cultivo en una unidad concreta. */
+export interface TotalPorCultivo {
+  cultivo: string;
+  unidadMedida: UnidadMedida;
+  cantidad: number;
+}
+
 export interface TotalPorUnidad {
   unidadMedida: UnidadMedida;
   cantidad: number;
@@ -60,4 +67,5 @@ export interface TotalPorUnidad {
 
 export type ResultadoCosechas = ResultadoPaginado<CosechaRespuesta> & {
   totales: TotalPorUnidad[];
+  totalesPorCultivo: TotalPorCultivo[];
 };

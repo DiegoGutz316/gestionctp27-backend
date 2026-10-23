@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 
 import { Siembra } from '../../siembra/entities/siembra.entity';
+import { ActividadAgricola } from '../enums/actividad-agricola.enum';
 import { TipoTratamiento } from '../enums/tipo-tratamiento.enum';
 import { UnidadTratamiento } from '../enums/unidad-tratamiento.enum';
 
@@ -35,19 +36,32 @@ export class TratamientoAgricola {
   @JoinColumn({ name: 'siembra_id' })
   siembra: Siembra;
 
+  /**
+   * Que se hizo. Un riego y una limpieza no gastan producto, asi que el
+   * producto y su medida quedan vacios en esas dos.
+   */
+  @Column({
+    name: 'actividad',
+    type: 'varchar',
+    length: 20,
+  })
+  actividad: ActividadAgricola;
+
   @Column({
     name: 'tipo',
     type: 'varchar',
     length: 40,
+    nullable: true,
   })
-  tipo: TipoTratamiento;
+  tipo: TipoTratamiento | null;
 
   @Column({
     name: 'producto',
     type: 'varchar',
     length: 120,
+    nullable: true,
   })
-  producto: string;
+  producto: string | null;
 
   @Column({
     name: 'fecha',
@@ -60,16 +74,18 @@ export class TratamientoAgricola {
     type: 'numeric',
     precision: 12,
     scale: 2,
+    nullable: true,
     transformer: numericTransformer,
   })
-  cantidad: number;
+  cantidad: number | null;
 
   @Column({
     name: 'unidad',
     type: 'varchar',
     length: 20,
+    nullable: true,
   })
-  unidad: UnidadTratamiento;
+  unidad: UnidadTratamiento | null;
 
   @Column({
     name: 'observaciones',
