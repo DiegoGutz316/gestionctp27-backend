@@ -20,6 +20,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { MulterError } from 'multer';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { Publico } from '../auth/decorators/publico.decorator';
@@ -127,6 +128,7 @@ export class AvisoController {
     description:
       'Requiere sesión. Devuelve la imagen aunque el aviso esté inactivo.',
   })
+  @SkipThrottle()
   @Get(':id/flyer/gestion')
   @RequierePermiso(ModuloSistema.REPORTES, NivelPermiso.LECTURA)
   async flyerGestion(
@@ -147,6 +149,7 @@ export class AvisoController {
     description:
       'No requiere sesión. Responde 404 si el aviso está inactivo o no tiene imagen.',
   })
+  @SkipThrottle()
   @Publico()
   @Get(':id/flyer')
   async flyer(@Param('id', ParseIntPipe) id: number): Promise<StreamableFile> {
