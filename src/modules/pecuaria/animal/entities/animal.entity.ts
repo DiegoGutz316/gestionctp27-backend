@@ -7,12 +7,14 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+// Unicidad de `lower(codigo)`: indice de expresion creado por migracion
+// (CodigoAnimalSinDistinguirMayusculas), fuera del alcance de `synchronize`.
+@Index('animales_codigo_unico_ci', { synchronize: false })
 @Entity({ name: 'animales' })
 export class Animal {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Index('animales_codigo_unico', { unique: true })
   @Column({
     name: 'codigo',
     type: 'varchar',

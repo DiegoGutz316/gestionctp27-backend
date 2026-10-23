@@ -62,3 +62,33 @@ describe('CrearAnimalDto - fechaNacimiento', () => {
     expect(erroresDeFechaNacimiento('2024-02-29')).toHaveLength(0);
   });
 });
+
+describe('CrearAnimalDto - observaciones', () => {
+  function erroresDeObservaciones(observaciones: string): string[] {
+    const dto = plainToInstance(CrearAnimalDto, {
+      codigo: 'CHA-001',
+      nombre: 'Luna',
+      especie: EspecieAnimal.CHANCHO,
+      raza: 'Landrace',
+      fechaNacimiento: '2024-03-15',
+      estado: EstadoAnimal.ACTIVO,
+      observaciones,
+    });
+
+    const error = validateSync(dto).find(
+      (error) => error.property === 'observaciones',
+    );
+
+    return Object.values(error?.constraints ?? {});
+  }
+
+  it('acepta 1000 caracteres', () => {
+    expect(erroresDeObservaciones('a'.repeat(1000))).toHaveLength(0);
+  });
+
+  it('rechaza más de 1000 caracteres', () => {
+    expect(erroresDeObservaciones('a'.repeat(5000))).toContain(
+      'Las observaciones no pueden superar 1000 caracteres',
+    );
+  });
+});

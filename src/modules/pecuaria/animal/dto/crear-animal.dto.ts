@@ -127,12 +127,16 @@ export class CrearAnimalDto {
   categoriaBovina?: CategoriaBovina;
 
   @ApiPropertyOptional({
+    maxLength: 1000,
     example: 'Animal en buenas condiciones.',
   })
   @Transform(normalizarTexto)
   @IsOptional()
   @IsString({
     message: 'Las observaciones deben ser texto',
+  })
+  @MaxLength(1000, {
+    message: 'Las observaciones no pueden superar 1000 caracteres',
   })
   observaciones?: string;
 }

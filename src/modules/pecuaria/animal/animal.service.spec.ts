@@ -52,10 +52,7 @@ describe('AnimalService', () => {
     it('crea el animal con autor y sin categoría bovina para especies no bovinas', async () => {
       repo.findOne.mockResolvedValue(null);
 
-      await servicio.crear(
-        { ...dto, categoriaBovina: CategoriaBovina.TORO },
-        actor,
-      );
+      await servicio.crear(dto, actor);
 
       expect(repo.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -82,6 +79,17 @@ describe('AnimalService', () => {
       expect(repo.create).toHaveBeenCalledWith(
         expect.objectContaining({ categoriaBovina: CategoriaBovina.NOVILLA }),
       );
+    });
+
+    it('especie no bovina con categoría bovina: 400, no se ignora', async () => {
+      repo.findOne.mockResolvedValue(null);
+      await expect(
+        servicio.crear(
+          { ...dto, categoriaBovina: CategoriaBovina.TORO },
+          actor,
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(repo.save).not.toHaveBeenCalled();
     });
 
     it('vaca sin categoría: 400', async () => {
@@ -189,9 +197,12 @@ describe('AnimalService', () => {
         actor,
       );
 
-      expect(repo.qb.where).toHaveBeenCalledWith('animal.codigo = :codigo', {
-        codigo: 'CHA-001',
-      });
+      expect(repo.qb.where).toHaveBeenCalledWith(
+        'lower(animal.codigo) = lower(:codigo)',
+        {
+          codigo: 'CHA-001',
+        },
+      );
       expect(repo.qb.andWhere).toHaveBeenCalledWith('animal.id != :id', {
         id: 5,
       });

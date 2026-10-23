@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { QueryFailedError, Raw, Repository } from 'typeorm';
 
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { condicionAnimalActivo, ESTADO_INACTIVO } from '../animal-estado';
@@ -33,8 +33,11 @@ export class AnimalService {
 
   async crear(dto: CrearAnimalDto, actor: UsuarioAutenticado): Promise<Animal> {
     const duplicado = await this.animalesRepo.findOne({
+      // Sin distinguir mayúsculas: `qa-bov-01` y `QA-BOV-01` son el mismo código.
       where: {
-        codigo: dto.codigo,
+        codigo: Raw((alias) => `lower(${alias}) = lower(:codigo)`, {
+          codigo: dto.codigo,
+        }),
       },
     });
 
@@ -130,7 +133,7 @@ export class AnimalService {
 
     const duplicado = await this.animalesRepo
       .createQueryBuilder('animal')
-      .where('animal.codigo = :codigo', {
+      .where('lower(animal.codigo) = lower(:codigo)', {
         codigo: dto.codigo,
       })
       .andWhere('animal.id != :id', {
@@ -190,6 +193,13 @@ export class AnimalService {
     dto: CrearAnimalDto | EditarAnimalDto,
   ): string | null {
     if (dto.especie !== EspecieAnimal.VACA) {
+      // Ignorarla en silencio ocultaría un error del cliente.
+      if (dto.categoriaBovina) {
+        throw new BadRequestException(
+          'La categoría bovina solo aplica a la especie VACA.',
+        );
+      }
+
       return null;
     }
 
