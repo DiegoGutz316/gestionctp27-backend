@@ -8,16 +8,36 @@ import { Repository } from 'typeorm';
 
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { Animal } from '../animal/entities/animal.entity';
+import {
+  esEspecieAnimal,
+  ETIQUETA_ESPECIE_ANIMAL,
+} from '../animal/enums/especie-animal.enum';
 import { esAnimalActivo } from '../animal/enums/estado-animal.enum';
 import { ConsultarProduccionDto } from './dto/consultar-produccion.dto';
 import { RegistrarProduccionDto } from './dto/registrar-produccion.dto';
 import { ProduccionPecuaria } from './entities/produccion-pecuaria.entity';
+import {
+  esProduccionCompatible,
+  ETIQUETA_TIPO_PRODUCCION,
+} from './enums/tipo-produccion.enum';
 import {
   mapearConsultaProduccion,
   mapearProduccion,
   type ConsultaProduccionRespuesta,
   type ProduccionRespuesta,
 } from './respuestas/produccion.mapper';
+
+/** Especie legible para mensajes; la columna es texto libre. */
+function etiquetaEspecie(especie: string): string {
+  const valor = especie.trim();
+  const clave = valor.toUpperCase();
+
+  if (esEspecieAnimal(clave)) {
+    return ETIQUETA_ESPECIE_ANIMAL[clave];
+  }
+
+  return valor.charAt(0).toUpperCase() + valor.slice(1).toLowerCase();
+}
 
 @Injectable()
 export class ProduccionService {
@@ -37,6 +57,12 @@ export class ProduccionService {
     if (!esAnimalActivo(animal.estado)) {
       throw new BadRequestException(
         'Solo se puede registrar producción de un animal activo.',
+      );
+    }
+
+    if (!esProduccionCompatible(animal.especie, dto.tipoProduccion)) {
+      throw new BadRequestException(
+        `El tipo de producción ${ETIQUETA_TIPO_PRODUCCION[dto.tipoProduccion]} no corresponde a la especie ${etiquetaEspecie(animal.especie)}`,
       );
     }
 
