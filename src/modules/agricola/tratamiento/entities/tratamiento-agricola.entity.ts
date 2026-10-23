@@ -20,10 +20,7 @@ const numericTransformer: ValueTransformer = {
 };
 
 @Entity({ name: 'tratamientos_agricolas' })
-@Index('tratamientos_agricolas_siembra_fecha_idx', [
-  'siembra',
-  'fecha',
-])
+@Index('tratamientos_agricolas_siembra_fecha_idx', ['siembra', 'fecha'])
 @Index('tratamientos_agricolas_producto_idx', ['producto'])
 export class TratamientoAgricola {
   @PrimaryGeneratedColumn()

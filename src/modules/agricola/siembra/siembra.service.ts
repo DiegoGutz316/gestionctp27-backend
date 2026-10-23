@@ -100,7 +100,9 @@ export class SiembraService {
       throw new NotFoundException('La cama de cultivo seleccionada no existe.');
     }
 
-    if (cama.estado !== EstadoCamaCultivo.DISPONIBLE) {
+    const disponible: string = EstadoCamaCultivo.DISPONIBLE;
+
+    if (cama.estado !== disponible) {
       throw new ConflictException(MENSAJE_CAMA_OCUPADA);
     }
 

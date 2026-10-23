@@ -9,5 +9,7 @@ export const ETIQUETA_ESTADO_ANIMAL: Record<EstadoAnimal, string> = {
 };
 
 export function esAnimalActivo(estado: string): boolean {
-  return estado.trim().toUpperCase() === EstadoAnimal.ACTIVO;
+  const activo: string = EstadoAnimal.ACTIVO;
+
+  return estado.trim().toUpperCase() === activo;
 }

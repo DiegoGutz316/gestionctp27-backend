@@ -5,9 +5,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * (migración aplicada fuera de este árbol); el IF NOT EXISTS deja el alta
  * registrada sin volver a crearlas, y un entorno nuevo sí las obtiene.
  */
-export class AsegurarTipoYUnidadTratamiento1811000000000
-  implements MigrationInterface
-{
+export class AsegurarTipoYUnidadTratamiento1811000000000 implements MigrationInterface {
   name = 'AsegurarTipoYUnidadTratamiento1811000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

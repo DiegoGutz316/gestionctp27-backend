@@ -5,9 +5,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * asiento_id nulo. Así un reintento no finge un alta ni crea un duplicado.
  * No borra movimientos. En QA sustituye ON DELETE RESTRICT por SET NULL.
  */
-export class IdempotenciaAsientoAnulado1820000000000
-  implements MigrationInterface
-{
+export class IdempotenciaAsientoAnulado1820000000000 implements MigrationInterface {
   name = 'IdempotenciaAsientoAnulado1820000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

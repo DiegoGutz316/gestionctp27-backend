@@ -13,10 +13,8 @@ describe('SaludController permisos', () => {
 
   it('permite consultar el historial con permiso de lectura', () => {
     expect(
-      Reflect.getMetadata(
-        CLAVE_PERMISO,
-        SaludController.prototype.consultar,
-      ),
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      Reflect.getMetadata(CLAVE_PERMISO, SaludController.prototype.consultar),
     ).toEqual({
       modulo: ModuloSistema.PECUARIA,
       nivel: NivelPermiso.LECTURA,

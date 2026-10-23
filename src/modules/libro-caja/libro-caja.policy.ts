@@ -33,9 +33,7 @@ export class LibroCajaPolicy {
     ) {
       return;
     }
-    throw new ForbiddenException(
-      'No puede modificar el informe económico.',
-    );
+    throw new ForbiddenException('No puede modificar el informe económico.');
   }
 
   private esDocenteOAdministrador(actor: UsuarioAutenticado): boolean {

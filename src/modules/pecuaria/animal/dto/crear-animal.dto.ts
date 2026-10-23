@@ -111,7 +111,8 @@ export class CrearAnimalDto {
     enum: CategoriaBovina,
     enumName: 'CategoriaBovina',
     example: CategoriaBovina.VACA,
-    description: 'Obligatoria si la especie es VACA (plantilla de ganado bovino)',
+    description:
+      'Obligatoria si la especie es VACA (plantilla de ganado bovino)',
   })
   @Transform(({ value }: TransformFnParams): unknown => {
     if (typeof value === 'string' && value.trim() === '') {

@@ -46,16 +46,16 @@ describe('RegistrarTratamientoDto', () => {
     expect(errores).toHaveLength(0);
   });
 
-  it.each([
-    ActividadAgricola.FERTILIZACION,
-    ActividadAgricola.TRATAMIENTO,
-  ])('rechaza %s sin producto', async (actividad) => {
-    const errores = await validar({ ...base, actividad });
+  it.each([ActividadAgricola.FERTILIZACION, ActividadAgricola.TRATAMIENTO])(
+    'rechaza %s sin producto',
+    async (actividad) => {
+      const errores = await validar({ ...base, actividad });
 
-    expect(mensajes(errores)).toContain(
-      'Al fertilizar o aplicar un tratamiento, indique el producto, la cantidad y la unidad',
-    );
-  });
+      expect(mensajes(errores)).toContain(
+        'Al fertilizar o aplicar un tratamiento, indique el producto, la cantidad y la unidad',
+      );
+    },
+  );
 
   it.each([ActividadAgricola.RIEGO, ActividadAgricola.LIMPIEZA])(
     'rechaza %s con producto',
@@ -85,8 +85,6 @@ describe('RegistrarTratamientoDto', () => {
   }
 
   function mensajes(errores: Awaited<ReturnType<typeof validate>>): string[] {
-    return errores.flatMap((error) =>
-      Object.values(error.constraints ?? {}),
-    );
+    return errores.flatMap((error) => Object.values(error.constraints ?? {}));
   }
 });

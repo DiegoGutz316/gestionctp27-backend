@@ -1,7 +1,4 @@
-import {
-  Transform,
-  type TransformFnParams,
-} from 'class-transformer';
+import { Transform, type TransformFnParams } from 'class-transformer';
 import {
   IsDefined,
   IsEnum,
@@ -14,10 +11,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import {
-  ApiProperty,
-  ApiPropertyOptional,
-} from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 import { EsFechaNoFutura } from '../../../../common/validacion/fecha-no-futura.validator';
 import { TieneMaximoDosDecimales } from '../../siembra/dto/dos-decimales.validator';
@@ -28,43 +22,30 @@ import { UnidadTratamiento } from '../enums/unidad-tratamiento.enum';
 
 const CANTIDAD_MAXIMA = 9_999_999_999.99;
 
-function normalizarTexto({
-  value,
-}: TransformFnParams): unknown {
-  return typeof value === 'string'
-    ? value.trim()
-    : value;
+function normalizarTexto({ value }: TransformFnParams): unknown {
+  return typeof value === 'string' ? value.trim() : value;
 }
 
-function transformarNumero({
-  value,
-}: TransformFnParams): unknown {
+function transformarNumero({ value }: TransformFnParams): unknown {
   if (typeof value === 'number') {
     return value;
   }
 
-  if (
-    typeof value !== 'string' ||
-    value.trim() === ''
-  ) {
+  if (typeof value !== 'string' || value.trim() === '') {
     return value;
   }
 
   return Number(value);
 }
 
-function normalizarObservaciones({
-  value,
-}: TransformFnParams): unknown {
+function normalizarObservaciones({ value }: TransformFnParams): unknown {
   if (typeof value !== 'string') {
     return value;
   }
 
   const texto = value.trim();
 
-  return texto === ''
-    ? undefined
-    : texto;
+  return texto === '' ? undefined : texto;
 }
 
 @ProductoSegunActividad()
@@ -126,8 +107,7 @@ export class RegistrarTratamientoDto {
     message: 'El producto aplicado es obligatorio',
   })
   @MaxLength(120, {
-    message:
-      'El producto aplicado no puede superar 120 caracteres',
+    message: 'El producto aplicado no puede superar 120 caracteres',
   })
   producto?: string;
 
@@ -139,8 +119,7 @@ export class RegistrarTratamientoDto {
     message: 'La fecha del tratamiento es obligatoria',
   })
   @EsFechaNoFutura({
-    message:
-      'Ingrese una fecha de tratamiento válida que no sea futura',
+    message: 'Ingrese una fecha de tratamiento válida que no sea futura',
   })
   fecha!: string;
 
@@ -158,12 +137,10 @@ export class RegistrarTratamientoDto {
     message: 'La cantidad aplicada admite como máximo 2 decimales',
   })
   @IsPositive({
-    message:
-      'La cantidad aplicada debe ser mayor a cero',
+    message: 'La cantidad aplicada debe ser mayor a cero',
   })
   @Max(CANTIDAD_MAXIMA, {
-    message:
-      'La cantidad aplicada supera el máximo permitido',
+    message: 'La cantidad aplicada supera el máximo permitido',
   })
   cantidad?: number;
 
@@ -180,14 +157,12 @@ export class RegistrarTratamientoDto {
   unidad?: UnidadTratamiento;
 
   @ApiPropertyOptional({
-    example:
-      'Aplicado después del riego de la mañana.',
+    example: 'Aplicado después del riego de la mañana.',
   })
   @Transform(normalizarObservaciones)
   @IsOptional()
   @IsString({
-    message:
-      'Las observaciones deben ser texto',
+    message: 'Las observaciones deben ser texto',
   })
   observaciones?: string;
 }

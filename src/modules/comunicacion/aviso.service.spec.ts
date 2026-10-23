@@ -1,4 +1,8 @@
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { RolUsuario } from '../usuarios/enums/rol-usuario.enum';
 import { AvisoService } from './aviso.service';
@@ -36,10 +40,14 @@ function consultaDeFlyer(aviso: { flyer: Buffer; flyerTipo: string } | null) {
   };
 }
 
-function repositorio(aviso: ReturnType<typeof avisoActivo> | null = avisoActivo()) {
+function repositorio(
+  aviso: ReturnType<typeof avisoActivo> | null = avisoActivo(),
+) {
   return {
     findOneBy: jest.fn().mockResolvedValue(aviso),
-    save: jest.fn().mockImplementation(async (entidad) => entidad),
+    save: jest
+      .fn()
+      .mockImplementation((entidad: unknown) => Promise.resolve(entidad)),
     update: jest.fn().mockResolvedValue({ affected: 1 }),
     delete: jest.fn(),
   };

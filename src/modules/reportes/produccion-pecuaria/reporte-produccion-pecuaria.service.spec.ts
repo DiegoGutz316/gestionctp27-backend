@@ -25,7 +25,13 @@ describe('ReporteProduccionPecuariaService', () => {
 
   it('genera el reporte con los registros del período filtrado por animal', async () => {
     const registros = [
-      { id: 1, animal, tipoProduccion: TipoProduccion.LECHE, cantidad: 10, fecha: '2026-09-10' },
+      {
+        id: 1,
+        animal,
+        tipoProduccion: TipoProduccion.LECHE,
+        cantidad: 10,
+        fecha: '2026-09-10',
+      },
     ] as ProduccionPecuaria[];
     const { service, consulta } = crearServicio({ animal, registros });
 
@@ -72,8 +78,20 @@ describe('ReporteProduccionPecuariaService', () => {
 
   it('calcula el total sumando varios registros del mismo tipo de producción', async () => {
     const registros = [
-      { id: 1, animal, tipoProduccion: TipoProduccion.LECHE, cantidad: 10, fecha: '2026-09-05' },
-      { id: 2, animal, tipoProduccion: TipoProduccion.LECHE, cantidad: 15.5, fecha: '2026-09-10' },
+      {
+        id: 1,
+        animal,
+        tipoProduccion: TipoProduccion.LECHE,
+        cantidad: 10,
+        fecha: '2026-09-05',
+      },
+      {
+        id: 2,
+        animal,
+        tipoProduccion: TipoProduccion.LECHE,
+        cantidad: 15.5,
+        fecha: '2026-09-10',
+      },
     ] as ProduccionPecuaria[];
     const { service } = crearServicio({ animal, registros });
 
@@ -86,8 +104,20 @@ describe('ReporteProduccionPecuariaService', () => {
 
   it('mantiene los totales separados por tipo de producción', async () => {
     const registros = [
-      { id: 1, animal, tipoProduccion: TipoProduccion.LECHE, cantidad: 25.5, fecha: '2026-09-05' },
-      { id: 2, animal, tipoProduccion: TipoProduccion.HUEVOS, cantidad: 20, fecha: '2026-09-06' },
+      {
+        id: 1,
+        animal,
+        tipoProduccion: TipoProduccion.LECHE,
+        cantidad: 25.5,
+        fecha: '2026-09-05',
+      },
+      {
+        id: 2,
+        animal,
+        tipoProduccion: TipoProduccion.HUEVOS,
+        cantidad: 20,
+        fecha: '2026-09-06',
+      },
     ] as ProduccionPecuaria[];
     const { service } = crearServicio({ animal, registros });
 

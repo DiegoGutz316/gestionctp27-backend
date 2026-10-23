@@ -31,10 +31,7 @@ export class VacunaService {
    * (`FOR UPDATE`), para que no exista una ventana entre leer el estado del
    * animal y guardar la vacuna en la que otro usuario lo desactive primero.
    */
-  async crear(
-    dto: CrearVacunaDto,
-    actor: UsuarioAutenticado,
-  ): Promise<Vacuna> {
+  async crear(dto: CrearVacunaDto, actor: UsuarioAutenticado): Promise<Vacuna> {
     return await this.vacunasRepo.manager.transaction(async (gestor) => {
       const animal = await gestor
         .createQueryBuilder(Animal, 'animal')

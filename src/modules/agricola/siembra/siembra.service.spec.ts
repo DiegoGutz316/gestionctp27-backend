@@ -13,6 +13,7 @@ import { TipoCultivo } from '../cultivo/enums/tipo-cultivo.enum';
 import type { TratamientoAgricola } from '../tratamiento/entities/tratamiento-agricola.entity';
 import type { RegistrarSiembraDto } from './dto/registrar-siembra.dto';
 import { Siembra } from './entities/siembra.entity';
+import { UnidadSiembra } from './enums/unidad-siembra.enum';
 import { SiembraService } from './siembra.service';
 
 describe('SiembraService', () => {
@@ -38,6 +39,7 @@ describe('SiembraService', () => {
     cultivoId: 7,
     fechaSiembra: '2026-09-15',
     cantidadSembrada: 25.5,
+    unidadSembrada: UnidadSiembra.UNIDADES,
   };
 
   it('registra la siembra asociada a la cama y al usuario', async () => {
@@ -51,6 +53,7 @@ describe('SiembraService', () => {
       tipoCultivo: 'Tomate',
       fechaSiembra: '2026-09-15',
       cantidadSembrada: 25.5,
+      unidadSembrada: UnidadSiembra.UNIDADES,
       creadoPor: actor.id,
       finalizadaEn: null,
     });
@@ -92,7 +95,11 @@ describe('SiembraService', () => {
   });
 
   it('filtra por cultivo y fecha', async () => {
-    const { service, consulta } = crearServicio({ cama, cultivo, registros: [] });
+    const { service, consulta } = crearServicio({
+      cama,
+      cultivo,
+      registros: [],
+    });
 
     await service.consultar({ cultivo: 'tom', fecha: '2026-09-15' });
 
@@ -120,6 +127,11 @@ function crearRegistro(cama: CamaCultivo, creadoPor: string): Siembra {
     tipoCultivo: 'Tomate',
     fechaSiembra: '2026-09-15',
     cantidadSembrada: 25.5,
+    unidadSembrada: UnidadSiembra.UNIDADES,
+    cultivo: undefined as unknown as Cultivo,
+    finalizadaEn: null,
+    motivoFinalizacion: null,
+    motivoDetalle: null,
     creadoEn: new Date('2026-09-15T18:00:00.000Z'),
     creadoPor,
   };

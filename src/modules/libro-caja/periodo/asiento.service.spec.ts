@@ -117,9 +117,9 @@ describe('AsientoService', () => {
     };
     const service = crearServicio(manager);
 
-    await expect(
-      service.crear(1, 5, dto, actor, CLAVE),
-    ).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.crear(1, 5, dto, actor, CLAVE)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
   });
 
   it('rechaza un egreso que deja el saldo en negativo', async () => {
@@ -137,13 +137,7 @@ describe('AsientoService', () => {
     const service = crearServicio(manager);
 
     await expect(
-      service.crear(
-        1,
-        5,
-        { ...dto, ingresos: 0, egresos: 10 },
-        actor,
-        CLAVE,
-      ),
+      service.crear(1, 5, { ...dto, ingresos: 0, egresos: 10 }, actor, CLAVE),
     ).rejects.toThrow('Ese egreso deja el saldo del libro en negativo');
   });
 
@@ -303,7 +297,7 @@ describe('AsientoService', () => {
         transaction: jest.fn((operacion: (m: EntityManager) => unknown) =>
           operacion(manager as EntityManager),
         ),
-      } as DataSource,
+      } as unknown as DataSource,
       policy,
     );
   }

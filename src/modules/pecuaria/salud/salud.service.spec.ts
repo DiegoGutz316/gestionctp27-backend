@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { Repository } from 'typeorm';
 
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
@@ -52,9 +49,7 @@ describe('SaludService', () => {
     );
     expect(resultado.animalId).toBe(1);
     expect(resultado.creadoPor).toBe(actor.id);
-    expect(resultado.creadoEn).toEqual(
-      new Date('2026-09-08T18:00:00.000Z'),
-    );
+    expect(resultado.creadoEn).toEqual(new Date('2026-09-08T18:00:00.000Z'));
   });
 
   it('rechaza el registro si el animal no existe', async () => {
@@ -68,7 +63,7 @@ describe('SaludService', () => {
 
   it('rechaza el registro si el animal no está activo', async () => {
     const { service, saludRepo } = crearServicio({
-      animal: { ...animalActivo, estado: 'INACTIVO' } as Animal,
+      animal: { ...animalActivo, estado: 'INACTIVO' },
     });
 
     await expect(service.registrar(dto, actor)).rejects.toBeInstanceOf(

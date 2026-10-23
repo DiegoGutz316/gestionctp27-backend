@@ -26,7 +26,7 @@ describe('ReporteInventarioService', () => {
     productoId: '10',
     producto: 'Abono orgánico',
     categoria: TipoProducto.INSUMO,
-    unidadMedida: UnidadMedida.KG,
+    unidadMedida: UnidadMedida.Kilogramo,
     entradas: '0',
     salidas: '0',
     existenciaFinal: '0',
@@ -106,9 +106,12 @@ describe('ReporteInventarioService', () => {
 
       await service.generar({ ...dto, productoId: 10 });
 
-      expect(consulta.andWhere).toHaveBeenCalledWith('producto.id = :productoId', {
-        productoId: 10,
-      });
+      expect(consulta.andWhere).toHaveBeenCalledWith(
+        'producto.id = :productoId',
+        {
+          productoId: 10,
+        },
+      );
     });
 
     it('filtra por categoría cuando viene tipoProducto', async () => {
@@ -179,7 +182,12 @@ describe('ReporteInventarioService', () => {
   describe('saldo acumulado', () => {
     it('conserva un saldo negativo cuando las salidas superan a las entradas', async () => {
       const { service } = crearServicio([
-        fila({ entradas: '5', salidas: '30', existenciaFinal: '-25', saldoActual: '-25' }),
+        fila({
+          entradas: '5',
+          salidas: '30',
+          existenciaFinal: '-25',
+          saldoActual: '-25',
+        }),
       ]);
 
       const resultado = await service.generar(dto);
@@ -191,7 +199,12 @@ describe('ReporteInventarioService', () => {
 
     it('conserva un ajuste negativo en la existencia final', async () => {
       const { service } = crearServicio([
-        fila({ entradas: '100', salidas: '0', existenciaFinal: '-10', saldoActual: '-10' }),
+        fila({
+          entradas: '100',
+          salidas: '0',
+          existenciaFinal: '-10',
+          saldoActual: '-10',
+        }),
       ]);
 
       const resultado = await service.generar(dto);
@@ -204,7 +217,12 @@ describe('ReporteInventarioService', () => {
 
     it('mantiene separados el acumulado del período y el saldo actual', async () => {
       const { service } = crearServicio([
-        fila({ entradas: '40', salidas: '10', existenciaFinal: '30', saldoActual: '55' }),
+        fila({
+          entradas: '40',
+          salidas: '10',
+          existenciaFinal: '30',
+          saldoActual: '55',
+        }),
       ]);
 
       const resultado = await service.generar(dto);
@@ -217,7 +235,12 @@ describe('ReporteInventarioService', () => {
 
     it('devuelve cero y no nulo cuando un producto no tuvo movimientos de un tipo', async () => {
       const { service } = crearServicio([
-        fila({ entradas: '0', salidas: '15', existenciaFinal: '-15', saldoActual: '0' }),
+        fila({
+          entradas: '0',
+          salidas: '15',
+          existenciaFinal: '-15',
+          saldoActual: '0',
+        }),
       ]);
 
       const resultado = await service.generar(dto);

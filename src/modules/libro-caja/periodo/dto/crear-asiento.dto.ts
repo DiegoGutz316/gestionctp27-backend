@@ -1,10 +1,5 @@
 import { Transform, type TransformFnParams } from 'class-transformer';
-import {
-  IsDefined,
-  IsNotEmpty,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { IsDefined, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { EsFechaIso } from './fecha-periodo.validator';
 import { IngresoOEgresoExclusivo } from './ingreso-o-egreso.validator';

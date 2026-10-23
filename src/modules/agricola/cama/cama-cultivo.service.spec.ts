@@ -6,7 +6,6 @@ import { RolUsuario } from '../../usuarios/enums/rol-usuario.enum';
 import { Siembra } from '../siembra/entities/siembra.entity';
 import { CamaCultivoService } from './cama-cultivo.service';
 import { EstadoCamaCultivo } from './enums/estado-cama-cultivo.enum';
-import { Siembra } from '../siembra/entities/siembra.entity';
 import { CamaCultivo } from './entities/cama-cultivo.entity';
 
 describe('CamaCultivoService', () => {
@@ -268,10 +267,9 @@ describe('CamaCultivoService', () => {
 
     const resultado = await service.actualizar(1, dtoEdicion, actor);
 
-    expect(consultaDuplicado.andWhere).toHaveBeenCalledWith(
-      'cama.id != :id',
-      { id: 1 },
-    );
+    expect(consultaDuplicado.andWhere).toHaveBeenCalledWith('cama.id != :id', {
+      id: 1,
+    });
     expect(camasRepo.save).toHaveBeenCalled();
     expect(resultado.codigo).toBe('CAMA-001');
   });
@@ -364,9 +362,9 @@ describe('CamaCultivoService', () => {
   it('lanza NotFoundException al editar una cama que no existe', async () => {
     const { service, camasRepo } = crearServicioParaActualizar(null);
 
-    await expect(
-      service.actualizar(999, dtoEdicion, actor),
-    ).rejects.toEqual(new NotFoundException('La cama de cultivo no existe.'));
+    await expect(service.actualizar(999, dtoEdicion, actor)).rejects.toEqual(
+      new NotFoundException('La cama de cultivo no existe.'),
+    );
     expect(camasRepo.save).not.toHaveBeenCalled();
   });
 

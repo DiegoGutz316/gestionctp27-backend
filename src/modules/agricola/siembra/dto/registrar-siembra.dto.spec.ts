@@ -51,12 +51,13 @@ describe('RegistrarSiembraDto', () => {
     );
   });
   it('rechaza una siembra sin unidad', async () => {
-    const { unidadSembrada: _omitida, ...sinUnidad } = datosValidos;
+    const sinUnidad: Partial<typeof datosValidos> = { ...datosValidos };
+    delete sinUnidad.unidadSembrada;
     const errores = await validar(sinUnidad);
 
-    expect(
-      errores.some((error) => error.property === 'unidadSembrada'),
-    ).toBe(true);
+    expect(errores.some((error) => error.property === 'unidadSembrada')).toBe(
+      true,
+    );
   });
 
   it.each([UnidadSiembra.G, UnidadSiembra.KG])(
@@ -67,7 +68,6 @@ describe('RegistrarSiembraDto', () => {
       expect(errores).toHaveLength(0);
     },
   );
-
 });
 
 async function validar(datos: object) {

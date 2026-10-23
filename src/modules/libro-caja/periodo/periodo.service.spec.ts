@@ -41,10 +41,11 @@ describe('PeriodoService', () => {
           const conId = valor.map((item, indice) => ({
             id: indice + 1,
             ...(item as object),
-          estado: (item as { estado?: string }).estado ?? EstadoFondo.SOLICITADO,
-          montoSolicitado:
-            (item as { montoSolicitado?: number | null }).montoSolicitado ??
-            null,
+            estado:
+              (item as { estado?: string }).estado ?? EstadoFondo.SOLICITADO,
+            montoSolicitado:
+              (item as { montoSolicitado?: number | null }).montoSolicitado ??
+              null,
             creadoEn: new Date(),
             actualizadoEn: new Date(),
             solicitadoEn: null,
@@ -68,8 +69,9 @@ describe('PeriodoService', () => {
       }),
     };
     const service = crearServicio({
-      transaction: jest.fn((operacion: (m: EntityManager) => unknown) =>
-        operacion(manager as unknown as EntityManager),
+      transaction: jest.fn(
+        (operacion: (m: EntityManager) => Promise<unknown>) =>
+          operacion(manager as unknown as EntityManager),
       ),
     });
 
@@ -115,8 +117,9 @@ describe('PeriodoService', () => {
       }),
     };
     const service = crearServicio({
-      transaction: jest.fn((operacion: (m: EntityManager) => unknown) =>
-        operacion(manager as unknown as EntityManager),
+      transaction: jest.fn(
+        (operacion: (m: EntityManager) => Promise<unknown>) =>
+          operacion(manager as unknown as EntityManager),
       ),
     });
 
@@ -145,8 +148,9 @@ describe('PeriodoService', () => {
       }),
     };
     const service = crearServicio({
-      transaction: jest.fn((operacion: (m: EntityManager) => unknown) =>
-        operacion(manager as unknown as EntityManager),
+      transaction: jest.fn(
+        (operacion: (m: EntityManager) => Promise<unknown>) =>
+          operacion(manager as unknown as EntityManager),
       ),
     });
 
@@ -167,13 +171,13 @@ describe('PeriodoService', () => {
   });
 
   function crearServicio(dataSource: {
-    transaction: DataSource['transaction'];
+    transaction: jest.Mock;
   }): PeriodoService {
     return new PeriodoService(
       {
         createQueryBuilder: jest.fn(),
       } as never,
-      dataSource as DataSource,
+      dataSource as unknown as DataSource,
       policy,
     );
   }

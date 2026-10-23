@@ -217,7 +217,11 @@ export class CosechaService {
       .addGroupBy('cosecha.unidadMedida')
       .orderBy('siembra.tipoCultivo', 'ASC')
       .addOrderBy('cosecha.unidadMedida', 'ASC')
-      .getRawMany<{ cultivo: string; unidad: UnidadMedida; cantidad: string }>();
+      .getRawMany<{
+        cultivo: string;
+        unidad: UnidadMedida;
+        cantidad: string;
+      }>();
 
     return filas.map((fila) => ({
       cultivo: fila.cultivo,

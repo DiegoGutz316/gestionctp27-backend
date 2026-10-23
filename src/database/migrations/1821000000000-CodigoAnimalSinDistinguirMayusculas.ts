@@ -18,12 +18,12 @@ export class CodigoAnimalSinDistinguirMayusculas1821000000000 implements Migrati
   name = 'CodigoAnimalSinDistinguirMayusculas1821000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    const duplicados: { codigos: string }[] = await queryRunner.query(`
+    const duplicados = (await queryRunner.query(`
       SELECT string_agg("codigo", ', ' ORDER BY "codigo") AS "codigos"
       FROM "animales"
       GROUP BY lower("codigo")
       HAVING count(*) > 1
-    `);
+    `)) as { codigos: string }[];
 
     if (duplicados.length > 0) {
       const detalle = duplicados.map((fila) => `[${fila.codigos}]`).join(' ');

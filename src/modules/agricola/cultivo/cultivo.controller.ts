@@ -49,10 +49,7 @@ export class CultivoController {
 
   @ApiOperation({ summary: 'Editar un cultivo del catálogo' })
   @Patch(':id')
-  editar(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: EditarCultivoDto,
-  ) {
+  editar(@Param('id', ParseIntPipe) id: number, @Body() dto: EditarCultivoDto) {
     return this.cultivoService.editar(id, dto);
   }
 

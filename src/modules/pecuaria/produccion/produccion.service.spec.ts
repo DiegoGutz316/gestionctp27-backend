@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { Repository } from 'typeorm';
 
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
@@ -91,7 +88,7 @@ describe('ProduccionService', () => {
 
   it('rechaza el registro si el animal no está activo', async () => {
     const { service } = crearServicio({
-      animal: { ...animalActivo, estado: 'INACTIVO' } as Animal,
+      animal: { ...animalActivo, estado: 'INACTIVO' },
     });
 
     await expect(service.registrar(dto, actor)).rejects.toBeInstanceOf(
@@ -176,9 +173,9 @@ describe('ProduccionService', () => {
   it('rechaza la consulta si el animal no existe', async () => {
     const { service } = crearServicio({ animal: null });
 
-    await expect(
-      service.consultar({ animalId: 99 }),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.consultar({ animalId: 99 })).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
   function registro(parcial: {
@@ -195,7 +192,7 @@ describe('ProduccionService', () => {
       fecha: parcial.fecha,
       creadoEn: new Date('2026-09-08T18:00:00.000Z'),
       creadoPor: actor.id,
-    } as ProduccionPecuaria;
+    };
   }
 });
 

@@ -8,9 +8,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  *   rechazar las tres claves huérfanas ya presentes en desarrollo.
  * No borra asientos ni claves.
  */
-export class IdempotenciaAsientosIntegridad1819000000000
-  implements MigrationInterface
-{
+export class IdempotenciaAsientosIntegridad1819000000000 implements MigrationInterface {
   name = 'IdempotenciaAsientosIntegridad1819000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

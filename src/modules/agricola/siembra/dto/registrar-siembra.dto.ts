@@ -1,14 +1,11 @@
-import { Transform, type TransformFnParams } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
   IsDefined,
   IsEnum,
   IsInt,
   IsNumber,
   IsPositive,
-  IsString,
   Max,
-  MaxLength,
-  MinLength,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -19,10 +16,6 @@ import { transformarNumero } from './transformar-numero';
 
 const CANTIDAD_MAXIMA = 9_999_999_999.99;
 
-function normalizarTexto({ value }: TransformFnParams): unknown {
-  return typeof value === 'string' ? value.trim() : value;
-}
-
 export class RegistrarSiembraDto {
   @ApiProperty({ type: Number, minimum: 1, example: 1 })
   @Transform(transformarNumero)
@@ -31,7 +24,7 @@ export class RegistrarSiembraDto {
   @IsPositive({ message: 'Seleccione una cama de cultivo válida' })
   camaId!: number;
 
-    @ApiProperty({
+  @ApiProperty({
     type: Number,
     minimum: 1,
     example: 1,

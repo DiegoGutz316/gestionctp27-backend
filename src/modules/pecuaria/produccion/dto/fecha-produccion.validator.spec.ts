@@ -1,4 +1,7 @@
-import { esFechaIsoValida, fechaActualCostaRica } from './fecha-produccion.validator';
+import {
+  esFechaIsoValida,
+  fechaActualCostaRica,
+} from './fecha-produccion.validator';
 
 describe('fecha-produccion.validator', () => {
   it('acepta una fecha calendario válida', () => {

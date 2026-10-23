@@ -12,7 +12,10 @@ import { ConsultarCultivosDto } from './dto/consultar-cultivos.dto';
 import { EditarCultivoDto } from './dto/editar-cultivo.dto';
 import { RegistrarCultivoDto } from './dto/registrar-cultivo.dto';
 import { Cultivo } from './entities/cultivo.entity';
-import { mapearCultivo, type CultivoRespuesta } from './respuestas/cultivo.mapper';
+import {
+  mapearCultivo,
+  type CultivoRespuesta,
+} from './respuestas/cultivo.mapper';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -96,9 +99,7 @@ export class CultivoService {
       });
     }
 
-    const cultivos = await consulta
-      .orderBy('cultivo.nombre', 'ASC')
-      .getMany();
+    const cultivos = await consulta.orderBy('cultivo.nombre', 'ASC').getMany();
 
     return cultivos.map(mapearCultivo);
   }

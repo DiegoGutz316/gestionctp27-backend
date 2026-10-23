@@ -320,10 +320,10 @@ export class PeriodoService {
       .createQueryBuilder(AsientoCaja, 'asiento')
       .innerJoin('asiento.fondo', 'fondo')
       .where('fondo.periodo_id = :periodoId', { periodoId })
-      .andWhere(
-        '(asiento.fecha < :fechaInicio OR asiento.fecha > :fechaFin)',
-        { fechaInicio, fechaFin },
-      )
+      .andWhere('(asiento.fecha < :fechaInicio OR asiento.fecha > :fechaFin)', {
+        fechaInicio,
+        fechaFin,
+      })
       .getCount();
 
     if (fuera > 0) {

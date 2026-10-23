@@ -164,6 +164,7 @@ describe('StockService', () => {
       {} as Repository<MovimientoStock>,
       dataSource as unknown as DataSource,
       policy,
+      {} as never,
     );
   }
 });
