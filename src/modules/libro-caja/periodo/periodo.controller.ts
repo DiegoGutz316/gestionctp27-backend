@@ -17,6 +17,7 @@ import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { AbrirPeriodoDto } from './dto/abrir-periodo.dto';
 import { EditarPeriodoDto } from './dto/editar-periodo.dto';
 import { FiltrarPeriodosDto } from './dto/filtrar-periodos.dto';
+import { GuardarPieInformeDto } from './dto/guardar-pie-informe.dto';
 import { SolicitarFondoDto } from './dto/solicitar-fondo.dto';
 import { PeriodoService } from './periodo.service';
 
@@ -37,7 +38,7 @@ export class PeriodoController {
   @Post()
   @ApiOperation({
     summary:
-      'Abrir un periodo y cargar todos los departamentos para solicitar fondo inicial',
+      'Abrir un periodo y registrar el fondo inicial de cada departamento',
   })
   abrir(
     @Body() dto: AbrirPeriodoDto,
@@ -85,5 +86,18 @@ export class PeriodoController {
     @UsuarioActual() actor: UsuarioAutenticado,
   ) {
     return this.periodoService.solicitarFondo(id, fondoId, dto, actor);
+  }
+
+  @Patch(':id/fondos/:fondoId/informe')
+  @ApiOperation({
+    summary: 'Guardar observaciones y firmas del informe económico',
+  })
+  guardarPieInforme(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('fondoId', ParseIntPipe) fondoId: number,
+    @Body() dto: GuardarPieInformeDto,
+    @UsuarioActual() actor: UsuarioAutenticado,
+  ) {
+    return this.periodoService.guardarPieInforme(id, fondoId, dto, actor);
   }
 }

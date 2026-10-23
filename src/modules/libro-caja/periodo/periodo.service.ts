@@ -17,7 +17,9 @@ import { LibroCajaPolicy } from '../libro-caja.policy';
 import { AbrirPeriodoDto } from './dto/abrir-periodo.dto';
 import { EditarPeriodoDto } from './dto/editar-periodo.dto';
 import { FiltrarPeriodosDto } from './dto/filtrar-periodos.dto';
+import { GuardarPieInformeDto } from './dto/guardar-pie-informe.dto';
 import { SolicitarFondoDto } from './dto/solicitar-fondo.dto';
+import { AsientoCaja } from './entities/asiento-caja.entity';
 import { FondoCaja } from './entities/fondo-caja.entity';
 import { PeriodoCaja } from './entities/periodo-caja.entity';
 import { EstadoFondo } from './enums/estado-fondo.enum';
@@ -71,8 +73,8 @@ export class PeriodoService {
   }
 
   /**
-   * Abre un periodo y carga todos los departamentos activos. Cada uno queda
-   * con un fondo de caja en estado PENDIENTE hasta que solicite el monto inicial.
+   * Abre un periodo y registra el fondo de cada departamento activo,
+   * incluso cuando el monto es ₡0,00.
    */
   async abrir(
     dto: AbrirPeriodoDto,
@@ -114,14 +116,33 @@ export class PeriodoService {
         }),
       );
 
+      const montos = new Map(
+        dto.fondos.map((fondo) => [fondo.departamentoId, fondo.monto]),
+      );
+      if (montos.size !== dto.fondos.length) {
+        throw new BadRequestException(
+          'Cada departamento debe aparecer una sola vez.',
+        );
+      }
+      const faltaAlguno = departamentos.some(
+        (departamento) => !montos.has(departamento.id),
+      );
+      if (faltaAlguno || montos.size !== departamentos.length) {
+        throw new BadRequestException(
+          'Debe indicar el fondo de cada departamento activo, incluyendo ₡0,00.',
+        );
+      }
+
+      const ahora = new Date();
       const fondos = departamentos.map((departamento) =>
         manager.create(FondoCaja, {
           periodo: creado,
           departamento,
-          montoSolicitado: null,
-          estado: EstadoFondo.PENDIENTE,
-          solicitadoEn: null,
-          solicitadoPor: null,
+          montoSolicitado: montos.get(departamento.id) ?? 0,
+          estado: EstadoFondo.SOLICITADO,
+          solicitadoEn: ahora,
+          solicitadoPor: actor.id,
+          pieInforme: null,
         }),
       );
       creado.fondos = await manager.save(FondoCaja, fondos);
@@ -150,6 +171,12 @@ export class PeriodoService {
       }
 
       await this.asegurarRangoLibre(manager, dto.fechaInicio, dto.fechaFin, id);
+      await this.asegurarAsientosDentroDelRango(
+        manager,
+        id,
+        dto.fechaInicio,
+        dto.fechaFin,
+      );
 
       periodo.nombre = dto.nombre;
       periodo.fechaInicio = dto.fechaInicio;
@@ -230,6 +257,43 @@ export class PeriodoService {
     return mapearFondo(fondo);
   }
 
+  async guardarPieInforme(
+    periodoId: number,
+    fondoId: number,
+    dto: GuardarPieInformeDto,
+    actor: UsuarioAutenticado,
+  ): Promise<FondoCajaRespuesta> {
+    this.policy.exigirRegistroAsiento(actor);
+
+    const fondosRepo = this.dataSource.getRepository(FondoCaja);
+    const fondo = await fondosRepo.findOne({
+      where: { id: fondoId },
+      relations: { departamento: true, periodo: true },
+    });
+    if (!fondo || fondo.periodo.id !== periodoId) {
+      throw new NotFoundException(
+        'El fondo de caja no existe en este periodo.',
+      );
+    }
+
+    fondo.pieInforme = {
+      observaciones: [
+        dto.observaciones[0] ?? '',
+        dto.observaciones[1] ?? '',
+        dto.observaciones[2] ?? '',
+      ],
+      director: dto.director,
+      presidente: dto.presidente,
+      tesorera: dto.tesorera,
+      firmaDirector: dto.firmaDirector,
+      firmaPresidente: dto.firmaPresidente,
+      firmaTesorera: dto.firmaTesorera,
+      coordinador: dto.coordinador,
+    };
+    const guardado = await fondosRepo.save(fondo);
+    return mapearFondo(guardado);
+  }
+
   private async buscarConFondos(id: number): Promise<PeriodoCaja> {
     const periodo = await this.periodosRepo
       .createQueryBuilder('periodo')
@@ -244,6 +308,29 @@ export class PeriodoService {
       throw new NotFoundException('El periodo no existe.');
     }
     return periodo;
+  }
+
+  private async asegurarAsientosDentroDelRango(
+    manager: import('typeorm').EntityManager,
+    periodoId: number,
+    fechaInicio: string,
+    fechaFin: string,
+  ): Promise<void> {
+    const fuera = await manager
+      .createQueryBuilder(AsientoCaja, 'asiento')
+      .innerJoin('asiento.fondo', 'fondo')
+      .where('fondo.periodo_id = :periodoId', { periodoId })
+      .andWhere(
+        '(asiento.fecha < :fechaInicio OR asiento.fecha > :fechaFin)',
+        { fechaInicio, fechaFin },
+      )
+      .getCount();
+
+    if (fuera > 0) {
+      throw new BadRequestException(
+        'No se puede cambiar el rango: hay asientos con fecha fuera de las nuevas fechas del periodo.',
+      );
+    }
   }
 
   private async asegurarRangoLibre(

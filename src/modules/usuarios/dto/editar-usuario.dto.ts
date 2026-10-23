@@ -3,11 +3,12 @@ import {
   IsEmail,
   IsEnum,
   IsNotEmpty,
+  IsOptional,
   IsString,
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { RolUsuario } from '../enums/rol-usuario.enum';
 
 export class EditarUsuarioDto {
@@ -24,6 +25,23 @@ export class EditarUsuarioDto {
   @MaxLength(150, { message: 'El correo no puede superar 150 caracteres' })
   @IsEmail({}, { message: 'Debe ingresar un correo válido' })
   correo!: string;
+
+  @ApiPropertyOptional({
+    minLength: 8,
+    maxLength: 72,
+    writeOnly: true,
+    description:
+      'Nueva contraseña. Si se omite, la contraseña actual se conserva.',
+  })
+  @IsOptional()
+  @IsString({ message: 'La contraseña debe ser texto' })
+  @MinLength(8, {
+    message: 'La contraseña debe tener al menos 8 caracteres',
+  })
+  @MaxLength(72, {
+    message: 'La contraseña no puede superar 72 caracteres',
+  })
+  contrasena?: string;
 
   @ApiProperty({ enum: RolUsuario, enumName: 'RolUsuario' })
   @IsEnum(RolUsuario, { message: 'Seleccione un rol válido' })

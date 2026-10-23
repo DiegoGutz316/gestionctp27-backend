@@ -30,7 +30,7 @@ describe('PeriodoService', () => {
     },
   ];
 
-  it('al abrir un periodo carga un fondo pendiente por cada departamento activo', async () => {
+  it('al abrir un periodo registra el fondo de cada departamento activo', async () => {
     const fondosGuardados: unknown[] = [];
     const manager = {
       findOne: jest.fn().mockResolvedValue(null),
@@ -41,8 +41,10 @@ describe('PeriodoService', () => {
           const conId = valor.map((item, indice) => ({
             id: indice + 1,
             ...(item as object),
-            estado: EstadoFondo.PENDIENTE,
-            montoSolicitado: null,
+          estado: (item as { estado?: string }).estado ?? EstadoFondo.SOLICITADO,
+          montoSolicitado:
+            (item as { montoSolicitado?: number | null }).montoSolicitado ??
+            null,
             creadoEn: new Date(),
             actualizadoEn: new Date(),
             solicitadoEn: null,
@@ -76,6 +78,10 @@ describe('PeriodoService', () => {
         nombre: 'I semestre 2026',
         fechaInicio: '2026-02-01',
         fechaFin: '2026-07-31',
+        fondos: [
+          { departamentoId: 1, monto: 0 },
+          { departamentoId: 2, monto: 1500 },
+        ],
       },
       actor,
     );
@@ -84,7 +90,18 @@ describe('PeriodoService', () => {
     expect(
       resultado.fondos.map((fondo) => fondo.departamento.nombreUnidad),
     ).toEqual(['Unidad Agrícola', 'Unidad Pecuaria']);
-    expect(fondosGuardados).toHaveLength(2);
+    expect(fondosGuardados).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          montoSolicitado: 0,
+          estado: EstadoFondo.SOLICITADO,
+        }),
+        expect.objectContaining({
+          montoSolicitado: 1500,
+          estado: EstadoFondo.SOLICITADO,
+        }),
+      ]),
+    );
   });
 
   it('no abre un periodo si no hay departamentos activos', async () => {
@@ -109,6 +126,10 @@ describe('PeriodoService', () => {
           nombre: 'I semestre 2026',
           fechaInicio: '2026-02-01',
           fechaFin: '2026-07-31',
+          fondos: [
+            { departamentoId: 1, monto: 0 },
+            { departamentoId: 2, monto: 1500 },
+          ],
         },
         actor,
       ),
@@ -135,6 +156,10 @@ describe('PeriodoService', () => {
           nombre: 'I semestre 2026',
           fechaInicio: '2026-02-01',
           fechaFin: '2026-07-31',
+          fondos: [
+            { departamentoId: 1, monto: 0 },
+            { departamentoId: 2, monto: 1500 },
+          ],
         },
         actor,
       ),

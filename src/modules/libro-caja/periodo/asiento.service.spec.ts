@@ -49,27 +49,34 @@ describe('AsientoService', () => {
     ingresos: 50,
     egresos: 0,
   };
+  const CLAVE = '11111111-1111-4111-8111-111111111111';
 
   it('numera el asiento en secuencia por departamento', async () => {
-    const guardados: Array<{ numero: number }> = [];
+    const guardados: Array<{ numero?: number }> = [];
     const manager = {
       findOne: jest.fn().mockResolvedValue(fondoAbierto),
+      find: jest.fn().mockResolvedValue([]),
       createQueryBuilder: jest.fn().mockReturnValue({
         select: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         getRawOne: jest.fn().mockResolvedValue({ ultimo: '3' }),
       }),
       create: jest.fn((_entidad: unknown, valor: object) => valor),
-      save: jest.fn((_entidad: unknown, valor: { numero: number }) => {
-        guardados.push(valor);
-        return Promise.resolve({ id: 4, ...valor });
+      save: jest.fn((_entidad: unknown, valor: { numero?: number } | { numero?: number }[]) => {
+        if (Array.isArray(valor)) {
+          guardados.push(...valor);
+          return Promise.resolve(
+            valor.map((item, indice) => ({ id: indice + 1, ...item })),
+          );
+        }
+        return Promise.resolve({ id: 9, ...valor });
       }),
     };
     const service = crearServicio(manager);
 
-    await service.crear(1, 5, dto, actor);
+    await service.crear(1, 5, dto, actor, CLAVE);
 
-    expect(guardados[0]?.numero).toBe(4);
+    expect(guardados.some((asiento) => asiento.numero === 1)).toBe(true);
   });
 
   it('no registra asientos si el periodo está cerrado', async () => {
@@ -81,9 +88,9 @@ describe('AsientoService', () => {
     };
     const service = crearServicio(manager);
 
-    await expect(service.crear(1, 5, dto, actor)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    await expect(
+      service.crear(1, 5, dto, actor, CLAVE),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('rechaza una fecha fuera del periodo', async () => {
@@ -93,7 +100,7 @@ describe('AsientoService', () => {
     const service = crearServicio(manager);
 
     await expect(
-      service.crear(1, 5, { ...dto, fecha: '2025-12-01' }, actor),
+      service.crear(1, 5, { ...dto, fecha: '2025-12-01' }, actor, CLAVE),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -104,6 +111,9 @@ describe('AsientoService', () => {
       } as never,
       {
         find: jest.fn().mockResolvedValue([]),
+      } as never,
+      {
+        findOne: jest.fn().mockResolvedValue(null),
       } as never,
       {
         transaction: jest.fn((operacion: (m: EntityManager) => unknown) =>

@@ -6,6 +6,7 @@ import { AsientoController } from './asiento.controller';
 import { AsientoService } from './asiento.service';
 import { AsientoCaja } from './entities/asiento-caja.entity';
 import { FondoCaja } from './entities/fondo-caja.entity';
+import { IdempotenciaAsiento } from './entities/idempotencia-asiento.entity';
 import { PeriodoCaja } from './entities/periodo-caja.entity';
 import { PeriodoController } from './periodo.controller';
 import { PeriodoService } from './periodo.service';
@@ -17,6 +18,7 @@ import { PeriodoService } from './periodo.service';
       FondoCaja,
       DepartamentoCaja,
       AsientoCaja,
+      IdempotenciaAsiento,
     ]),
   ],
   controllers: [PeriodoController, AsientoController],

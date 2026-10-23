@@ -15,6 +15,17 @@ import { EstadoFondo } from '../enums/estado-fondo.enum';
 import { AsientoCaja } from './asiento-caja.entity';
 import { PeriodoCaja } from './periodo-caja.entity';
 
+export interface PieInformeCaja {
+  observaciones: [string, string, string];
+  director: string;
+  presidente: string;
+  tesorera: string;
+  firmaDirector: string;
+  firmaPresidente: string;
+  firmaTesorera: string;
+  coordinador: string;
+}
+
 const numericTransformer: ValueTransformer = {
   to: (value: number | null) => value,
   from: (value: string | null) => (value === null ? null : Number(value)),
@@ -22,8 +33,8 @@ const numericTransformer: ValueTransformer = {
 
 /**
  * Fondo de caja inicial de un departamento dentro de un periodo.
- * Se crea al abrir el periodo (uno por cada departamento activo) y el
- * departamento debe solicitar el monto.
+ * Se crea al abrir el periodo, con el saldo que queda de periodos
+ * anteriores (puede ser ₡0,00). Ese monto habilita el libro.
  */
 @Entity({ name: 'fondos_caja' })
 @Index('fondos_caja_periodo_departamento_uq', ['periodo', 'departamento'], {
@@ -72,6 +83,9 @@ export class FondoCaja {
 
   @Column({ name: 'solicitado_por', type: 'uuid', nullable: true })
   solicitadoPor: string | null;
+
+  @Column({ name: 'pie_informe', type: 'jsonb', nullable: true })
+  pieInforme: PieInformeCaja | null;
 
   @CreateDateColumn({ name: 'creado_en', type: 'timestamptz' })
   creadoEn: Date;

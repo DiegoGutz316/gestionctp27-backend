@@ -181,8 +181,17 @@ export class UsuariosService {
       usuario.rolAsignadoEn = new Date();
     }
 
+    // `contrasenaHash` tiene select: false, así que save() no lo incluye si no
+    // vino en la consulta. Se escribe aparte para que el cambio sí persista.
+    const contrasenaHash = dto.contrasena
+      ? await bcrypt.hash(dto.contrasena, 12)
+      : null;
+
     try {
       const guardado = await this.usuarios.save(usuario);
+      if (contrasenaHash) {
+        await this.usuarios.update(guardado.id, { contrasenaHash });
+      }
       return this.mapearRespuesta(guardado);
     } catch (error) {
       this.relanzarSiCorreoDuplicado(error);

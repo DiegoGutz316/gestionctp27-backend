@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsDefined, IsNumber, IsPositive, Max } from 'class-validator';
+import { IsDefined, IsNumber, Max, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { transformarNumero } from './transformar-numero';
 import { TieneDecimalesPermitidos } from './dos-decimales.validator';
@@ -9,7 +9,6 @@ export class SolicitarFondoDto {
   @ApiProperty({
     type: Number,
     minimum: 0,
-    exclusiveMinimum: true,
     maximum: VALOR_MAXIMO,
     example: 150000,
     description:
@@ -21,7 +20,7 @@ export class SolicitarFondoDto {
   @TieneDecimalesPermitidos({
     message: 'El monto admite como máximo 2 decimales',
   })
-  @IsPositive({ message: 'El monto solicitado debe ser mayor que 0' })
+  @Min(0, { message: 'El monto solicitado no puede ser negativo' })
   @Max(VALOR_MAXIMO, {
     message: `El monto solicitado no puede superar ${VALOR_MAXIMO_TEXTO}`,
   })
