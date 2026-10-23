@@ -63,12 +63,11 @@ export class RegistrarAvisoDto {
   categoria!: CategoriaAviso;
 
   /**
-   * Se admiten fechas futuras a proposito: un aviso anuncia algo que todavia
-   * no ocurrio.
+   * Hoy o una fecha posterior: un aviso anuncia algo que todavía no pasó.
    */
-  @ApiProperty({ example: '2026-11-15', description: 'Fecha AAAA-MM-DD' })
+  @ApiProperty({ example: '2026-11-15', description: 'Fecha AAAA-MM-DD, hoy o posterior' })
   @Transform(normalizarTexto)
-  @EsFechaDeAviso({ message: 'Ingrese una fecha válida (AAAA-MM-DD)' })
+  @EsFechaDeAviso({ message: 'La fecha del aviso debe ser hoy o posterior' })
   @IsDefined({ message: 'La fecha del aviso es obligatoria' })
   fecha!: string;
 

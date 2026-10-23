@@ -1,14 +1,24 @@
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
 
+import { fechaDeHoy } from '../../../common/validacion/fecha-no-futura.validator';
 import { EditarAvisoDto } from './editar-aviso.dto';
 import { CategoriaAviso } from '../enums/categoria-aviso.enum';
 import { EstadoAviso } from '../enums/estado-aviso.enum';
 
+function desplazarDias(fecha: string, dias: number): string {
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  const resultado = new Date(Date.UTC(anio, mes - 1, dia));
+  resultado.setUTCDate(resultado.getUTCDate() + dias);
+  return resultado.toISOString().slice(0, 10);
+}
+
+const hoy = fechaDeHoy();
+
 const datosValidos = {
   titulo: 'Feria agrícola institucional',
   descripcion: 'Se realizará la feria anual en el gimnasio del colegio.',
-  fecha: '2026-11-15',
+  fecha: desplazarDias(hoy, 7),
   categoria: CategoriaAviso.ACADEMICOS,
   estado: EstadoAviso.ACTIVO,
 };
@@ -54,13 +64,33 @@ describe('EditarAvisoDto', () => {
     expect(camposInvalidos).toEqual(expect.arrayContaining(['fecha']));
   });
 
-  it('admite una fecha futura', () => {
+  it('admite la fecha de hoy', () => {
     const dto = plainToInstance(EditarAvisoDto, {
       ...datosValidos,
-      fecha: '2027-01-10',
+      fecha: hoy,
     });
 
     expect(validateSync(dto)).toHaveLength(0);
+  });
+
+  it('admite una fecha futura', () => {
+    const dto = plainToInstance(EditarAvisoDto, {
+      ...datosValidos,
+      fecha: desplazarDias(hoy, 30),
+    });
+
+    expect(validateSync(dto)).toHaveLength(0);
+  });
+
+  it('rechaza una fecha anterior a hoy', () => {
+    const dto = plainToInstance(EditarAvisoDto, {
+      ...datosValidos,
+      fecha: desplazarDias(hoy, -1),
+    });
+
+    const camposInvalidos = validateSync(dto).map((error) => error.property);
+
+    expect(camposInvalidos).toEqual(expect.arrayContaining(['fecha']));
   });
 
   it('rechaza un estado que no pertenece al enum', () => {

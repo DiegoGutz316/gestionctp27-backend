@@ -59,9 +59,9 @@ export class EditarAvisoDto {
   @IsDefined({ message: 'La categoría es obligatoria' })
   categoria!: CategoriaAviso;
 
-  @ApiProperty({ example: '2026-11-15', description: 'Fecha AAAA-MM-DD' })
+  @ApiProperty({ example: '2026-11-15', description: 'Fecha AAAA-MM-DD, hoy o posterior' })
   @Transform(normalizarTexto)
-  @EsFechaDeAviso({ message: 'Ingrese una fecha válida (AAAA-MM-DD)' })
+  @EsFechaDeAviso({ message: 'La fecha del aviso debe ser hoy o posterior' })
   @IsDefined({ message: 'La fecha del aviso es obligatoria' })
   fecha!: string;
 
