@@ -455,6 +455,43 @@ describe('UsuariosService', () => {
     });
   });
 
+  describe('actualizarPerfilPropio', () => {
+    it('cambia nombre y correo del titular y no toca el rol', async () => {
+      repo.findOne
+        .mockResolvedValueOnce(entidad())
+        .mockResolvedValueOnce(null);
+      repo.save.mockImplementation((u: object) => Promise.resolve(u));
+
+      const r = await servicio.actualizarPerfilPropio('u-1', {
+        nombre: '  Ana Mora ',
+        correo: ' ANA.MORA@ctp27.test ',
+      });
+
+      expect(repo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nombre: 'Ana Mora',
+          correo: 'ana.mora@ctp27.test',
+          rol: RolUsuario.ESTUDIANTE,
+          actualizadoPor: 'u-1',
+        }),
+      );
+      expect(r.nombre).toBe('Ana Mora');
+    });
+
+    it('409 si el correo nuevo ya está en uso', async () => {
+      repo.findOne
+        .mockResolvedValueOnce(entidad())
+        .mockResolvedValueOnce(entidad({ id: 'otro', correo: 'otra@x.cr' }));
+
+      await expect(
+        servicio.actualizarPerfilPropio('u-1', {
+          nombre: 'Ana',
+          correo: 'otra@x.cr',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
   describe('soporte de autenticación', () => {
     it('buscarParaAutenticar normaliza el correo y es el único que selecciona el hash', async () => {
       const qb = crearQueryBuilderSimulado({ getOne: entidad() });
@@ -467,6 +504,16 @@ describe('UsuariosService', () => {
         correo: 'ana@ctp27.test',
       });
       expect(r).toMatchObject({ id: 'u-1' });
+    });
+
+    it('buscarParaAutenticarPorId selecciona el hash por id', async () => {
+      const qb = crearQueryBuilderSimulado({ getOne: entidad() });
+      repo.createQueryBuilder.mockReturnValue(qb);
+
+      await servicio.buscarParaAutenticarPorId('u-1');
+
+      expect(qb.addSelect).toHaveBeenCalledWith('usuario.contrasenaHash');
+      expect(qb.where).toHaveBeenCalledWith('usuario.id = :id', { id: 'u-1' });
     });
 
     it('buscarPorId consulta por id', async () => {

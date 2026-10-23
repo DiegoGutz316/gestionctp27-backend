@@ -288,6 +288,58 @@ export class UsuariosService {
   }
 
   /**
+   * El titular de la sesión puede cambiar su nombre y correo. El rol y el
+   * estado de la cuenta siguen siendo del administrador.
+   */
+  async actualizarPerfilPropio(
+    id: string,
+    datos: { nombre: string; correo: string },
+  ): Promise<UsuarioRespuesta> {
+    const usuario = await this.usuarios.findOne({ where: { id } });
+
+    if (!usuario) {
+      throw new NotFoundException('El usuario no existe.');
+    }
+
+    const correoNormalizado = datos.correo.trim().toLowerCase();
+
+    if (correoNormalizado !== usuario.correo) {
+      const duplicado = await this.usuarios.findOne({
+        where: { correo: correoNormalizado },
+      });
+
+      if (duplicado) {
+        throw new ConflictException(
+          'Ya existe un usuario registrado con ese correo.',
+        );
+      }
+    }
+
+    usuario.nombre = datos.nombre.trim();
+    usuario.correo = correoNormalizado;
+    usuario.actualizadoPor = id;
+
+    try {
+      return this.mapearRespuesta(await this.usuarios.save(usuario));
+    } catch (error) {
+      this.relanzarSiCorreoDuplicado(error);
+      throw error;
+    }
+  }
+
+  async reemplazarContrasena(id: string, contrasenaHash: string): Promise<void> {
+    const usuario = await this.usuarios.findOne({ where: { id } });
+    if (!usuario) {
+      throw new NotFoundException('El usuario no existe.');
+    }
+
+    await this.usuarios.update(id, {
+      contrasenaHash,
+      actualizadoPor: id,
+    });
+  }
+
+  /**
    * Único método que trae el hash de la contraseña.
    * Uso exclusivo del proceso de autenticación.
    */
@@ -307,6 +359,14 @@ export class UsuariosService {
         id,
       },
     });
+  }
+
+  buscarParaAutenticarPorId(id: string): Promise<Usuario | null> {
+    return this.usuarios
+      .createQueryBuilder('usuario')
+      .addSelect('usuario.contrasenaHash')
+      .where('usuario.id = :id', { id })
+      .getOne();
   }
 
   /**

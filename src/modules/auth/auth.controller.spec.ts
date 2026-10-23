@@ -5,6 +5,8 @@
  *   POST /auth/login     (público, 200, cookie httpOnly)
  *   POST /auth/logout    (público, 200, limpia cookie)
  *   GET  /auth/perfil    (autenticado)
+ *   PATCH /auth/perfil   (autenticado)
+ *   PATCH /auth/perfil/contrasena (autenticado)
  *   GET  /auth/permisos  (autenticado)
  *
  * Se monta el controller real con ValidationPipe estricto y el AuthService
@@ -28,6 +30,8 @@ describe('AuthController (endpoints)', () => {
   const auth = {
     ...servicioSimulado(
       'login',
+      'actualizarPerfil',
+      'cambiarContrasena',
       'opcionesParaSetCookie',
       'opcionesParaClearCookie',
     ),
@@ -161,6 +165,93 @@ describe('AuthController (endpoints)', () => {
         expect(res.body).toEqual(usuarioDePrueba(rol));
       },
     );
+  });
+
+  describe('PATCH /auth/perfil', () => {
+    const datos = { nombre: 'Ana Mora', correo: 'ana@ctp27.test' };
+
+    it('401: sin sesión', async () => {
+      expect((await llamar(app, 'patch', '/auth/perfil').send(datos)).status).toBe(
+        401,
+      );
+    });
+
+    it('200: devuelve el usuario actualizado y renueva la cookie', async () => {
+      const usuario = usuarioDePrueba(RolUsuario.ADMINISTRADOR);
+      auth.actualizarPerfil.mockResolvedValue({
+        accessToken: 'jwt-nuevo',
+        expiraEn: '8h',
+        usuario: { ...usuario, nombre: datos.nombre, correo: datos.correo },
+      });
+
+      const res = await llamar(
+        app,
+        'patch',
+        '/auth/perfil',
+        RolUsuario.ADMINISTRADOR,
+      ).send(datos);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        ...usuario,
+        nombre: datos.nombre,
+        correo: datos.correo,
+      });
+      const cookie = (res.headers['set-cookie'] as unknown as string[])[0];
+      expect(cookie).toContain(`${NOMBRE_COOKIE_ACCESO}=jwt-nuevo`);
+    });
+
+    it('400: rechaza un correo inválido', async () => {
+      const res = await llamar(
+        app,
+        'patch',
+        '/auth/perfil',
+        RolUsuario.DOCENTE_AGRICOLA,
+      ).send({ nombre: 'Ana', correo: 'no-es-correo' });
+
+      expect(res.status).toBe(400);
+      expect(auth.actualizarPerfil).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('PATCH /auth/perfil/contrasena', () => {
+    const datos = {
+      contrasenaActual: 'Actual123',
+      contrasenaNueva: 'Nueva4567',
+    };
+
+    it('401: sin sesión', async () => {
+      expect(
+        (await llamar(app, 'patch', '/auth/perfil/contrasena').send(datos))
+          .status,
+      ).toBe(401);
+    });
+
+    it('200: cambia la contraseña', async () => {
+      auth.cambiarContrasena.mockResolvedValue({ ok: true });
+
+      const res = await llamar(
+        app,
+        'patch',
+        '/auth/perfil/contrasena',
+        RolUsuario.DOCENTE_PECUARIO,
+      ).send(datos);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true });
+    });
+
+    it('400: rechaza una contraseña nueva corta', async () => {
+      const res = await llamar(
+        app,
+        'patch',
+        '/auth/perfil/contrasena',
+        RolUsuario.DOCENTE_PECUARIO,
+      ).send({ contrasenaActual: 'Actual123', contrasenaNueva: 'corta' });
+
+      expect(res.status).toBe(400);
+      expect(auth.cambiarContrasena).not.toHaveBeenCalled();
+    });
   });
 
   describe('GET /auth/permisos', () => {

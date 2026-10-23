@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   HttpException,
   HttpStatus,
@@ -12,8 +13,13 @@ import * as bcrypt from 'bcrypt';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { IntentosLoginService } from './intentos-login.service';
 import { Usuario } from '../usuarios/entities/usuario.entity';
+import type { ActualizarPerfilDto } from './dto/actualizar-perfil.dto';
+import type { CambiarContrasenaDto } from './dto/cambiar-contrasena.dto';
 import type { LoginDto } from './dto/login.dto';
-import type { JwtPayload } from './tipos/jwt-payload';
+import type {
+  JwtPayload,
+  UsuarioAutenticado,
+} from './tipos/jwt-payload';
 import type { ResultadoLogin } from './tipos/respuesta-login';
 import {
   construirOpcionesCookie,
@@ -138,7 +144,65 @@ export class AuthService {
    */
   async login(datos: LoginDto): Promise<ResultadoLogin> {
     const usuario = await this.validarCredenciales(datos);
+    const sesion = await this.emitirSesion(usuario);
+    await this.usuarios.registrarUltimoAcceso(usuario.id);
+    return sesion;
+  }
 
+  /**
+   * El titular actualiza su nombre y correo. El JWT se vuelve a firmar para
+   * que la cookie de sesión coincida con los datos nuevos.
+   */
+  async actualizarPerfil(
+    actor: UsuarioAutenticado,
+    dto: ActualizarPerfilDto,
+  ): Promise<ResultadoLogin> {
+    const actualizado = await this.usuarios.actualizarPerfilPropio(actor.id, {
+      nombre: dto.nombre,
+      correo: dto.correo,
+    });
+
+    return this.emitirSesion(actualizado);
+  }
+
+  async cambiarContrasena(
+    actor: UsuarioAutenticado,
+    dto: CambiarContrasenaDto,
+  ): Promise<{ ok: true }> {
+    const usuario = await this.usuarios.buscarParaAutenticarPorId(actor.id);
+
+    if (!usuario) {
+      throw new UnauthorizedException('La sesion ya no es valida.');
+    }
+
+    const actualCorrecta = await bcrypt.compare(
+      dto.contrasenaActual,
+      usuario.contrasenaHash,
+    );
+    if (!actualCorrecta) {
+      throw new UnauthorizedException('La contraseña actual no es correcta.');
+    }
+
+    if (dto.contrasenaNueva === dto.contrasenaActual) {
+      throw new BadRequestException(
+        'La nueva contraseña debe ser distinta a la actual.',
+      );
+    }
+
+    await this.usuarios.reemplazarContrasena(
+      usuario.id,
+      await bcrypt.hash(dto.contrasenaNueva, 12),
+    );
+
+    return { ok: true };
+  }
+
+  private async emitirSesion(usuario: {
+    id: string;
+    nombre: string;
+    correo: string;
+    rol: Usuario['rol'];
+  }): Promise<ResultadoLogin> {
     const payload: JwtPayload = {
       sub: usuario.id,
       correo: usuario.correo,
@@ -146,11 +210,8 @@ export class AuthService {
       rol: usuario.rol,
     };
 
-    const accessToken = await this.jwt.signAsync(payload);
-    await this.usuarios.registrarUltimoAcceso(usuario.id);
-
     return {
-      accessToken,
+      accessToken: await this.jwt.signAsync(payload),
       expiraEn: this.config.get<string>('JWT_EXPIRACION', '8h'),
       usuario: {
         id: usuario.id,

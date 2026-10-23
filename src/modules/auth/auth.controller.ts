@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
   Res,
 } from '@nestjs/common';
@@ -13,6 +14,8 @@ import type { Response } from 'express';
 
 import { AuthService } from './auth.service';
 import { PermisosService } from './permisos.service';
+import { ActualizarPerfilDto } from './dto/actualizar-perfil.dto';
+import { CambiarContrasenaDto } from './dto/cambiar-contrasena.dto';
 import { LoginDto } from './dto/login.dto';
 import { Publico } from './decorators/publico.decorator';
 import { UsuarioActual } from './decorators/usuario-actual.decorator';
@@ -78,6 +81,38 @@ export class AuthController {
   @ApiCookieAuth('cookie')
   perfil(@UsuarioActual() usuario: UsuarioAutenticado) {
     return usuario;
+  }
+
+  @Patch('perfil')
+  @ApiCookieAuth('cookie')
+  @ApiOperation({
+    summary: 'Actualizar el nombre y el correo de la sesión actual',
+  })
+  async actualizarPerfil(
+    @UsuarioActual() usuario: UsuarioAutenticado,
+    @Body() dto: ActualizarPerfilDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const resultado = await this.auth.actualizarPerfil(usuario, dto);
+
+    res.cookie(
+      NOMBRE_COOKIE_ACCESO,
+      resultado.accessToken,
+      this.auth.opcionesParaSetCookie(),
+    );
+
+    return resultado.usuario;
+  }
+
+  @Patch('perfil/contrasena')
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth('cookie')
+  @ApiOperation({ summary: 'Cambiar la contraseña de la sesión actual' })
+  cambiarContrasena(
+    @UsuarioActual() usuario: UsuarioAutenticado,
+    @Body() dto: CambiarContrasenaDto,
+  ) {
+    return this.auth.cambiarContrasena(usuario, dto);
   }
 
   /**

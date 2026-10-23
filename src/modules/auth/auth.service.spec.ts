@@ -5,6 +5,7 @@
  * IntentosLoginService. bcrypt se ejecuta de verdad (hash de costo bajo).
  */
 import {
+  BadRequestException,
   ForbiddenException,
   HttpException,
   UnauthorizedException,
@@ -16,7 +17,10 @@ import { AuthService } from './auth.service';
 describe('AuthService', () => {
   const usuarios = {
     buscarParaAutenticar: jest.fn(),
+    buscarParaAutenticarPorId: jest.fn(),
     registrarUltimoAcceso: jest.fn(),
+    actualizarPerfilPropio: jest.fn(),
+    reemplazarContrasena: jest.fn(),
   };
   const jwt = { signAsync: jest.fn() };
   const intentos = {
@@ -228,6 +232,88 @@ describe('AuthService', () => {
         sameSite: 'lax',
         path: '/',
       });
+    });
+  });
+
+  describe('actualizarPerfil', () => {
+    it('persiste los datos y vuelve a firmar el JWT', async () => {
+      usuarios.actualizarPerfilPropio.mockResolvedValue({
+        id: 'u-1',
+        nombre: 'Ana Mora',
+        correo: 'ana.mora@ctp27.test',
+        rol: RolUsuario.DOCENTE_AGRICOLA,
+      });
+
+      const r = await servicio.actualizarPerfil(
+        {
+          id: 'u-1',
+          nombre: 'Ana',
+          correo: 'ana@ctp27.test',
+          rol: RolUsuario.DOCENTE_AGRICOLA,
+        },
+        { nombre: 'Ana Mora', correo: 'ana.mora@ctp27.test' },
+      );
+
+      expect(usuarios.actualizarPerfilPropio).toHaveBeenCalledWith('u-1', {
+        nombre: 'Ana Mora',
+        correo: 'ana.mora@ctp27.test',
+      });
+      expect(jwt.signAsync).toHaveBeenCalledWith({
+        sub: 'u-1',
+        correo: 'ana.mora@ctp27.test',
+        nombre: 'Ana Mora',
+        rol: RolUsuario.DOCENTE_AGRICOLA,
+      });
+      expect(r.usuario.nombre).toBe('Ana Mora');
+    });
+  });
+
+  describe('cambiarContrasena', () => {
+    const actor = {
+      id: 'u-1',
+      nombre: 'Ana',
+      correo: 'ana@ctp27.test',
+      rol: RolUsuario.DOCENTE_AGRICOLA,
+    };
+
+    it('rechaza si la contraseña actual no coincide', async () => {
+      usuarios.buscarParaAutenticarPorId.mockResolvedValue(usuario());
+
+      await expect(
+        servicio.cambiarContrasena(actor, {
+          contrasenaActual: 'Mala1234',
+          contrasenaNueva: 'Nueva1234',
+        }),
+      ).rejects.toThrow(
+        new UnauthorizedException('La contraseña actual no es correcta.'),
+      );
+      expect(usuarios.reemplazarContrasena).not.toHaveBeenCalled();
+    });
+
+    it('rechaza si la nueva contraseña es igual a la actual', async () => {
+      usuarios.buscarParaAutenticarPorId.mockResolvedValue(usuario());
+
+      await expect(
+        servicio.cambiarContrasena(actor, {
+          contrasenaActual: 'Correcta1',
+          contrasenaNueva: 'Correcta1',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('guarda un hash nuevo cuando la actual es correcta', async () => {
+      usuarios.buscarParaAutenticarPorId.mockResolvedValue(usuario());
+
+      await expect(
+        servicio.cambiarContrasena(actor, {
+          contrasenaActual: 'Correcta1',
+          contrasenaNueva: 'Nueva1234',
+        }),
+      ).resolves.toEqual({ ok: true });
+      expect(usuarios.reemplazarContrasena).toHaveBeenCalledWith(
+        'u-1',
+        expect.stringMatching(/^\$2[aby]\$12\$/),
+      );
     });
   });
 
