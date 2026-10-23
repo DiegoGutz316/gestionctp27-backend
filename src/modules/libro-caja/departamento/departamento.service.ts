@@ -12,6 +12,7 @@ import {
 import type { ResultadoPaginado } from '../../../common/paginacion/tipos/resultado-paginado';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { LibroCajaPolicy } from '../libro-caja.policy';
+import { AsientoCaja } from '../periodo/entities/asiento-caja.entity';
 import { FondoCaja } from '../periodo/entities/fondo-caja.entity';
 import { PeriodoCaja } from '../periodo/entities/periodo-caja.entity';
 import { EstadoFondo } from '../periodo/enums/estado-fondo.enum';
@@ -153,9 +154,34 @@ export class DepartamentoService {
   ): Promise<DepartamentoCajaRespuesta> {
     this.policy.exigirAdministrador(actor);
     const departamento = await this.buscar(id, true);
-    departamento.activo = false;
-    departamento.actualizadoPor = actor.id;
-    return mapearDepartamento(await this.departamentosRepo.save(departamento));
+
+    return this.dataSource.transaction(async (manager) => {
+      departamento.activo = false;
+      departamento.actualizadoPor = actor.id;
+      const guardado = await manager.save(DepartamentoCaja, departamento);
+
+      const abierto = await manager.findOne(PeriodoCaja, {
+        where: { estado: EstadoPeriodo.ABIERTO },
+      });
+      if (abierto) {
+        const fondo = await manager.findOne(FondoCaja, {
+          where: {
+            periodo: { id: abierto.id },
+            departamento: { id: departamento.id },
+          },
+        });
+        if (fondo) {
+          const asientos = await manager.count(AsientoCaja, {
+            where: { fondo: { id: fondo.id } },
+          });
+          if (asientos === 0) {
+            await manager.delete(FondoCaja, fondo.id);
+          }
+        }
+      }
+
+      return mapearDepartamento(guardado);
+    });
   }
 
   private async buscar(

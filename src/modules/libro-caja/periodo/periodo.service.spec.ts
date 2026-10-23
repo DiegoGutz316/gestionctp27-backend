@@ -238,6 +238,84 @@ describe('PeriodoService', () => {
     ]);
   });
 
+  it('al consultar un periodo abierto quita un departamento inactivo sin asientos', async () => {
+    const ahora = new Date('2026-09-04T18:54:31.000Z');
+    const agricola = {
+      id: 1,
+      nombreUnidad: 'Agricola',
+      tipoActividad: 'Produccion agricola',
+      activo: true,
+      creadoEn: ahora,
+      actualizadoEn: ahora,
+    };
+    const gallina = {
+      id: 3,
+      nombreUnidad: 'Gallina',
+      tipoActividad: 'Pro Pecuaria',
+      activo: false,
+      creadoEn: ahora,
+      actualizadoEn: ahora,
+    };
+    const periodo = {
+      id: 4,
+      nombre: 'I Periodo 2026',
+      fechaInicio: '2026-09-04',
+      fechaFin: '2026-12-17',
+      estado: EstadoPeriodo.ABIERTO,
+      creadoEn: ahora,
+      actualizadoEn: ahora,
+    };
+    const fondoGallina = {
+      id: 10,
+      montoSolicitado: null,
+      estado: EstadoFondo.PENDIENTE,
+      solicitadoEn: null,
+      pieInforme: null,
+      creadoEn: ahora,
+      actualizadoEn: ahora,
+      departamento: gallina,
+    };
+    const eliminados: number[] = [];
+    const manager = {
+      find: jest.fn((entidad: unknown) => {
+        if (entidad === DepartamentoCaja) return Promise.resolve([agricola]);
+        if (entidad === FondoCaja) return Promise.resolve([fondoGallina]);
+        return Promise.resolve([]);
+      }),
+      count: jest.fn().mockResolvedValue(0),
+      delete: jest.fn((_entidad: unknown, id: number) => {
+        eliminados.push(id);
+        return Promise.resolve({ affected: 1 });
+      }),
+      create: jest.fn((_entidad: unknown, valor: object) => valor),
+      save: jest.fn((_entidad: unknown, valor: unknown) => Promise.resolve(valor)),
+    };
+    const periodosRepo = {
+      findOne: jest.fn().mockResolvedValue(periodo),
+      createQueryBuilder: jest.fn().mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue({ ...periodo, fondos: [] }),
+      }),
+    };
+    const service = new PeriodoService(
+      periodosRepo as never,
+      {
+        transaction: jest.fn((operacion: (m: EntityManager) => unknown) =>
+          operacion(manager as unknown as EntityManager),
+        ),
+      } as DataSource,
+      policy,
+    );
+
+    const resultado = await service.obtener(4);
+
+    expect(eliminados).toEqual([10]);
+    expect(resultado.fondos).toEqual([]);
+  });
+
   it('no abre un periodo si ya hay otro abierto', async () => {
     const manager = {
       findOne: jest.fn().mockResolvedValue({

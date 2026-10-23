@@ -76,9 +76,9 @@ export class PeriodoService {
   }
 
   /**
-   * Un departamento creado después de abrir el periodo no trae fondo.
-   * Al consultar el periodo abierto se le crea uno pendiente, para que
-   * aparezca en la lista y se pueda solicitar el monto inicial.
+   * El periodo abierto sigue a los departamentos activos: suma los que
+   * faltan y quita los desactivados que todavía no tienen asientos.
+   * Si ya hay movimientos, el fondo se conserva porque forma parte del libro.
    */
   private async incorporarDepartamentosActivos(id: number): Promise<void> {
     const periodo = await this.periodosRepo.findOne({ where: { id } });
@@ -94,8 +94,20 @@ export class PeriodoService {
           where: { periodo: { id: periodo.id } },
           relations: { departamento: true },
         });
+        for (const fondo of fondos) {
+          if (fondo.departamento.activo) continue;
+          const asientos = await manager.count(AsientoCaja, {
+            where: { fondo: { id: fondo.id } },
+          });
+          if (asientos === 0) {
+            await manager.delete(FondoCaja, fondo.id);
+          }
+        }
+
         const presentes = new Set(
-          fondos.map((fondo) => fondo.departamento.id),
+          fondos
+            .filter((fondo) => fondo.departamento.activo)
+            .map((fondo) => fondo.departamento.id),
         );
         const faltantes = departamentos.filter(
           (departamento) => !presentes.has(departamento.id),
