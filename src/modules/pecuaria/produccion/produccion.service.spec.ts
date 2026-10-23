@@ -99,19 +99,91 @@ describe('ProduccionService', () => {
     );
   });
 
-  it('acepta leche, huevos o carne para cualquier animal activo', async () => {
-    const { service } = crearServicio({ animal: animalActivo });
+  describe('compatibilidad entre especie y tipo de producción', () => {
+    it.each([
+      ['CABRA', TipoProduccion.LECHE],
+      ['GALLINA', TipoProduccion.HUEVOS],
+      ['VACA', TipoProduccion.LECHE],
+      ['VACA', TipoProduccion.CARNE],
+    ])('acepta %s + %s', async (especie, tipoProduccion) => {
+      const { service, produccionRepo } = crearServicio({
+        animal: { ...animalActivo, especie },
+      });
 
-    await expect(
-      service.registrar(
-        { ...dto, tipoProduccion: TipoProduccion.HUEVOS },
-        actor,
-      ),
-    ).resolves.toEqual(
-      expect.objectContaining({
-        tipoProduccion: TipoProduccion.HUEVOS,
-      }),
+      await expect(
+        service.registrar({ ...dto, tipoProduccion }, actor),
+      ).resolves.toEqual(expect.objectContaining({ tipoProduccion }));
+      expect(produccionRepo.save).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      [
+        'CABRA',
+        TipoProduccion.HUEVOS,
+        'El tipo de producción Huevos no corresponde a la especie Cabra',
+      ],
+      [
+        'CABRA',
+        TipoProduccion.CARNE,
+        'El tipo de producción Carne no corresponde a la especie Cabra',
+      ],
+      [
+        'GALLINA',
+        TipoProduccion.LECHE,
+        'El tipo de producción Leche no corresponde a la especie Gallina',
+      ],
+      [
+        'CHANCHO',
+        TipoProduccion.LECHE,
+        'El tipo de producción Leche no corresponde a la especie Chancho',
+      ],
+    ])(
+      'rechaza %s + %s con 400 y sin guardar',
+      async (especie, tipoProduccion, mensaje) => {
+        const { service, produccionRepo } = crearServicio({
+          animal: { ...animalActivo, especie },
+        });
+
+        const error = await service
+          .registrar({ ...dto, tipoProduccion }, actor)
+          .catch((e: unknown) => e);
+
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect((error as BadRequestException).message).toBe(mensaje);
+        expect(produccionRepo.create).not.toHaveBeenCalled();
+        expect(produccionRepo.save).not.toHaveBeenCalled();
+      },
     );
+
+    it('responde 404 por animal inexistente antes de revisar la especie', async () => {
+      const { service } = crearServicio({ animal: null });
+
+      await expect(
+        service.registrar(
+          { ...dto, tipoProduccion: TipoProduccion.HUEVOS },
+          actor,
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('responde el error de animal inactivo antes de revisar la especie', async () => {
+      const { service } = crearServicio({
+        animal: {
+          ...animalActivo,
+          especie: 'CABRA',
+          estado: 'INACTIVO',
+        },
+      });
+
+      await expect(
+        service.registrar(
+          { ...dto, tipoProduccion: TipoProduccion.HUEVOS },
+          actor,
+        ),
+      ).rejects.toThrow(
+        'Solo se puede registrar producción de un animal activo.',
+      );
+    });
   });
 
   it('consulta producción por animal, aplica el período y calcula totales', async () => {
