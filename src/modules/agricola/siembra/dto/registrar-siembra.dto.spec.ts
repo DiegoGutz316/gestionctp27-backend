@@ -1,14 +1,16 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
+import { UnidadSiembra } from '../enums/unidad-siembra.enum';
 import { RegistrarSiembraDto } from './registrar-siembra.dto';
 
 describe('RegistrarSiembraDto', () => {
   const datosValidos = {
     camaId: 1,
-    tipoCultivo: 'Tomate',
+    cultivoId: 1,
     fechaSiembra: '2026-09-15',
     cantidadSembrada: 25,
+    unidadSembrada: UnidadSiembra.UNIDADES,
   };
 
   it('acepta una siembra válida', async () => {
@@ -19,7 +21,7 @@ describe('RegistrarSiembraDto', () => {
 
   it('rechaza una siembra sin cama', async () => {
     const errores = await validar({
-      tipoCultivo: datosValidos.tipoCultivo,
+      cultivoId: datosValidos.cultivoId,
       fechaSiembra: datosValidos.fechaSiembra,
       cantidadSembrada: datosValidos.cantidadSembrada,
     });
@@ -48,6 +50,24 @@ describe('RegistrarSiembraDto', () => {
       true,
     );
   });
+  it('rechaza una siembra sin unidad', async () => {
+    const { unidadSembrada: _omitida, ...sinUnidad } = datosValidos;
+    const errores = await validar(sinUnidad);
+
+    expect(
+      errores.some((error) => error.property === 'unidadSembrada'),
+    ).toBe(true);
+  });
+
+  it.each([UnidadSiembra.G, UnidadSiembra.KG])(
+    'acepta lo sembrado medido en %s',
+    async (unidadSembrada) => {
+      const errores = await validar({ ...datosValidos, unidadSembrada });
+
+      expect(errores).toHaveLength(0);
+    },
+  );
+
 });
 
 async function validar(datos: object) {

@@ -12,6 +12,7 @@ import { Siembra } from '../siembra/entities/siembra.entity';
 
 import { ConsultarTratamientosDto } from './dto/consultar-tratamientos.dto';
 import { RegistrarTratamientoDto } from './dto/registrar-tratamiento.dto';
+import { usaProducto } from './enums/actividad-agricola.enum';
 import { TratamientoAgricola } from './entities/tratamiento-agricola.entity';
 import {
   mapearTratamiento,
@@ -43,7 +44,7 @@ export class TratamientoService {
 
     if (siembra.finalizadaEn) {
       throw new ConflictException(
-        'No se puede registrar un tratamiento en una cama sin siembra activa.',
+        'No se puede registrar un cuidado en una siembra ya finalizada.',
       );
     }
 
@@ -53,17 +54,23 @@ export class TratamientoService {
     // el cronologico.
     if (dto.fecha < siembra.fechaSiembra) {
       throw new BadRequestException(
-        'La fecha del tratamiento no puede ser anterior a la fecha de siembra.',
+        'La fecha del cuidado no puede ser anterior a la fecha de siembra.',
       );
     }
 
+    // Un riego o una limpieza no llevan producto. El DTO ya rechaza que
+    // vengan datos de producto en esas actividades; aqui se normalizan a null
+    // para que la columna no guarde un indefinido.
+    const conProducto = usaProducto(dto.actividad);
+
     const tratamiento = this.tratamientosRepo.create({
       siembra,
-      tipo: dto.tipo,
-      producto: dto.producto,
+      actividad: dto.actividad,
+      tipo: conProducto ? (dto.tipo ?? null) : null,
+      producto: conProducto ? (dto.producto ?? null) : null,
       fecha: dto.fecha,
-      cantidad: dto.cantidad,
-      unidad: dto.unidad,
+      cantidad: conProducto ? (dto.cantidad ?? null) : null,
+      unidad: conProducto ? (dto.unidad ?? null) : null,
       observaciones: dto.observaciones ?? null,
       creadoPor: actor.id,
     });
