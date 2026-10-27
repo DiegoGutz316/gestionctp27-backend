@@ -4,9 +4,11 @@ import { JwtModule, type JwtSignOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { MailModule } from '../../common/mail/mail.module';
 import { AuthController } from './auth.controller';
 import { PermisoRol } from './entities/permiso-rol.entity';
 import { IntentoLogin } from './entities/intento-login.entity';
+import { TokenRestablecerContrasena } from './entities/token-restablecer-contrasena.entity';
 import { AuthService } from './auth.service';
 import { PermisosService } from './permisos.service';
 import { IntentosLoginService } from './intentos-login.service';
@@ -52,9 +54,14 @@ function resolverExpiracion(config: ConfigService): StringValue {
 @Module({
   imports: [
     UsuariosModule,
+    MailModule,
     PassportModule,
     // Backlog 1.6: matriz de permisos por rol.
-    TypeOrmModule.forFeature([PermisoRol, IntentoLogin]),
+    TypeOrmModule.forFeature([
+      PermisoRol,
+      IntentoLogin,
+      TokenRestablecerContrasena,
+    ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

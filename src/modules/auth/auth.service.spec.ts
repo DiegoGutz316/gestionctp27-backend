@@ -28,6 +28,13 @@ describe('AuthService', () => {
     registrarFallo: jest.fn(),
     limpiar: jest.fn(),
   };
+  const mail = { enviarCorreo: jest.fn() };
+  const tokensRestablecer = {
+    delete: jest.fn(),
+    save: jest.fn(),
+    create: jest.fn((v: unknown) => v),
+    findOne: jest.fn(),
+  };
   const entorno: Record<string, string | undefined> = {};
   const config = {
     get: jest.fn(
@@ -61,11 +68,16 @@ describe('AuthService', () => {
     intentos.segundosRestantes.mockResolvedValue(null);
     intentos.registrarFallo.mockResolvedValue(null);
     jwt.signAsync.mockResolvedValue('jwt-firmado');
+    mail.enviarCorreo.mockResolvedValue(undefined);
+    tokensRestablecer.delete.mockResolvedValue(undefined);
+    tokensRestablecer.save.mockImplementation(async (v: unknown) => v);
     servicio = new AuthService(
       usuarios as never,
       jwt as never,
       config as never,
       intentos as never,
+      mail as never,
+      tokensRestablecer as never,
     );
   });
 
@@ -216,6 +228,8 @@ describe('AuthService', () => {
         jwt as never,
         config as never,
         intentos as never,
+        mail as never,
+        tokensRestablecer as never,
       );
       expect(s.opcionesParaSetCookie()).toMatchObject({
         secure: true,

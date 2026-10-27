@@ -4,18 +4,27 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import { createHash, randomBytes } from 'crypto';
+import { IsNull, MoreThan, Repository } from 'typeorm';
 
+import { MailService } from '../../common/mail/mail.service';
+import { obtenerOrigenesPermitidos } from '../../common/http/origenes-permitidos';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { IntentosLoginService } from './intentos-login.service';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import type { ActualizarPerfilDto } from './dto/actualizar-perfil.dto';
 import type { CambiarContrasenaDto } from './dto/cambiar-contrasena.dto';
 import type { LoginDto } from './dto/login.dto';
+import type { RestablecerContrasenaDto } from './dto/restablecer-contrasena.dto';
+import type { SolicitarRestablecimientoDto } from './dto/solicitar-restablecimiento.dto';
+import { TokenRestablecerContrasena } from './entities/token-restablecer-contrasena.entity';
 import type {
   JwtPayload,
   UsuarioAutenticado,
@@ -27,6 +36,8 @@ import {
   opcionesSetCookie,
   type OpcionesCookieAuth,
 } from './constantes/cookie-auth';
+
+const VIDA_TOKEN_RESTABLECER_MS = 60 * 60 * 1000;
 
 /**
  * Mensaje unico para correo inexistente y contrasena incorrecta.
@@ -44,6 +55,7 @@ const HASH_SENUELO =
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private readonly opcionesCookie: OpcionesCookieAuth;
 
   constructor(
@@ -51,6 +63,9 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly intentos: IntentosLoginService,
+    private readonly mail: MailService,
+    @InjectRepository(TokenRestablecerContrasena)
+    private readonly tokensRestablecer: Repository<TokenRestablecerContrasena>,
   ) {
     this.opcionesCookie = construirOpcionesCookie((key) =>
       this.config.get<string>(key),
@@ -195,6 +210,110 @@ export class AuthService {
     );
 
     return { ok: true };
+  }
+
+  /**
+   * Siempre responde ok para no revelar si el correo existe.
+   * Si la cuenta está activa, envía un enlace de un solo uso (1 hora).
+   */
+  async solicitarRestablecimiento(
+    dto: SolicitarRestablecimientoDto,
+  ): Promise<{ ok: true; mensaje: string }> {
+    const mensaje =
+      'Si el correo está registrado, enviamos instrucciones para restablecer la contraseña.';
+
+    const usuario = await this.usuarios.buscarParaAutenticar(dto.correo);
+    if (!usuario?.activo) {
+      return { ok: true, mensaje };
+    }
+
+    await this.tokensRestablecer.delete({
+      usuarioId: usuario.id,
+      usadoEn: IsNull(),
+    });
+
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = this.hashearTokenRestablecer(token);
+    const expiraEn = new Date(Date.now() + VIDA_TOKEN_RESTABLECER_MS);
+
+    await this.tokensRestablecer.save(
+      this.tokensRestablecer.create({
+        usuarioId: usuario.id,
+        tokenHash,
+        expiraEn,
+        usadoEn: null,
+      }),
+    );
+
+    const base =
+      this.config.get<string>('FRONTEND_URL')?.replace(/\/$/, '') ??
+      obtenerOrigenesPermitidos((k) => this.config.get<string>(k))[0];
+    const enlace = `${base}/restablecer-contrasena?token=${token}`;
+
+    try {
+      await this.mail.enviarCorreo({
+        destinatario: usuario.correo,
+        asunto: 'Restablecer contraseña — Gestión CTP 27',
+        html: `
+          <p>Hola ${usuario.nombre},</p>
+          <p>Recibimos una solicitud para restablecer la contraseña de su cuenta.</p>
+          <p><a href="${enlace}">Restablecer contraseña</a></p>
+          <p>El enlace vence en 1 hora. Si usted no pidió este cambio, ignore este correo.</p>
+        `,
+      });
+    } catch (error) {
+      this.logger.error(
+        `No se pudo enviar el correo de restablecimiento a ${usuario.correo}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
+
+    return { ok: true, mensaje };
+  }
+
+  async restablecerContrasena(
+    dto: RestablecerContrasenaDto,
+  ): Promise<{ ok: true }> {
+    const tokenHash = this.hashearTokenRestablecer(dto.token.trim());
+    const registro = await this.tokensRestablecer.findOne({
+      where: {
+        tokenHash,
+        usadoEn: IsNull(),
+        expiraEn: MoreThan(new Date()),
+      },
+    });
+
+    if (!registro) {
+      throw new BadRequestException(
+        'El enlace no es válido o ya expiró. Solicite uno nuevo.',
+      );
+    }
+
+    const usuario = await this.usuarios.buscarPorId(registro.usuarioId);
+    if (!usuario?.activo) {
+      throw new BadRequestException(
+        'El enlace no es válido o ya expiró. Solicite uno nuevo.',
+      );
+    }
+
+    await this.usuarios.reemplazarContrasena(
+      usuario.id,
+      await bcrypt.hash(dto.contrasenaNueva, 12),
+    );
+
+    registro.usadoEn = new Date();
+    await this.tokensRestablecer.save(registro);
+    await this.tokensRestablecer.delete({
+      usuarioId: usuario.id,
+      usadoEn: IsNull(),
+    });
+    await this.intentos.limpiar(usuario.correo);
+
+    return { ok: true };
+  }
+
+  private hashearTokenRestablecer(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
   }
 
   private async emitirSesion(usuario: {

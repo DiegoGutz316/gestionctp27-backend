@@ -17,6 +17,8 @@ import { PermisosService } from './permisos.service';
 import { ActualizarPerfilDto } from './dto/actualizar-perfil.dto';
 import { CambiarContrasenaDto } from './dto/cambiar-contrasena.dto';
 import { LoginDto } from './dto/login.dto';
+import { RestablecerContrasenaDto } from './dto/restablecer-contrasena.dto';
+import { SolicitarRestablecimientoDto } from './dto/solicitar-restablecimiento.dto';
 import { Publico } from './decorators/publico.decorator';
 import { UsuarioActual } from './decorators/usuario-actual.decorator';
 import type { UsuarioAutenticado } from './tipos/jwt-payload';
@@ -70,6 +72,26 @@ export class AuthController {
   logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie(NOMBRE_COOKIE_ACCESO, this.auth.opcionesParaClearCookie());
     return { ok: true };
+  }
+
+  @Publico()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @Post('recuperar-contrasena')
+  @ApiOperation({
+    summary: 'Solicitar enlace para restablecer contraseña',
+  })
+  solicitarRestablecimiento(@Body() dto: SolicitarRestablecimientoDto) {
+    return this.auth.solicitarRestablecimiento(dto);
+  }
+
+  @Publico()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @Post('restablecer-contrasena')
+  @ApiOperation({ summary: 'Definir una nueva contraseña con el token del correo' })
+  restablecerContrasena(@Body() dto: RestablecerContrasenaDto) {
+    return this.auth.restablecerContrasena(dto);
   }
 
   /**
