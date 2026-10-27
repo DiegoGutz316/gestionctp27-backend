@@ -18,6 +18,7 @@ import { InventarioModule } from './modules/inventario/inventario.module';
 import { LibroCajaModule } from './modules/libro-caja/libro-caja.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
 import { ComunicacionModule } from './modules/comunicacion/comunicacion.module';
+import { LandingModule } from './modules/landing/landing.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { OriginCsrfGuard } from './common/http/origin-csrf.guard';
 import { MailModule } from './common/mail/mail.module';
@@ -64,6 +65,7 @@ import { MailModule } from './common/mail/mail.module';
     LibroCajaModule,
     ReportesModule,
     ComunicacionModule,
+    LandingModule,
     DashboardModule,
   ],
   controllers: [AppController],

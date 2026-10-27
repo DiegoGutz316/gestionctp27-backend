@@ -23,6 +23,15 @@ export class IdempotenciaAsientoAnulado1820000000000
       ALTER TABLE "idempotencia_asientos"
       ALTER COLUMN "asiento_id" DROP NOT NULL
     `);
+    // Limpia referencias huérfanas antes de recrear la FK.
+    await queryRunner.query(`
+      UPDATE "idempotencia_asientos" i
+      SET "asiento_id" = NULL
+      WHERE "asiento_id" IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM "asientos_caja" a WHERE a."id" = i."asiento_id"
+        )
+    `);
     await queryRunner.query(`
       ALTER TABLE "idempotencia_asientos"
       ADD CONSTRAINT "fk_idempotencia_asiento"
