@@ -13,9 +13,9 @@ describe('expiracionAMs', () => {
   });
 
   it.each([undefined, '', 'abc', '10', '10x', '-5h'])(
-    'valor %p cae a 8 horas',
+    'valor %p cae a 1 hora',
     (valor) => {
-      expect(expiracionAMs(valor)).toBe(28_800_000);
+      expect(expiracionAMs(valor)).toBe(3_600_000);
     },
   );
 });
@@ -28,7 +28,7 @@ describe('construirOpcionesCookie', () => {
     expect(desde({})).toEqual({
       secure: false,
       sameSite: 'lax',
-      maxAge: 28_800_000,
+      maxAge: 3_600_000,
     });
   });
 

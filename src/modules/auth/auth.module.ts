@@ -24,11 +24,11 @@ type StringValue = Exclude<NonNullable<JwtSignOptions['expiresIn']>, number>;
  * Valor por defecto de expiracion del JWT, tipado como el `StringValue` que
  * espera `jsonwebtoken` (via @nestjs/jwt) y no como `string` generico.
  */
-const EXPIRACION_POR_DEFECTO: StringValue = '8h';
+const EXPIRACION_POR_DEFECTO: StringValue = '1h';
 
 /**
  * Formato aceptado por `ms` para `StringValue`: un numero solo, o un numero
- * seguido de una unidad (con o sin espacio), p. ej. "8h", "8 horas", "30".
+ * seguido de una unidad (con o sin espacio), p. ej. "1h", "30m", "30".
  */
 const PATRON_STRING_VALUE = /^\d+(\.\d+)?(\s?[a-zA-Z]+)?$/;
 

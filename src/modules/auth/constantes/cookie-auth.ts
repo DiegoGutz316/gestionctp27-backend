@@ -4,11 +4,11 @@ import type { CookieOptions } from 'express';
 export const NOMBRE_COOKIE_ACCESO = 'ctp27_access_token';
 
 /**
- * Convierte JWT_EXPIRACION (formato ms, p. ej. "8h") a milisegundos para maxAge.
- * Si el valor no es reconocible, usa 8 horas.
+ * Convierte JWT_EXPIRACION (formato ms, p. ej. "1h") a milisegundos para maxAge.
+ * Si el valor no es reconocible, usa 1 hora.
  */
 export function expiracionAMs(valor: string | undefined): number {
-  const porDefecto = 8 * 60 * 60 * 1000;
+  const porDefecto = 60 * 60 * 1000;
   if (!valor) return porDefecto;
 
   const match = /^(\d+(?:\.\d+)?)\s*([smhd])$/i.exec(valor.trim());

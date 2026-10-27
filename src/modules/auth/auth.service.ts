@@ -212,7 +212,7 @@ export class AuthService {
 
     return {
       accessToken: await this.jwt.signAsync(payload),
-      expiraEn: this.config.get<string>('JWT_EXPIRACION', '8h'),
+      expiraEn: this.config.get<string>('JWT_EXPIRACION', '1h'),
       usuario: {
         id: usuario.id,
         nombre: usuario.nombre,

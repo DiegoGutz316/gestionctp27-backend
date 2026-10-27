@@ -83,7 +83,7 @@ describe('AuthService', () => {
       });
       expect(r).toEqual({
         accessToken: 'jwt-firmado',
-        expiraEn: '8h',
+        expiraEn: '1h',
         usuario: {
           id: 'u-1',
           nombre: 'Ana',
@@ -95,9 +95,9 @@ describe('AuthService', () => {
     });
 
     it('usa JWT_EXPIRACION cuando está configurada', async () => {
-      entorno.JWT_EXPIRACION = '2h';
+      entorno.JWT_EXPIRACION = '30m';
       usuarios.buscarParaAutenticar.mockResolvedValue(usuario());
-      expect((await servicio.login(credenciales)).expiraEn).toBe('2h');
+      expect((await servicio.login(credenciales)).expiraEn).toBe('30m');
     });
 
     it('éxito: reinicia el contador de intentos y registra el último acceso', async () => {
@@ -197,13 +197,13 @@ describe('AuthService', () => {
   });
 
   describe('cookies de sesión', () => {
-    it('por defecto (local): httpOnly, Lax, sin Secure, 8 h', () => {
+    it('por defecto (local): httpOnly, Lax, sin Secure, 1 h', () => {
       expect(servicio.opcionesParaSetCookie()).toEqual({
         httpOnly: true,
         secure: false,
         sameSite: 'lax',
         path: '/',
-        maxAge: 8 * 3_600_000,
+        maxAge: 3_600_000,
       });
     });
 

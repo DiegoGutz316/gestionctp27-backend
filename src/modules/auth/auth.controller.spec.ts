@@ -180,7 +180,7 @@ describe('AuthController (endpoints)', () => {
       const usuario = usuarioDePrueba(RolUsuario.ADMINISTRADOR);
       auth.actualizarPerfil.mockResolvedValue({
         accessToken: 'jwt-nuevo',
-        expiraEn: '8h',
+        expiraEn: '1h',
         usuario: { ...usuario, nombre: datos.nombre, correo: datos.correo },
       });
 
