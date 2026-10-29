@@ -73,23 +73,35 @@ export class CatalogoCultivos1819000000000 implements MigrationInterface {
         "nombre", "nombre_normalizado", "tipo", "descripcion", "creado_por"
       )
       SELECT DISTINCT ON (normalizado)
-        btrim(s."tipo_cultivo"),
-        normalizado,
+        s.nombre,
+        s.normalizado,
         'OTRO',
         'Creado automáticamente a partir de las siembras ya registradas.',
         s."creado_por"
       FROM (
         SELECT
-          "tipo_cultivo",
+          nombre,
+          normalizado,
           "creado_por",
-          translate(
-            lower(btrim("tipo_cultivo")),
-            'áàäâãéèëêíìïîóòöôõúùüûñç',
-            'aaaaaeeeeiiiiooooouuuunc'
-          ) AS normalizado
-        FROM "siembras"
+          count(*) OVER (PARTITION BY normalizado, nombre) AS usos
+        FROM (
+          SELECT
+            btrim("tipo_cultivo") AS nombre,
+            "creado_por",
+            translate(
+              lower(btrim("tipo_cultivo")),
+              'áàäâãéèëêíìïîóòöôõúùüûñç',
+              'aaaaaeeeeiiiiooooouuuunc'
+            ) AS normalizado
+          FROM "siembras"
+        ) AS base
       ) AS s
-      WHERE btrim(s."tipo_cultivo") <> ''
+      WHERE s.nombre <> ''
+      -- Entre variantes del mismo nombre («Maíz», «maiz», «MAIZ») se queda la
+      -- mas escrita, y si empatan la primera alfabeticamente. Sin este orden
+      -- gana la fila que la base lea primero, y la migracion da un resultado
+      -- distinto en cada base.
+      ORDER BY s.normalizado, s.usos DESC, s.nombre
       ON CONFLICT ("nombre_normalizado") DO NOTHING
     `);
 
@@ -107,6 +119,35 @@ export class CatalogoCultivos1819000000000 implements MigrationInterface {
         'áàäâãéèëêíìïîóòöôõúùüûñç',
         'aaaaaeeeeiiiiooooouuuunc'
       )
+      AND s."cultivo_id" IS NULL
+    `);
+
+    // Siembras viejas con el cultivo vacio o en blanco: no se les creo cultivo
+    // y el SET NOT NULL de abajo detendria la migracion. Se les da uno de
+    // respaldo, que solo se crea si hace falta, para no dejar un cultivo
+    // inventado en las bases donde esto no pasa. `tipo_cultivo` no se toca: es
+    // el texto original de la siembra y sigue siendo su historia.
+    await queryRunner.query(`
+      INSERT INTO "cultivos" (
+        "nombre", "nombre_normalizado", "tipo", "descripcion", "creado_por"
+      )
+      SELECT
+        'Sin nombre',
+        'sin nombre',
+        'OTRO',
+        'Creado automáticamente para siembras que no indicaban cultivo. Reasígnelas al cultivo que corresponda.',
+        s."creado_por"
+      FROM "siembras" s
+      WHERE s."cultivo_id" IS NULL
+      LIMIT 1
+      ON CONFLICT ("nombre_normalizado") DO NOTHING
+    `);
+
+    await queryRunner.query(`
+      UPDATE "siembras" s
+      SET "cultivo_id" = c."id"
+      FROM "cultivos" c
+      WHERE c."nombre_normalizado" = 'sin nombre'
       AND s."cultivo_id" IS NULL
     `);
 
