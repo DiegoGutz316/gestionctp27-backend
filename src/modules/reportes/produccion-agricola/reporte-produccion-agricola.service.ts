@@ -176,7 +176,9 @@ export class ReporteProduccionAgricolaService {
     const consulta = this.tratamientosRepo
       .createQueryBuilder('tratamiento')
       .innerJoinAndSelect('tratamiento.siembra', 'siembra')
-      .innerJoin('siembra.cama', 'cama')
+      // Con innerJoin a secas la cama filtra pero no se trae, y el mapeo del
+      // tratamiento la lee: el reporte reventaba con un 500.
+      .innerJoinAndSelect('siembra.cama', 'cama')
       .where('tratamiento.fecha >= :fechaInicio', {
         fechaInicio: dto.fechaInicio,
       })

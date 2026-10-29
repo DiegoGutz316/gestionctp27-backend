@@ -63,6 +63,30 @@ describe('ReporteProduccionAgricolaService', () => {
     expect(resultado.tratamientos).toHaveLength(1);
   });
 
+  it('trae la cama de cada tratamiento, que el mapeo necesita', async () => {
+    // Con `innerJoin` a secas la cama filtra pero no se trae, y
+    // `mapearTratamiento` la lee: el reporte respondía 500 en cuanto el
+    // período incluía un tratamiento.
+    const { service, tratamientoConsulta } = crearServicio({
+      siembras: [],
+      cosechas: [],
+      tratamientos: [tratamiento],
+      totalesRaw: [],
+    });
+
+    const resultado = await service.generar(dto);
+
+    expect(tratamientoConsulta.innerJoinAndSelect).toHaveBeenCalledWith(
+      'siembra.cama',
+      'cama',
+    );
+    expect(tratamientoConsulta.innerJoin).not.toHaveBeenCalledWith(
+      'siembra.cama',
+      'cama',
+    );
+    expect(resultado.tratamientos[0].siembra.cama.id).toBe(cama.id);
+  });
+
   it('filtra por cultivo en las tres consultas', async () => {
     const { service, siembraConsulta, cosechaConsulta, tratamientoConsulta } =
       crearServicio({
