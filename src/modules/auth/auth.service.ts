@@ -43,7 +43,7 @@ const VIDA_TOKEN_RESTABLECER_MS = 60 * 60 * 1000;
  * Mensaje unico para correo inexistente y contrasena incorrecta.
  * Diferenciarlos permitiria averiguar que correos estan registrados.
  */
-const CREDENCIALES_INVALIDAS = 'El correo o la contrasena no son correctos.';
+const CREDENCIALES_INVALIDAS = 'El correo o la contraseña no son correctos.';
 
 /**
  * Hash valido de una contrasena que nadie conoce. Se compara contra el cuando
@@ -187,7 +187,7 @@ export class AuthService {
     const usuario = await this.usuarios.buscarParaAutenticarPorId(actor.id);
 
     if (!usuario) {
-      throw new UnauthorizedException('La sesion ya no es valida.');
+      throw new UnauthorizedException('La sesión ya no es válida.');
     }
 
     const actualCorrecta = await bcrypt.compare(

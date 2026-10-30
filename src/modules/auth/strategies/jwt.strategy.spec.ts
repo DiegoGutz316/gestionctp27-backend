@@ -163,7 +163,7 @@ describe('JwtStrategy + JwtAuthGuard (autenticación real)', () => {
     usuarios.buscarPorId.mockResolvedValue(enBd({ activo: false }));
     const res = await conCookie(token());
     expect(res.status).toBe(401);
-    expect(res.body.message).toBe('La sesion ya no es valida.');
+    expect(res.body.message).toBe('La sesión ya no es válida.');
   });
 
   it('el rol se toma de la BD, no del token: un cambio de rol aplica de inmediato', async () => {
