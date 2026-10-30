@@ -43,7 +43,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     const usuario = await this.usuarios.buscarPorId(payload.sub);
 
     if (!usuario || !usuario.activo) {
-      throw new UnauthorizedException('La sesion ya no es valida.');
+      throw new UnauthorizedException('La sesión ya no es válida.');
     }
 
     return {

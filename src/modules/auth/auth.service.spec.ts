@@ -126,7 +126,7 @@ describe('AuthService', () => {
         servicio.login({ ...credenciales, contrasena: 'mala' }),
       ).rejects.toThrow(
         new UnauthorizedException(
-          'El correo o la contrasena no son correctos.',
+          'El correo o la contraseña no son correctos.',
         ),
       );
       expect(intentos.registrarFallo).toHaveBeenCalledWith('ana@ctp27.test');
@@ -139,7 +139,7 @@ describe('AuthService', () => {
 
       await expect(servicio.login(credenciales)).rejects.toThrow(
         new UnauthorizedException(
-          'El correo o la contrasena no son correctos.',
+          'El correo o la contraseña no son correctos.',
         ),
       );
       expect(intentos.registrarFallo).toHaveBeenCalledWith('ana@ctp27.test');
