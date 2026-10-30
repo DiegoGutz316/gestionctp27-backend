@@ -11,7 +11,10 @@ import { QueryFailedError } from 'typeorm';
 import { crearRepositorioSimulado } from '../../../../test/helpers/typeorm-mocks';
 import { RolUsuario } from '../../usuarios/enums/rol-usuario.enum';
 import { LibroCajaPolicy } from '../libro-caja.policy';
+import { FondoCaja } from '../periodo/entities/fondo-caja.entity';
+import { PeriodoCaja } from '../periodo/entities/periodo-caja.entity';
 import { EstadoFondo } from '../periodo/enums/estado-fondo.enum';
+import { DepartamentoCaja } from './entities/departamento-caja.entity';
 import { DepartamentoService } from './departamento.service';
 
 const admin = {
@@ -34,7 +37,13 @@ const fila = (extra: object = {}) => ({
 
 describe('DepartamentoService', () => {
   let repo: ReturnType<typeof crearRepositorioSimulado>;
-  let manager: { save: jest.Mock; create: jest.Mock; findOne: jest.Mock };
+  let manager: {
+    save: jest.Mock;
+    create: jest.Mock;
+    findOne: jest.Mock;
+    count: jest.Mock;
+    delete: jest.Mock;
+  };
   let dataSource: { transaction: jest.Mock };
   let servicio: DepartamentoService;
 
@@ -51,6 +60,8 @@ describe('DepartamentoService', () => {
       ),
       create: jest.fn((_clase: unknown, datos: object) => datos),
       findOne: jest.fn().mockResolvedValue(null),
+      count: jest.fn().mockResolvedValue(0),
+      delete: jest.fn().mockResolvedValue({ affected: 1 }),
     };
     dataSource = {
       transaction: jest.fn((fn: (m: typeof manager) => unknown) => fn(manager)),
@@ -234,14 +245,60 @@ describe('DepartamentoService', () => {
   });
 
   describe('desactivar (PATCH :id/desactivar)', () => {
-    it('baja lógica con auditoría', async () => {
+    // La baja se guarda con el manager de la transacción, no con el
+    // repositorio: así entra junto con el borrado del fondo o no entra ninguno.
+    it('baja lógica con auditoría, dentro de la transacción', async () => {
       repo.findOne.mockResolvedValue(fila());
+
       const r = await servicio.desactivar(2, admin);
+
       expect(r.activo).toBe(false);
-      expect(repo.save).toHaveBeenCalledWith(
+      expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+      expect(manager.save).toHaveBeenCalledWith(
+        DepartamentoCaja,
         expect.objectContaining({ activo: false, actualizadoPor: 'a-1' }),
       );
       expect(repo.delete).not.toHaveBeenCalled();
+      expect(manager.delete).not.toHaveBeenCalledWith(
+        DepartamentoCaja,
+        expect.anything(),
+      );
+    });
+
+    it('quita el fondo del período abierto si no tiene asientos', async () => {
+      repo.findOne.mockResolvedValue(fila());
+      manager.findOne.mockImplementation((clase: unknown) =>
+        Promise.resolve(
+          clase === PeriodoCaja
+            ? { id: 7 }
+            : clase === FondoCaja
+              ? { id: 33 }
+              : null,
+        ),
+      );
+      manager.count.mockResolvedValue(0);
+
+      await servicio.desactivar(2, admin);
+
+      expect(manager.delete).toHaveBeenCalledWith(FondoCaja, 33);
+    });
+
+    it('conserva el fondo si ya tiene asientos registrados', async () => {
+      repo.findOne.mockResolvedValue(fila());
+      manager.findOne.mockImplementation((clase: unknown) =>
+        Promise.resolve(
+          clase === PeriodoCaja
+            ? { id: 7 }
+            : clase === FondoCaja
+              ? { id: 33 }
+              : null,
+        ),
+      );
+      manager.count.mockResolvedValue(4);
+
+      await servicio.desactivar(2, admin);
+
+      expect(manager.delete).not.toHaveBeenCalled();
     });
 
     it('404 si no existe o ya está inactivo', async () => {
