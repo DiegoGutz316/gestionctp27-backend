@@ -2,7 +2,7 @@ import { Logger, Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { DataSource } from 'typeorm';
 import { buildDatabaseOptions } from './database/database.config';
 import { AppController } from './app.controller';
@@ -21,6 +21,7 @@ import { ComunicacionModule } from './modules/comunicacion/comunicacion.module';
 import { LandingModule } from './modules/landing/landing.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { OriginCsrfGuard } from './common/http/origin-csrf.guard';
+import { ThrottlerPorSesionGuard } from './common/throttler/throttler-por-sesion.guard';
 import { MailModule } from './common/mail/mail.module';
 
 @Module({
@@ -79,7 +80,9 @@ import { MailModule } from './common/mail/mail.module';
         forbidNonWhitelisted: true,
       }),
     },
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // Cuenta el limite por sesion y no por IP: en el laboratorio del colegio
+    // todas las maquinas salen con la misma IP publica.
+    { provide: APP_GUARD, useClass: ThrottlerPorSesionGuard },
     { provide: APP_GUARD, useClass: OriginCsrfGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
