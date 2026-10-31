@@ -224,7 +224,7 @@ describe('CultivoService', () => {
       );
 
       cultivos.findOne.mockResolvedValue(cultivo({ descripcion: 'vieja' }));
-      await servicio.editar(4, { descripcion: null as unknown as string });
+      await servicio.editar(4, { descripcion: null });
       expect(cultivos.save).toHaveBeenLastCalledWith(
         expect.objectContaining({ descripcion: null }),
       );
@@ -268,6 +268,37 @@ describe('CultivoService', () => {
 
       await expect(servicio.eliminar(4)).rejects.toThrow(texto);
       expect(cultivos.delete).not.toHaveBeenCalled();
+    });
+
+    // Carrera: alguien confirma una siembra entre el conteo y el borrado.
+    it('si la siembra aparece en el medio: 409, no 500', async () => {
+      cultivos.findOne.mockResolvedValue(cultivo());
+      siembras.count.mockResolvedValue(0);
+      cultivos.delete.mockRejectedValue(
+        new QueryFailedError('DELETE', [], {
+          code: '23503',
+          constraint: 'siembras_cultivo_fk',
+        } as unknown as Error),
+      );
+
+      await expect(servicio.eliminar(4)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      await expect(servicio.eliminar(4)).rejects.toThrow(
+        'tiene siembras registradas',
+      );
+    });
+
+    it('otra violación de clave foránea no se disfraza de 409', async () => {
+      cultivos.findOne.mockResolvedValue(cultivo());
+      siembras.count.mockResolvedValue(0);
+      const otro = new QueryFailedError('DELETE', [], {
+        code: '23503',
+        constraint: 'otra_fk',
+      } as unknown as Error);
+      cultivos.delete.mockRejectedValue(otro);
+
+      await expect(servicio.eliminar(4)).rejects.toBe(otro);
     });
 
     it('404 si no existe', async () => {
