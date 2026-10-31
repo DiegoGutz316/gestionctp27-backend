@@ -16,6 +16,9 @@ import { Cultivo } from './entities/cultivo.entity';
 import { mapearCultivo, type CultivoRespuesta } from './respuestas/cultivo.mapper';
 
 const PG_UNIQUE_VIOLATION = '23505';
+const PG_FOREIGN_KEY_VIOLATION = '23503';
+/** La define la migracion 1819-CatalogoCultivos, sobre `siembras`. */
+const FK_SIEMBRA_CULTIVO = 'siembras_cultivo_fk';
 
 /** El indice unico es quien decide, no una consulta previa. */
 function esNombreRepetido(error: unknown): boolean {
@@ -23,6 +26,26 @@ function esNombreRepetido(error: unknown): boolean {
     error instanceof QueryFailedError &&
     (error as { driverError?: { code?: string } }).driverError?.code ===
       PG_UNIQUE_VIOLATION
+  );
+}
+
+/** Una siembra apunta al cultivo, asi que la BD no deja borrarlo. */
+function esSiembraQueUsaElCultivo(error: unknown): boolean {
+  if (!(error instanceof QueryFailedError)) return false;
+
+  const driver = (error as { driverError?: { code?: string; constraint?: string } })
+    .driverError;
+
+  return (
+    driver?.code === PG_FOREIGN_KEY_VIOLATION &&
+    driver?.constraint === FK_SIEMBRA_CULTIVO
+  );
+}
+
+function mensajeCultivoSembrado(nombre: string, detalle: string): string {
+  return (
+    `No se puede eliminar el cultivo "${nombre}": ${detalle}. ` +
+    'Desactívelo para que deje de ofrecerse al sembrar.'
   );
 }
 
@@ -145,13 +168,28 @@ export class CultivoService {
 
     if (siembras > 0) {
       throw new ConflictException(
-        `No se puede eliminar el cultivo "${cultivo.nombre}": tiene ${siembras} ` +
-          `${siembras === 1 ? 'siembra registrada' : 'siembras registradas'}. ` +
-          'Desactívelo para que deje de ofrecerse al sembrar.',
+        mensajeCultivoSembrado(
+          cultivo.nombre,
+          `tiene ${siembras} ` +
+            `${siembras === 1 ? 'siembra registrada' : 'siembras registradas'}`,
+        ),
       );
     }
 
-    await this.cultivosRepo.delete(id);
+    try {
+      await this.cultivosRepo.delete(id);
+    } catch (error) {
+      // Entre el conteo de arriba y este borrado alguien pudo confirmar una
+      // siembra con este cultivo. La clave foranea lo impide, pero ese error
+      // saldria como 500: es el mismo conflicto de arriba y se responde igual.
+      if (esSiembraQueUsaElCultivo(error)) {
+        throw new ConflictException(
+          mensajeCultivoSembrado(cultivo.nombre, 'tiene siembras registradas'),
+        );
+      }
+
+      throw error;
+    }
   }
 
   async obtener(id: number): Promise<Cultivo> {

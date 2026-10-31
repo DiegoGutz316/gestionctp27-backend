@@ -31,7 +31,10 @@ import {
 } from './respuestas/siembra.mapper';
 
 const PG_UNIQUE_VIOLATION = '23505';
+const PG_FOREIGN_KEY_VIOLATION = '23503';
 const INDICE_SIEMBRA_ACTIVA = 'siembras_cama_activa_unica';
+/** La define la migracion 1819-CatalogoCultivos. */
+const FK_SIEMBRA_CULTIVO = 'siembras_cultivo_fk';
 
 const MENSAJE_CAMA_OCUPADA =
   'La cama seleccionada ya tiene una siembra activa.';
@@ -229,8 +232,28 @@ export class SiembraService {
         throw new ConflictException(MENSAJE_CAMA_OCUPADA);
       }
 
+      // El cultivo se leyo al principio; si alguien lo borro mientras tanto,
+      // la clave foranea rechaza el INSERT y eso saldria como 500.
+      if (this.esCultivoInexistente(error)) {
+        throw new NotFoundException('El cultivo seleccionado no existe.');
+      }
+
       throw error;
     }
+  }
+
+  private esCultivoInexistente(error: unknown): boolean {
+    if (!(error instanceof QueryFailedError)) return false;
+
+    const driver = error.driverError as {
+      code?: string;
+      constraint?: string;
+    };
+
+    return (
+      driver?.code === PG_FOREIGN_KEY_VIOLATION &&
+      driver?.constraint === FK_SIEMBRA_CULTIVO
+    );
   }
 
   private esSiembraActivaDuplicada(error: unknown): boolean {

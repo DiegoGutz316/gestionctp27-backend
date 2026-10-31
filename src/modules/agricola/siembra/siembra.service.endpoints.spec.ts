@@ -169,6 +169,47 @@ describe('SiembraService - reglas de negocio', () => {
       expect(camas.save).not.toHaveBeenCalled();
     });
 
+    it('carrera: si borran el cultivo mientras se siembra, da 404 y no 500', async () => {
+      const cama = camaBase();
+      camas.findOne.mockResolvedValue(cama);
+      siembras.findOne.mockResolvedValue(null);
+      siembras.save.mockRejectedValue(
+        new QueryFailedError(
+          'INSERT',
+          [],
+          Object.assign(new Error('fk'), {
+            code: '23503',
+            constraint: 'siembras_cultivo_fk',
+          }),
+        ),
+      );
+
+      await expect(servicio.registrar(dto, actor)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      await expect(servicio.registrar(dto, actor)).rejects.toThrow(
+        'El cultivo seleccionado no existe.',
+      );
+      expect(cama.estado).toBe(EstadoCamaCultivo.DISPONIBLE);
+      expect(camas.save).not.toHaveBeenCalled();
+    });
+
+    it('una clave foránea de otra columna no se disfraza de 404 y se propaga', async () => {
+      camas.findOne.mockResolvedValue(camaBase());
+      siembras.findOne.mockResolvedValue(null);
+      const otro = new QueryFailedError(
+        'INSERT',
+        [],
+        Object.assign(new Error('fk'), {
+          code: '23503',
+          constraint: 'siembras_cama_fk',
+        }),
+      );
+      siembras.save.mockRejectedValue(otro);
+
+      await expect(servicio.registrar(dto, actor)).rejects.toBe(otro);
+    });
+
     it('un UNIQUE de otro índice no se confunde con cama ocupada y se propaga', async () => {
       camas.findOne.mockResolvedValue(camaBase());
       siembras.findOne.mockResolvedValue(null);
