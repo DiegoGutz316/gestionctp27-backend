@@ -1,0 +1,7 @@
+{
+  "id": "USAB-01",
+  "estado": "PASS",
+  "problemas": "Ingreso 85000; saldo 195000 → 280000",
+  "evidencia": "USAB-01.json",
+  "at": "2026-11-06T16:45:31.456Z"
+}

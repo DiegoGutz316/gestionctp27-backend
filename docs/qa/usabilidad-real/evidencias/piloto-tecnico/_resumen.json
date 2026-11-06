@@ -1,0 +1,68 @@
+{
+  "api": "http://127.0.0.1:4011",
+  "pass": 10,
+  "fail": 0,
+  "blocked": 0,
+  "results": [
+    {
+      "id": "USAB-01",
+      "estado": "PASS",
+      "problemas": "Ingreso 85000; saldo 195000 → 280000",
+      "evidencia": "USAB-01.json"
+    },
+    {
+      "id": "USAB-02",
+      "estado": "PASS",
+      "problemas": "Fondo agrícola solicitado 150000 (HTTP 201)",
+      "evidencia": "USAB-02.json"
+    },
+    {
+      "id": "USAB-03",
+      "estado": "PASS",
+      "problemas": "Egreso 5000→3000 asiento #13",
+      "evidencia": "USAB-03.json"
+    },
+    {
+      "id": "USAB-04",
+      "estado": "PASS",
+      "problemas": "Animal id=13 BOV-QA-01",
+      "evidencia": "USAB-04.json"
+    },
+    {
+      "id": "USAB-05",
+      "estado": "PASS",
+      "problemas": "Producción leche Luna id=3",
+      "evidencia": "USAB-05.json"
+    },
+    {
+      "id": "USAB-06",
+      "estado": "PASS",
+      "problemas": "Salud Luna id=2",
+      "evidencia": "USAB-06.json"
+    },
+    {
+      "id": "USAB-07",
+      "estado": "PASS",
+      "problemas": "Siembra lechuga 50 uds id=6 cama=USAB-REAL-LIBRE",
+      "evidencia": "USAB-07.json"
+    },
+    {
+      "id": "USAB-08",
+      "estado": "PASS",
+      "problemas": "Cosecha 12.5 kg; siembra 3 sigue activa",
+      "evidencia": "USAB-08.json"
+    },
+    {
+      "id": "USAB-09",
+      "estado": "PASS",
+      "problemas": "Aviso #3 + flyer; Directora 403 OK",
+      "evidencia": "USAB-09.json"
+    },
+    {
+      "id": "USAB-10",
+      "estado": "PASS",
+      "problemas": "Directora lee 2 asientos y guarda pie informe. Excel: capa FE.",
+      "evidencia": "USAB-10.json"
+    }
+  ]
+}

@@ -10,6 +10,11 @@ build/
 .env.*
 !.env.example
 
+# Respaldos locales y secretos de evaluación QA
+backups/
+docs/qa/usabilidad-real/CREDENCIALES.local.md
+docs/qa/usabilidad-real/**/CREDENCIALES*.local.md
+
 # Logs
 logs/
 *.log
