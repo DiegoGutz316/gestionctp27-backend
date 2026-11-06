@@ -15,7 +15,8 @@ Documentación y baseline para las **10 pruebas USAB** con profesores y director
 | [09-informe-final-plantilla.md](09-informe-final-plantilla.md) | Informe sin resultados inventados |
 | [10-checklist-dia-pruebas.md](10-checklist-dia-pruebas.md) | Checklist antes/durante/después |
 | [11-informe-piloto.md](11-informe-piloto.md) | Piloto técnico 10/10 PASS (no usuarios reales) |
+| [12-panel-evaluacion.md](12-panel-evaluacion.md) | Panel QA para registrar sesiones reales e informe |
 
 **Scripts QA:** `backup-qa.mjs`, `prepare-usab-real.mjs`, `verify-usab-real.mjs`, `clone-qa-to-piloto.mjs`, `piloto-usab-api.mjs`
 
-**Sesiones con personas:** pendientes de ejecución.
+**Sesiones con personas:** pendientes de ejecución (no se inventan resultados).
