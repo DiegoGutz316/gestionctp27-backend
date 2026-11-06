@@ -1,5 +1,6 @@
 import type { AsientoCaja } from '../entities/asiento-caja.entity';
 import type { FondoCaja } from '../entities/fondo-caja.entity';
+import { EstadoAsiento } from '../enums/estado-asiento.enum';
 import {
   mapearFondo,
   mapearPeriodoResumen,
@@ -16,6 +17,10 @@ export interface AsientoCajaRespuesta {
   ingresos: number;
   egresos: number;
   saldo: number;
+  estado: EstadoAsiento;
+  motivoAnulacion: string | null;
+  anuladoEn: Date | null;
+  anuladoPor: string | null;
   creadoEn: Date;
   actualizadoEn: Date;
 }
@@ -48,9 +53,12 @@ export function mapearLibroDepartamento(
   let totalEgresos = 0;
 
   const filas = asientos.map((asiento) => {
-    totalIngresos = redondearColones(totalIngresos + asiento.ingresos);
-    totalEgresos = redondearColones(totalEgresos + asiento.egresos);
-    saldo = redondearColones(saldo + asiento.ingresos - asiento.egresos);
+    const vigente = asiento.estado !== EstadoAsiento.ANULADO;
+    if (vigente) {
+      totalIngresos = redondearColones(totalIngresos + asiento.ingresos);
+      totalEgresos = redondearColones(totalEgresos + asiento.egresos);
+      saldo = redondearColones(saldo + asiento.ingresos - asiento.egresos);
+    }
     return {
       id: asiento.id,
       numero: asiento.numero,
@@ -60,6 +68,10 @@ export function mapearLibroDepartamento(
       ingresos: asiento.ingresos,
       egresos: asiento.egresos,
       saldo,
+      estado: asiento.estado ?? EstadoAsiento.VIGENTE,
+      motivoAnulacion: asiento.motivoAnulacion ?? null,
+      anuladoEn: asiento.anuladoEn ?? null,
+      anuladoPor: asiento.anuladoPor ?? null,
       creadoEn: asiento.creadoEn,
       actualizadoEn: asiento.actualizadoEn,
     };

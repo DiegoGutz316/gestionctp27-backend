@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
   type ValueTransformer,
 } from 'typeorm';
+import { EstadoAsiento } from '../enums/estado-asiento.enum';
 import { FondoCaja } from './fondo-caja.entity';
 
 const numericTransformer: ValueTransformer = {
@@ -69,6 +70,28 @@ export class AsientoCaja {
     default: 0,
   })
   egresos: number;
+
+  @Column({
+    name: 'estado',
+    type: 'varchar',
+    length: 20,
+    default: EstadoAsiento.VIGENTE,
+  })
+  estado: EstadoAsiento;
+
+  @Column({
+    name: 'motivo_anulacion',
+    type: 'varchar',
+    length: 250,
+    nullable: true,
+  })
+  motivoAnulacion: string | null;
+
+  @Column({ name: 'anulado_en', type: 'timestamptz', nullable: true })
+  anuladoEn: Date | null;
+
+  @Column({ name: 'anulado_por', type: 'uuid', nullable: true })
+  anuladoPor: string | null;
 
   @CreateDateColumn({ name: 'creado_en', type: 'timestamptz' })
   creadoEn: Date;

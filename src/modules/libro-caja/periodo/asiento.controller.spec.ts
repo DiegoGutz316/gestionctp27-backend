@@ -111,8 +111,22 @@ probarEndpoints({
       modulo: M,
       nivel: NivelPermiso.COMPLETO,
       servicio: 'eliminar',
-      argumentos: (u) => [2, 3, 9, u],
-      invalidos: [['asientoId no numérico', { ruta: `${BASE}/x` }]],
+      cuerpo: {
+        motivo: 'Registrado por error en la unidad incorrecta',
+      },
+      argumentos: (u) => [
+        2,
+        3,
+        9,
+        u,
+        { motivo: 'Registrado por error en la unidad incorrecta' },
+      ],
+      invalidos: [
+        ['asientoId no numérico', { ruta: `${BASE}/x`, cuerpo: { motivo: 'Motivo válido de anulación' } }],
+        ['sin motivo', { cuerpo: {} }],
+        ['motivo corto', { cuerpo: { motivo: 'abc' } }],
+      ],
     },
+
   ],
 });

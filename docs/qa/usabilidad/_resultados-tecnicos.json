@@ -1,0 +1,852 @@
+{
+  "generatedAt": "2026-11-06T05:37:53.674Z",
+  "env": {
+    "api": "127.0.0.1:4010",
+    "fe": "http://localhost:3000",
+    "db": "gestionctp27_qa"
+  },
+  "results": [
+    {
+      "id": "USAB-02",
+      "modulo": "Libro de Caja",
+      "timestamp": "2026-11-06T05:36:53.701Z",
+      "estado": "PASS",
+      "objetivo": "Solicitar fondo inicial agricola 150000 y acceder al libro",
+      "condicionesIniciales": "Periodo 4 ABIERTO gestionctp27_qa",
+      "datos": {
+        "monto": 150000,
+        "fondoId": 5
+      },
+      "pasos": [
+        {
+          "solicitar": "already SOLICITADO"
+        },
+        {
+          "libro": 200
+        }
+      ],
+      "resultadoTecnico": "Solicitud/estado OK; libro HTTP 200",
+      "riesgosUsabilidad": [
+        "Etiqueta Solicitar fondo",
+        "Libro sin formulario si fondo no SOLICITADO"
+      ],
+      "archivos": [
+        "solicitar-fondo-dialog.tsx",
+        "asientos-libro.tsx",
+        "periodo.service.ts"
+      ],
+      "notas": "Ejecucion tecnica API+UI. No es sesion con usuarios reales."
+    },
+    {
+      "id": "USAB-01",
+      "modulo": "Libro de Caja",
+      "timestamp": "2026-11-06T05:36:53.778Z",
+      "estado": "PASS",
+      "objetivo": "Registrar ingreso 85000 venta carne y comprobar saldo",
+      "condicionesIniciales": "Fondo pecuario 6 SOLICITADO",
+      "datos": {
+        "ingresos": 85000,
+        "egresos": 0
+      },
+      "pasos": [
+        {
+          "dual": {
+            "status": 400,
+            "msg": {
+              "message": [
+                "Indique un ingreso o un egreso, no ambos. El otro queda en 0."
+              ],
+              "error": "Bad Request",
+              "statusCode": 400
+            }
+          }
+        },
+        {
+          "formatoComa": {
+            "status": 400,
+            "msg": {
+              "message": [
+                "El ingreso debe ser un número válido"
+              ],
+              "error": "Bad Request",
+              "statusCode": 400
+            }
+          }
+        },
+        {
+          "ok": {
+            "status": 201,
+            "data": {
+              "periodo": {
+                "id": 4,
+                "nombre": "Periodo USAB QA",
+                "fechaInicio": "2026-02-01",
+                "fechaFin": "2026-12-31",
+                "estado": "ABIERTO",
+                "creadoEn": "2026-11-06T05:22:27.168Z",
+                "actualizadoEn": "2026-11-06T05:22:27.168Z"
+              },
+              "fondo": {
+                "id": 6,
+                "montoSolicitado": 200000,
+                "estado": "SOLICITADO",
+                "solicitadoEn": "2026-11-06T05:30:07.556Z",
+                "departamento": {
+                  "id": 7,
+                  "nombreUnidad": "Unidad Pecuaria",
+                  "tipoActividad": "PECUARIA",
+                  "activo": true,
+                  "creadoEn": "2026-11-06T05:22:27.159Z",
+                  "actualizadoEn": "2026-11-06T05:22:27.159Z"
+                },
+                "pieInforme": null,
+                "creadoEn": "2026-11-06T05:26:24.565Z",
+                "actualizadoEn": "2026-11-06T05:30:07.549Z"
+              },
+              "fondoInicial": 200000,
+              "asientos": [
+                {
+                  "id": 6,
+                  "numero": 1,
+                  "fecha": "2026-11-05",
+                  "numeroFactura": "",
+                  "descripcion": "Venta de carne",
+                  "ingresos": 85000,
+                  "egresos": 0,
+                  "saldo": 285000,
+                  "creadoEn": "2026-11-06T05:36:53.729Z",
+                  "actualizadoEn": "2026-11-06T05:36:53.729Z"
+                }
+              ],
+              "totales": {
+                "ingresos": 85000,
+                "egresos": 0,
+                "saldo": 285000
+              }
+            }
+          }
+        },
+        {
+          "totales": {
+            "ingresos": 85000,
+            "egresos": 0,
+            "saldo": 285000
+          }
+        }
+      ],
+      "resultadoTecnico": "Ingreso 201 saldo=undefined; dual 400; coma 400; totales={\"ingresos\":85000,\"egresos\":0,\"saldo\":285000}",
+      "mensajesError": [
+        {
+          "message": [
+            "Indique un ingreso o un egreso, no ambos. El otro queda en 0."
+          ],
+          "error": "Bad Request",
+          "statusCode": 400
+        },
+        {
+          "message": [
+            "El ingreso debe ser un número válido"
+          ],
+          "error": "Bad Request",
+          "statusCode": 400
+        }
+      ],
+      "riesgosUsabilidad": [
+        "Campos ingreso y egreso juntos",
+        "Formato 85,000 falla",
+        "Idempotency-Key UUID (invisible al usuario)"
+      ],
+      "archivos": [
+        "asiento-form.tsx",
+        "asiento.validacion.ts",
+        "crear-asiento.dto.ts"
+      ],
+      "notas": "PASS tecnico != usabilidad humana."
+    },
+    {
+      "id": "USAB-03",
+      "modulo": "Libro de Caja",
+      "timestamp": "2026-11-06T05:38:44.276Z",
+      "estado": "PASS",
+      "objetivo": "Corregir egreso 5000 a ingreso; documentar anular destructivo",
+      "condicionesIniciales": "Fondo pecuario SOLICITADO con asientos",
+      "datos": {
+        "editId": 10,
+        "anularId": 11
+      },
+      "pasos": [
+        {
+          "crearEgreso": 201,
+          "asientoId": 10
+        },
+        {
+          "editar": {
+            "status": 200,
+            "data": {
+              "periodo": {
+                "id": 4,
+                "nombre": "Periodo USAB QA",
+                "fechaInicio": "2026-02-01",
+                "fechaFin": "2026-12-31",
+                "estado": "ABIERTO",
+                "creadoEn": "2026-11-06T05:22:27.168Z",
+                "actualizadoEn": "2026-11-06T05:22:27.168Z"
+              },
+              "fondo": {
+                "id": 6,
+                "montoSolicitado": 200000,
+                "estado": "SOLICITADO",
+                "solicitadoEn": "2026-11-06T05:30:07.556Z",
+                "departamento": {
+                  "id": 7,
+                  "nombreUnidad": "Unidad Pecuaria",
+                  "tipoActividad": "PECUARIA",
+                  "activo": true,
+                  "creadoEn": "2026-11-06T05:22:27.159Z",
+                  "actualizadoEn": "2026-11-06T05:22:27.159Z"
+                },
+                "pieInforme": {
+                  "director": "Directora QA",
+                  "tesorera": "",
+                  "presidente": "",
+                  "coordinador": "",
+                  "firmaDirector": "",
+                  "firmaTesorera": "",
+                  "observaciones": [
+                    "USAB-10 obs1",
+                    "",
+                    ""
+                  ],
+                  "firmaPresidente": ""
+                },
+                "creadoEn": "2026-11-06T05:26:24.565Z",
+                "actualizadoEn": "2026-11-06T05:36:54.104Z"
+              },
+              "fondoInicial": 200000,
+              "asientos": [
+                {
+                  "id": 6,
+                  "numero": 1,
+                  "fecha": "2026-11-05",
+                  "numeroFactura": "",
+                  "descripcion": "Venta de carne",
+                  "ingresos": 85000,
+                  "egresos": 0,
+                  "saldo": 285000,
+                  "creadoEn": "2026-11-06T05:36:53.729Z",
+                  "actualizadoEn": "2026-11-06T05:38:44.145Z"
+                },
+                {
+                  "id": 7,
+                  "numero": 2,
+                  "fecha": "2026-11-05",
+                  "numeroFactura": "",
+                  "descripcion": "Incorrecto USAB-03",
+                  "ingresos": 0,
+                  "egresos": 5000,
+                  "saldo": 280000,
+                  "creadoEn": "2026-11-06T05:36:53.783Z",
+                  "actualizadoEn": "2026-11-06T05:38:44.145Z"
+                },
+                {
+                  "id": 8,
+                  "numero": 3,
+                  "fecha": "2026-11-05",
+                  "numeroFactura": "",
+                  "descripcion": "Para anular",
+                  "ingresos": 0,
+                  "egresos": 100,
+                  "saldo": 279900,
+                  "creadoEn": "2026-11-06T05:36:53.817Z",
+                  "actualizadoEn": "2026-11-06T05:38:44.145Z"
+                },
+                {
+                  "id": 9,
+                  "numero": 4,
+                  "fecha": "2026-11-05",
+                  "numeroFactura": "",
+                  "descripcion": "probe-edit",
+                  "ingresos": 0,
+                  "egresos": 5000,
+                  "saldo": 274900,
+                  "creadoEn": "2026-11-06T05:38:12.253Z",
+                  "actualizadoEn": "2026-11-06T05:38:44.145Z"
+                },
+                {
+                  "id": 10,
+                  "numero": 5,
+                  "fecha": "2026-11-05",
+                  "numeroFactura": "",
+                  "descripcion": "Corregido a ingreso USAB-03b",
+                  "ingresos": 5000,
+                  "egresos": 0,
+                  "saldo": 279900,
+                  "creadoEn": "2026-11-06T05:38:44.091Z",
+                  "actualizadoEn": "2026-11-06T05:38:44.145Z"
+                }
+              ],
+              "totales": {
+                "ingresos": 90000,
+                "egresos": 10100,
+                "saldo": 279900
+              }
+            }
+          }
+        },
+        {
+          "anular": {
+            "status": 200,
+            "data": {
+              "periodo": {
+                "id": 4,
+                "nombre": "Periodo USAB QA",
+                "fechaInicio": "2026-02-01",
+                "fechaFin": "2026-12-31",
+                "estado": "ABIERTO",
+                "creadoEn": "2026-11-06T05:22:27.168Z",
+                "actualizadoEn": "2026-11-06T05:22:27.168Z"
+              },
+              "fondo": {
+                "id": 6,
+                "montoSolicitado": 200000,
+                "estado": "SOLICITADO",
+                "solicitadoEn": "2026-11-06T05:30:07.556Z",
+                "departamento": {
+                  "id": 7,
+                  "nombreUnidad": "Unidad Pecuaria",
+                  "tipoActividad": "PECUARIA",
+                  "activo": true,
+                  "creadoEn": "2026-11-06T05:22:27.159Z",
+                  "actualizadoEn": "2026-11-06T05:22:27.159Z"
+                },
+                "pieInforme": {
+                  "director": "Directora QA",
+                  "tesorera": "",
+                  "presidente": "",
+                  "coordinador": "",
+                  "firmaDirector": "",
+                  "firmaTesorera": "",
+                  "observaciones": [
+                    "USAB-10 obs1",
+                    "",
+                    ""
+                  ],
+                  "firmaPresidente": ""
+                },
+                "creadoEn": "2026-11-06T05:26:24.565Z",
+                "actualizadoEn": "2026-11-06T05:36:54.104Z"
+              },
+              "fondoInicial": 200000,
+              "asientos": [
+                {
+                  "id": 6,
+                  "numero": 1,
+                  "fecha": "2026-11-05",
+                  "numeroFactura": "",
+                  "descripcion": "Venta de carne",
+                  "ingresos": 85000,
+                  "egresos": 0,
+                  "saldo": 285000,
+                  "creadoEn": "2026-11-06T05:36:53.729Z",
+                  "actualizadoEn": "2026-11-06T05:38:44.229Z"
+                },
+                {
+                  "id": 7,
+                  "numero": 2,
+                  "fecha": "2026-11-05",
+                  "numeroFactura": "",
+                  "descripcion": "Incorrecto USAB-03",
+                  "ingresos": 0,
+                  "egresos": 5000,
+                  "saldo": 280000,
+                  "creadoEn": "2026-11-06T05:36:53.783Z",
+                  "actualizadoEn": "2026-11-06T05:38:44.229Z"
+                },
+                {
+                  "id": 8,
+                  "numero": 3,
+                  "fecha": "2026-11-05",
+                  "numeroFactura": "",
+                  "descripcion": "Para anular",
+                  "ingresos": 0,
+                  "egresos": 100,
+                  "saldo": 279900,
+                  "creadoEn": "2026-11-06T05:36:53.817Z",
+                  "actualizadoEn": "2026-11-06T05:38:44.229Z"
+                },
+                {
+                  "id": 9,
+                  "numero": 4,
+                  "fecha": "2026-11-05",
+                  "numeroFactura": "",
+                  "descripcion": "probe-edit",
+                  "ingresos": 0,
+                  "egresos": 5000,
+                  "saldo": 274900,
+                  "creadoEn": "2026-11-06T05:38:12.253Z",
+                  "actualizadoEn": "2026-11-06T05:38:44.229Z"
+                },
+                {
+                  "id": 10,
+                  "numero": 5,
+                  "fecha": "2026-11-05",
+                  "numeroFactura": "",
+                  "descripcion": "Corregido a ingreso USAB-03b",
+                  "ingresos": 5000,
+                  "egresos": 0,
+                  "saldo": 279900,
+                  "creadoEn": "2026-11-06T05:38:44.091Z",
+                  "actualizadoEn": "2026-11-06T05:38:44.229Z"
+                }
+              ],
+              "totales": {
+                "ingresos": 90000,
+                "egresos": 10100,
+                "saldo": 279900
+              }
+            }
+          }
+        },
+        {
+          "permaneceTrasAnular": false
+        },
+        {
+          "notaRespuestaPost": "POST asiento responde el libro completo, no el asiento suelto"
+        }
+      ],
+      "resultadoTecnico": "Editar 200; Anular 200; permanece=false. POST crea y devuelve libro (asientos[]).",
+      "riesgosUsabilidad": [
+        "Anular vs editar",
+        "Sin motivo al anular",
+        "Borrado fisico",
+        "Respuesta POST poco intuitiva para clientes"
+      ],
+      "archivos": [
+        "asiento-anular-dialog.tsx",
+        "asiento-editar-dialog.tsx",
+        "asiento.service.ts"
+      ],
+      "notas": "PASS tecnico. Anular elimina el registro. Hallazgo: POST /asientos no retorna el asiento creado directamente."
+    },
+    {
+      "id": "USAB-04",
+      "modulo": "Gestion Pecuaria",
+      "timestamp": "2026-11-06T05:36:53.874Z",
+      "estado": "PASS",
+      "objetivo": "Registrar ternera Holstein Estrella BOV-QA-01",
+      "datos": {
+        "id": 12,
+        "codigo": "BOV-QA-01",
+        "nombre": "Estrella",
+        "especie": "VACA",
+        "categoriaBovina": "TERNERO",
+        "raza": "Holstein",
+        "fechaNacimiento": "2026-10-01",
+        "estado": "ACTIVO",
+        "observaciones": "USAB-04",
+        "creadoEn": "2026-11-06T05:36:53.871Z",
+        "creadoPor": "308fe213-f04d-4353-a77d-695ac08fbcda",
+        "actualizadoEn": "2026-11-06T05:36:53.871Z",
+        "actualizadoPor": null
+      },
+      "pasos": [
+        {
+          "intentoTERNERA": {
+            "status": 400,
+            "msg": {
+              "message": [
+                "Seleccione si es toro, novilla, vaca, ternero/a o torete"
+              ],
+              "error": "Bad Request",
+              "statusCode": 400
+            }
+          }
+        },
+        {
+          "conTERNERO": {
+            "status": 201,
+            "id": 12,
+            "cat": "TERNERO"
+          }
+        }
+      ],
+      "resultadoTecnico": "TERNERA rechazada 400; TERNERO OK 201. Etiqueta UI: Ternero/a",
+      "riesgosUsabilidad": [
+        "Usuario busca Ternera; el valor es TERNERO",
+        "Especie VACA forzada en bovinos",
+        "Confusion inventarios"
+      ],
+      "archivos": [
+        "animal-form.tsx",
+        "categoria-bovina.enum.ts"
+      ],
+      "notas": "PASS con categoria TERNERO. Vocabulario TERNERA es riesgo de usabilidad confirmado en API.",
+      "mensajesError": [
+        {
+          "message": [
+            "Seleccione si es toro, novilla, vaca, ternero/a o torete"
+          ],
+          "error": "Bad Request",
+          "statusCode": 400
+        }
+      ]
+    },
+    {
+      "id": "USAB-05",
+      "modulo": "Gestion Pecuaria",
+      "timestamp": "2026-11-06T05:36:53.905Z",
+      "estado": "PASS",
+      "objetivo": "Registrar 12.5 litros leche de Luna",
+      "datos": {
+        "animalId": 6
+      },
+      "pasos": [
+        {
+          "carne": {
+            "status": 201,
+            "data": {
+              "id": 1,
+              "animalId": 6,
+              "tipoProduccion": "CARNE",
+              "cantidad": 12.5,
+              "fecha": "2026-11-05",
+              "creadoEn": "2026-11-06T05:36:53.888Z",
+              "creadoPor": "308fe213-f04d-4353-a77d-695ac08fbcda"
+            }
+          }
+        },
+        {
+          "leche": {
+            "status": 201,
+            "data": {
+              "id": 2,
+              "animalId": 6,
+              "tipoProduccion": "LECHE",
+              "cantidad": 12.5,
+              "fecha": "2026-11-05",
+              "creadoEn": "2026-11-06T05:36:53.902Z",
+              "creadoPor": "308fe213-f04d-4353-a77d-695ac08fbcda"
+            }
+          }
+        }
+      ],
+      "resultadoTecnico": "LECHE 201; CARNE 201 (ambos pueden ser validos segun reglas de especie)",
+      "riesgosUsabilidad": [
+        "Campo tipoProduccion vs etiqueta Tipo",
+        "Unidad no enviada en API",
+        "Carne seleccionable para vaca"
+      ],
+      "archivos": [
+        "registrar-produccion.dto.ts",
+        "produccion.model.ts"
+      ],
+      "notas": "PASS API con tipoProduccion=LECHE.",
+      "mensajesError": []
+    },
+    {
+      "id": "USAB-06",
+      "modulo": "Gestion Pecuaria",
+      "timestamp": "2026-11-06T05:36:53.924Z",
+      "estado": "PASS",
+      "objetivo": "Registrar salud enfermo mastitis seguimiento",
+      "pasos": [
+        {
+          "status": 201,
+          "data": {
+            "id": 1,
+            "animalId": 6,
+            "fecha": "2026-11-05",
+            "condicionObservada": "ENFERMO",
+            "diagnostico": "Sospecha de mastitis",
+            "observaciones": "Queda en seguimiento USAB-06",
+            "creadoEn": "2026-11-06T05:36:53.917Z",
+            "creadoPor": "308fe213-f04d-4353-a77d-695ac08fbcda"
+          }
+        }
+      ],
+      "resultadoTecnico": "HTTP 201",
+      "riesgosUsabilidad": [
+        "Salud poco visible en nav",
+        "Confusion con vacunas/desparasitacion",
+        "Campo condicionObservada"
+      ],
+      "archivos": [
+        "salud-form.tsx",
+        "pecuaria-vistas-nav.tsx"
+      ],
+      "notas": "PASS API.",
+      "mensajesError": []
+    },
+    {
+      "id": "USAB-07",
+      "modulo": "Gestion Agricola",
+      "timestamp": "2026-11-06T05:38:44.692Z",
+      "estado": "PASS",
+      "objetivo": "Siembra 50 lechugas cama disponible invernadero 1",
+      "condicionesIniciales": "Sin camas DISPONIBLE tras corrida previa; se creo cama nueva (estado default DISPONIBLE)",
+      "datos": {
+        "camaId": 5,
+        "cultivoId": 2
+      },
+      "pasos": [
+        {
+          "hallazgoSinCamasDisponibles": true
+        },
+        {
+          "crearCama": {
+            "status": 201,
+            "id": 5,
+            "estado": "DISPONIBLE"
+          }
+        },
+        {
+          "siembra": {
+            "status": 201,
+            "data": {
+              "id": 5,
+              "cama": {
+                "id": 5,
+                "codigo": "USAB-L-4657",
+                "ubicacion": "Invernadero 1"
+              },
+              "tipoCultivo": "Lechuga",
+              "cultivo": {
+                "id": 2,
+                "nombre": "Lechuga",
+                "tipo": "HORTALIZA"
+              },
+              "fechaSiembra": "2026-11-05",
+              "cantidadSembrada": 50,
+              "unidadSembrada": "UNIDADES",
+              "finalizadaEn": null,
+              "motivoFinalizacion": null,
+              "motivoDetalle": null,
+              "creadoEn": "2026-11-06T05:38:44.683Z",
+              "creadoPor": "c40210b2-199d-45a7-a755-072904017c5d"
+            }
+          }
+        }
+      ],
+      "resultadoTecnico": "Cama 201 estado=DISPONIBLE; Siembra 201",
+      "riesgosUsabilidad": [
+        "Si no hay camas DISPONIBLE el selector queda vacio y el usuario no sabe que hacer",
+        "Hay que crear cama primero (flujo multi-paso no guiado)"
+      ],
+      "archivos": [
+        "siembra-form.tsx",
+        "cama-cultivo.controller.ts"
+      ],
+      "notas": "PASS tras crear cama. El bloqueo por falta de camas disponibles es hallazgo de usabilidad de alta relevancia.",
+      "mensajesError": []
+    },
+    {
+      "id": "USAB-08",
+      "modulo": "Gestion Agricola",
+      "timestamp": "2026-11-06T05:36:54.038Z",
+      "estado": "PASS",
+      "objetivo": "Cosecha parcial 12.5kg sin cerrar ciclo",
+      "datos": {
+        "siembraId": 3
+      },
+      "pasos": [
+        {
+          "cosecha": {
+            "status": 201,
+            "data": {
+              "id": 1,
+              "siembra": {
+                "id": 3,
+                "tipoCultivo": "Tomate",
+                "fechaSiembra": "2026-11-05",
+                "cama": {
+                  "id": 4,
+                  "codigo": "USAB-TOMATE",
+                  "ubicacion": "Invernadero 1"
+                }
+              },
+              "fecha": "2026-11-05",
+              "cantidadObtenida": 12.5,
+              "unidadMedida": "KG",
+              "observaciones": "USAB-08 parcial",
+              "creadoEn": "2026-11-06T05:36:53.962Z",
+              "creadoPor": "c40210b2-199d-45a7-a755-072904017c5d"
+            }
+          },
+          "sigueActiva": true
+        }
+      ],
+      "resultadoTecnico": "Cosecha 201; siembra activa=true",
+      "riesgosUsabilidad": [
+        "Switch Finalizar la siembra",
+        "URL ?cerrarCiclo=1 premarca el switch"
+      ],
+      "archivos": [
+        "cosecha-form.tsx",
+        "registrar-cosecha.dto.ts"
+      ],
+      "notas": "PASS con cerrarCiclo=false.",
+      "mensajesError": []
+    },
+    {
+      "id": "USAB-09",
+      "modulo": "Reportes y Avisos",
+      "timestamp": "2026-11-06T05:36:54.080Z",
+      "estado": "PASS",
+      "objetivo": "Publicar aviso bingo con imagen y fecha futura",
+      "pasos": [
+        {
+          "directora": {
+            "status": 403,
+            "msg": {
+              "message": "Su rol no tiene acceso a Reportes.",
+              "error": "Forbidden",
+              "statusCode": 403
+            }
+          }
+        },
+        {
+          "admin": {
+            "status": 201,
+            "id": 2
+          }
+        },
+        {
+          "fechaPasada": 400
+        },
+        {
+          "flyer": {
+            "status": 200,
+            "body": "{\"id\":2,\"titulo\":\"Bingo en el comedor USAB09\",\"descripcion\":\"Bingo comunitario\",\"fecha\":\"2026-11-30\",\"categoria\":\"EVENTOS\",\"estado\":\"ACTIVO\",\"creadoEn\":\"2026-11-06T05:36:54.048Z\",\"creadoPor\":\"e6ef732a-22bb-4af4-9f59-3ba8407c3dff\",\"actualizadoEn\":\"2026-11-06T05:36:54.072Z\",\"actualizadoPor\":\"e6ef732a-22bb-4af4-9f59-3ba8407c3dff\",\"tieneFlyer\":true}"
+          }
+        },
+        {
+          "publicos": {
+            "status": 200,
+            "n": 2
+          }
+        }
+      ],
+      "resultadoTecnico": "Admin 201; Directora 403; flyer 200; publicos 200",
+      "riesgosUsabilidad": [
+        "Avisos bajo Analisis / permiso REPORTES",
+        "Directora bloqueada al crear",
+        "Flyer desacoplado",
+        "No hay menu Reportes"
+      ],
+      "archivos": [
+        "aviso-form.tsx",
+        "App-sidebar.tsx",
+        "aviso.controller.ts"
+      ],
+      "notas": "PASS creacion. Flyer probado con PNG 1x1.",
+      "mensajesError": [
+        {
+          "message": "Su rol no tiene acceso a Reportes.",
+          "error": "Forbidden",
+          "statusCode": 403
+        },
+        {
+          "message": [
+            "La fecha del aviso debe ser hoy o posterior"
+          ],
+          "error": "Bad Request",
+          "statusCode": 400
+        }
+      ]
+    },
+    {
+      "id": "USAB-10",
+      "modulo": "Reportes y Avisos",
+      "timestamp": "2026-11-06T05:36:54.110Z",
+      "estado": "PASS",
+      "objetivo": "Directora consulta informe pecuario y exporta Excel",
+      "pasos": [
+        {
+          "lectura": {
+            "status": 200,
+            "totales": {
+              "ingresos": 85000,
+              "egresos": 5100,
+              "saldo": 279900
+            }
+          }
+        },
+        {
+          "pie": {
+            "status": 200,
+            "data": {
+              "id": 6,
+              "montoSolicitado": 200000,
+              "estado": "SOLICITADO",
+              "solicitadoEn": "2026-11-06T05:30:07.556Z",
+              "departamento": {
+                "id": 7,
+                "nombreUnidad": "Unidad Pecuaria",
+                "tipoActividad": "PECUARIA",
+                "activo": true,
+                "creadoEn": "2026-11-06T05:22:27.159Z",
+                "actualizadoEn": "2026-11-06T05:22:27.159Z"
+              },
+              "pieInforme": {
+                "observaciones": [
+                  "USAB-10 obs1",
+                  "",
+                  ""
+                ],
+                "director": "Directora QA",
+                "presidente": "",
+                "tesorera": "",
+                "firmaDirector": "",
+                "firmaPresidente": "",
+                "firmaTesorera": "",
+                "coordinador": ""
+              },
+              "creadoEn": "2026-11-06T05:26:24.565Z",
+              "actualizadoEn": "2026-11-06T05:36:54.104Z"
+            }
+          }
+        }
+      ],
+      "resultadoTecnico": "Lectura 200; pie 200. Excel se valida en UI Playwright.",
+      "riesgosUsabilidad": [
+        "Sin menu Reportes",
+        "Ruta profunda periodo/unidad/informe",
+        "Autoguardado pie"
+      ],
+      "archivos": [
+        "informe-economico.tsx",
+        "informe-excel.ts"
+      ],
+      "notas": "PASS lectura. Pie schema confirmado."
+    },
+    {
+      "id": "UI-PLAYWRIGHT",
+      "modulo": "Transversal",
+      "timestamp": "2026-11-06T05:37:53.504Z",
+      "estado": "PASS",
+      "objetivo": "Capturas UI y controles visibles",
+      "resultadoTecnico": "[{\"solicitarFondoButtons\":0},{\"ingresos\":2,\"egresos\":2,\"anular\":3,\"editar\":3},{\"terneroLabel\":0},{\"saludNav\":0,\"vacunasNav\":0,\"desparasitaNav\":0},{\"finalizarSwitchText\":0},{\"reportesLinks\":0,\"avisosLinks\":1,\"analisisText\":1},{\"excelBtn\":1,\"saldoText\":1},{\"excelFile\":\"C:\\\\Users\\\\porra\\\\OneDrive\\\\Documentos\\\\proyecto-ingenieria\\\\gestionctp27-backend\\\\docs\\\\qa\\\\usabilidad\\\\evidencias\\\\Informe-Economico-UDP Unidad Pecuaria Periodo USAB QA.xlsx\"}]",
+      "evidencias": [
+        "00-dashboard-pecuario.png",
+        "Informe-Economico-UDP Unidad Pecuaria Periodo USAB QA.xlsx",
+        "UI-ERROR.png",
+        "USAB-01-libro-asientos.png",
+        "USAB-02-periodo-detalle.png",
+        "USAB-03-acciones-asiento.png",
+        "USAB-04-animal-form.png",
+        "USAB-04-inventario-bovino.png",
+        "USAB-05-produccion-form.png",
+        "USAB-06-pecuaria-home.png",
+        "USAB-06-salud-form.png",
+        "USAB-07-siembra-form.png",
+        "USAB-08-cosecha-cerrarCiclo1.png",
+        "USAB-08-cosecha-form.png",
+        "USAB-09-aviso-form.png",
+        "USAB-09-avisos-lista.png",
+        "USAB-10-informe.png"
+      ],
+      "notas": "Automatizacion de navegador. NO sustituye usuarios reales. /login 404 previo por cache .next corrupta; tras limpiar respondio 200."
+    }
+  ],
+  "repairedAt": "2026-11-06T05:38:44.692Z"
+}

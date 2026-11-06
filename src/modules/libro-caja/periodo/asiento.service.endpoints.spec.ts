@@ -75,9 +75,14 @@ const asiento = (
   descripcion: `a${id}`,
   ingresos,
   egresos,
+  estado: 'VIGENTE',
+  motivoAnulacion: null,
+  anuladoEn: null,
+  anuladoPor: null,
   creadoEn: ahora,
   actualizadoEn: ahora,
 });
+const motivoAnulacion = { motivo: 'Registrado por error en la unidad' };
 const dto = {
   fecha: '2026-03-12',
   numeroFactura: 'F1',
@@ -177,7 +182,7 @@ describe('AsientoService - endpoints', () => {
           servicio.actualizar(1, 5, 9, dto, usuario(rol)),
         ).rejects.toBeInstanceOf(ForbiddenException);
         await expect(
-          servicio.eliminar(1, 5, 9, usuario(rol)),
+          servicio.eliminar(1, 5, 9, usuario(rol), motivoAnulacion),
         ).rejects.toBeInstanceOf(ForbiddenException);
         expect(manager.findOne).not.toHaveBeenCalled();
       },
@@ -216,7 +221,7 @@ describe('AsientoService - endpoints', () => {
       await expect(servicio.actualizar(1, 5, 9, dto, admin)).rejects.toThrow(
         'periodo cerrado',
       );
-      await expect(servicio.eliminar(1, 5, 9, admin)).rejects.toThrow(
+      await expect(servicio.eliminar(1, 5, 9, admin, motivoAnulacion)).rejects.toThrow(
         'periodo cerrado',
       );
     });
@@ -339,22 +344,24 @@ describe('AsientoService - endpoints', () => {
   });
 
   describe('eliminar (DELETE :asientoId)', () => {
-    it('anula el asiento, suelta su clave idempotente y renumera el resto', async () => {
+    it('anula lógicamente, suelta la clave idempotente y renumera vigentes', async () => {
       const qb = crearQueryBuilderSimulado();
       manager.createQueryBuilder.mockReturnValue(qb);
       manager.findOne.mockResolvedValue(fondo());
-      manager.find.mockResolvedValue([
-        asiento(9, '2026-03-05', 50, 0),
-        asiento(10, '2026-03-10', 0, 20),
-      ]);
+      const ingreso = asiento(9, '2026-03-05', 50, 0);
+      const egreso = asiento(10, '2026-03-10', 0, 20);
+      manager.find.mockResolvedValue([ingreso, egreso]);
       fondos.findOne.mockResolvedValue(fondo());
       asientos.find.mockResolvedValue([]);
 
-      await servicio.eliminar(1, 5, 9, admin);
+      await servicio.eliminar(1, 5, 9, admin, motivoAnulacion);
 
       expect(qb.set).toHaveBeenCalledWith({ asientoId: null });
       expect(qb.where).toHaveBeenCalledWith('asiento_id = :id', { id: 9 });
-      expect(manager.delete).toHaveBeenCalledWith(AsientoCaja, 9);
+      expect(manager.delete).not.toHaveBeenCalled();
+      expect(ingreso.estado).toBe('ANULADO');
+      expect(ingreso.motivoAnulacion).toBe(motivoAnulacion.motivo);
+      expect(ingreso.anuladoPor).toBe(admin.id);
       const renumerados = manager.save.mock.calls.at(-1)?.[1] as Array<{
         id: number;
         numero: number;
@@ -362,12 +369,12 @@ describe('AsientoService - endpoints', () => {
       expect(renumerados.map((a) => [a.id, a.numero])).toEqual([[10, 1]]);
     });
 
-    it('404 si el asiento no existe en el libro (no borra nada)', async () => {
+    it('404 si el asiento no existe en el libro (no anula nada)', async () => {
       manager.findOne.mockResolvedValue(fondo());
       manager.find.mockResolvedValue([]);
-      await expect(servicio.eliminar(1, 5, 9, admin)).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        servicio.eliminar(1, 5, 9, admin, motivoAnulacion),
+      ).rejects.toBeInstanceOf(NotFoundException);
       expect(manager.delete).not.toHaveBeenCalled();
     });
 
@@ -377,18 +384,23 @@ describe('AsientoService - endpoints', () => {
         asiento(9, '2026-03-05', 50, 0),
         asiento(10, '2026-03-10', 0, 40),
       ]);
-      await expect(servicio.eliminar(1, 5, 9, admin)).rejects.toThrow(
+      await expect(
+        servicio.eliminar(1, 5, 9, admin, motivoAnulacion),
+      ).rejects.toThrow(
         'Anular ese asiento deja el saldo del libro en negativo.',
       );
     });
 
-    it('anular el único asiento no intenta guardar una lista vacía', async () => {
+    it('anular el único asiento no intenta renumerar una lista vacía', async () => {
       manager.findOne.mockResolvedValue(fondo());
-      manager.find.mockResolvedValue([asiento(9, '2026-03-05', 50, 0)]);
+      const unico = asiento(9, '2026-03-05', 50, 0);
+      manager.find.mockResolvedValue([unico]);
       fondos.findOne.mockResolvedValue(fondo());
       asientos.find.mockResolvedValue([]);
-      await servicio.eliminar(1, 5, 9, admin);
-      expect(manager.save).not.toHaveBeenCalled();
+      await servicio.eliminar(1, 5, 9, admin, motivoAnulacion);
+      // Solo se guarda el asiento anulado; no hay vigentes que renumerar.
+      expect(manager.save).toHaveBeenCalledTimes(1);
+      expect(unico.estado).toBe('ANULADO');
     });
   });
 });

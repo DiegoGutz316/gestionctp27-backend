@@ -9,10 +9,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { LibroCajaPolicy } from '../libro-caja.policy';
+import { AnularAsientoDto } from './dto/anular-asiento.dto';
 import { CrearAsientoDto } from './dto/crear-asiento.dto';
 import { AsientoCaja } from './entities/asiento-caja.entity';
 import { FondoCaja } from './entities/fondo-caja.entity';
 import { IdempotenciaAsiento } from './entities/idempotencia-asiento.entity';
+import { EstadoAsiento } from './enums/estado-asiento.enum';
 import { EstadoFondo } from './enums/estado-fondo.enum';
 import { EstadoPeriodo } from './enums/estado-periodo.enum';
 import {
@@ -82,6 +84,9 @@ export class AsientoService {
         const existentes = await manager.find(AsientoCaja, {
           where: { fondo: { id: fondo.id } },
         });
+        const vigentes = existentes.filter(
+          (asiento) => asiento.estado !== EstadoAsiento.ANULADO,
+        );
         const nuevo = manager.create(AsientoCaja, {
           fondo,
           numero: 1,
@@ -90,12 +95,16 @@ export class AsientoService {
           descripcion: dto.descripcion,
           ingresos: dto.ingresos,
           egresos: dto.egresos,
+          estado: EstadoAsiento.VIGENTE,
+          motivoAnulacion: null,
+          anuladoEn: null,
+          anuladoPor: null,
           creadoPor: actor.id,
         });
         const guardados = await this.guardarEnOrden(
           manager,
           fondo.montoSolicitado ?? 0,
-          [...existentes, nuevo],
+          [...vigentes, nuevo],
           'registrar',
         );
         const creado = guardados.find(
@@ -163,6 +172,11 @@ export class AsientoService {
       if (!actual) {
         throw new NotFoundException('El asiento no existe en este libro.');
       }
+      if (actual.estado === EstadoAsiento.ANULADO) {
+        throw new ConflictException(
+          'No se puede corregir un asiento anulado.',
+        );
+      }
 
       actual.fecha = dto.fecha;
       actual.numeroFactura = dto.numeroFactura ?? '';
@@ -172,7 +186,7 @@ export class AsientoService {
       await this.guardarEnOrden(
         manager,
         fondo.montoSolicitado ?? 0,
-        existentes,
+        existentes.filter((asiento) => asiento.estado !== EstadoAsiento.ANULADO),
         'corregir',
       );
     });
@@ -185,6 +199,7 @@ export class AsientoService {
     fondoId: number,
     asientoId: number,
     actor: UsuarioAutenticado,
+    dto: AnularAsientoDto,
   ): Promise<LibroDepartamentoRespuesta> {
     this.policy.exigirRegistroAsiento(actor);
 
@@ -199,6 +214,26 @@ export class AsientoService {
       if (!actual) {
         throw new NotFoundException('El asiento no existe en este libro.');
       }
+      if (actual.estado === EstadoAsiento.ANULADO) {
+        throw new ConflictException('Este asiento ya está anulado.');
+      }
+
+      const vigentesRestantes = existentes.filter(
+        (asiento) =>
+          asiento.id !== actual.id &&
+          asiento.estado !== EstadoAsiento.ANULADO,
+      );
+      exigirSaldoNoNegativo(
+        fondo.montoSolicitado ?? 0,
+        vigentesRestantes,
+        'anular',
+      );
+
+      actual.estado = EstadoAsiento.ANULADO;
+      actual.motivoAnulacion = dto.motivo;
+      actual.anuladoEn = new Date();
+      actual.anuladoPor = actor.id;
+      await manager.save(AsientoCaja, actual);
 
       await manager
         .createQueryBuilder()
@@ -206,11 +241,11 @@ export class AsientoService {
         .set({ asientoId: null })
         .where('asiento_id = :id', { id: actual.id })
         .execute();
-      await manager.delete(AsientoCaja, actual.id);
+
       await this.guardarEnOrden(
         manager,
         fondo.montoSolicitado ?? 0,
-        existentes.filter((asiento) => asiento.id !== actual.id),
+        vigentesRestantes,
         'anular',
       );
     });
@@ -219,7 +254,7 @@ export class AsientoService {
   }
 
   /**
-   * La clave solo se reutiliza si el asiento sigue en el libro.
+   * La clave solo se reutiliza si el asiento sigue vigente.
    * Si se anuló, el cliente debe enviar otra clave: reutilizarla no recrea
    * el movimiento ni finge un alta.
    */
@@ -237,7 +272,7 @@ export class AsientoService {
     const vivo = await manager.findOne(AsientoCaja, {
       where: { id: previa.asientoId },
     });
-    if (!vivo) {
+    if (!vivo || vivo.estado === EstadoAsiento.ANULADO) {
       throw new ConflictException(MENSAJE_CLAVE_ANULADA);
     }
   }

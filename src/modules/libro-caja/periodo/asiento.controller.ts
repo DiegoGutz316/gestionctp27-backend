@@ -16,6 +16,7 @@ import { ModuloSistema } from '../../auth/enums/modulo-sistema.enum';
 import { NivelPermiso } from '../../auth/enums/nivel-permiso.enum';
 import type { UsuarioAutenticado } from '../../auth/tipos/jwt-payload';
 import { AsientoService } from './asiento.service';
+import { AnularAsientoDto } from './dto/anular-asiento.dto';
 import { CrearAsientoDto } from './dto/crear-asiento.dto';
 import { IdempotencyKeyPipe } from './pipes/idempotency-key.pipe';
 
@@ -73,13 +74,23 @@ export class AsientoController {
   }
 
   @Delete(':asientoId')
-  @ApiOperation({ summary: 'Anular un asiento de un periodo abierto' })
+  @ApiOperation({
+    summary:
+      'Anular lógicamente un asiento (conserva el registro con motivo y auditoría)',
+  })
   eliminar(
     @Param('periodoId', ParseIntPipe) periodoId: number,
     @Param('fondoId', ParseIntPipe) fondoId: number,
     @Param('asientoId', ParseIntPipe) asientoId: number,
+    @Body() dto: AnularAsientoDto,
     @UsuarioActual() actor: UsuarioAutenticado,
   ) {
-    return this.asientoService.eliminar(periodoId, fondoId, asientoId, actor);
+    return this.asientoService.eliminar(
+      periodoId,
+      fondoId,
+      asientoId,
+      actor,
+      dto,
+    );
   }
 }

@@ -248,40 +248,51 @@ describe('AsientoService', () => {
     );
   });
 
-  it('conserva la clave y suelta el asiento al anular', async () => {
+  it('anula lógicamente, conserva el registro y suelta la clave de idempotencia', async () => {
     const asiento = {
       id: 4,
       fecha: '2026-03-12',
       descripcion: 'Venta',
       ingresos: 10,
       egresos: 0,
+      estado: 'VIGENTE',
+      motivoAnulacion: null,
+      anuladoEn: null,
+      anuladoPor: null,
     };
     const execute = jest.fn().mockResolvedValue({ affected: 1 });
     const where = jest.fn().mockReturnValue({ execute });
     const set = jest.fn().mockReturnValue({ where });
     const update = jest.fn().mockReturnValue({ set });
-    const deleted: unknown[] = [];
+    const guardados: unknown[] = [];
     const manager = {
       findOne: jest.fn().mockResolvedValue(fondoAbierto),
       find: jest.fn().mockResolvedValue([asiento]),
       createQueryBuilder: jest.fn().mockReturnValue({ update }),
-      delete: jest.fn((entidad: unknown, criterio: unknown) => {
-        deleted.push([entidad, criterio]);
-        return Promise.resolve({ affected: 1 });
+      delete: jest.fn(),
+      save: jest.fn((_entidad: unknown, valor: unknown) => {
+        guardados.push(valor);
+        return Promise.resolve(valor);
       }),
-      save: jest.fn((_entidad: unknown, valor: unknown) =>
-        Promise.resolve(valor),
-      ),
     };
     const service = crearServicio(manager, {
       find: jest.fn().mockResolvedValue([]),
     });
 
-    await service.eliminar(1, 5, 4, actor);
+    await service.eliminar(1, 5, 4, actor, {
+      motivo: 'Registrado por error en la unidad incorrecta',
+    });
 
     expect(update).toHaveBeenCalledWith(IdempotenciaAsiento);
     expect(set).toHaveBeenCalledWith({ asientoId: null });
-    expect(deleted).toEqual([[AsientoCaja, 4]]);
+    expect(manager.delete).not.toHaveBeenCalled();
+    expect(asiento.estado).toBe('ANULADO');
+    expect(asiento.motivoAnulacion).toBe(
+      'Registrado por error en la unidad incorrecta',
+    );
+    expect(asiento.anuladoPor).toBe(actor.id);
+    expect(asiento.anuladoEn).toBeInstanceOf(Date);
+    expect(guardados[0]).toBe(asiento);
   });
 
   function crearServicio(
