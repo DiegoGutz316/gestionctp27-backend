@@ -36,6 +36,14 @@ const CON_COMPLETO = rolesCon(ModuloSistema.REPORTES, NivelPermiso.COMPLETO);
 const SIN_COMPLETO = rolesSin(ModuloSistema.REPORTES, NivelPermiso.COMPLETO);
 const SIN_LECTURA = rolesSin(ModuloSistema.REPORTES, NivelPermiso.LECTURA);
 
+/** Fecha AAAA-MM-DD relativa a “hoy” (America/Costa_Rica), igual que el DTO. */
+function desplazarDias(fecha: string, dias: number): string {
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  const resultado = new Date(Date.UTC(anio, mes - 1, dia));
+  resultado.setUTCDate(resultado.getUTCDate() + dias);
+  return resultado.toISOString().slice(0, 10);
+}
+
 describe('AvisoController (endpoints)', () => {
   let app: INestApplication;
   const servicio = servicioSimulado(
@@ -59,14 +67,13 @@ describe('AvisoController (endpoints)', () => {
   afterAll(() => app.close());
   beforeEach(() => jest.resetAllMocks());
 
+  // La fecha debe ser hoy o posterior (EsFechaDeAviso). Un literal fijo
+  // (p. ej. 2026-11-05) deja de ser válido al día siguiente y rompe el suite.
   const aviso = {
     titulo: 'Feria anual',
     descripcion: 'En el gimnasio',
     categoria: CategoriaAviso.EVENTOS,
-    // Calculada, no escrita: el aviso exige fecha de hoy en adelante, y una
-    // fecha fija termina venciendo. Con '2026-11-05' la prueba empezó a fallar
-    // sola el 6 de noviembre.
-    fecha: fechaDeHoy(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+    fecha: desplazarDias(fechaDeHoy(), 7),
   };
 
   describe('GET /comunicacion/avisos', () => {
@@ -183,6 +190,7 @@ describe('AvisoController (endpoints)', () => {
       ['categoría inválida', { ...aviso, categoria: 'OTRA' }],
       ['fecha inexistente', { ...aviso, fecha: '2026-02-30' }],
       ['fecha con formato erróneo', { ...aviso, fecha: '05/11/2026' }],
+      ['fecha anterior a hoy', { ...aviso, fecha: desplazarDias(fechaDeHoy(), -1) }],
       ['estado inválido', { ...aviso, estado: 'BORRADOR' }],
       ['campo extra', { ...aviso, autor: 'x' }],
     ])('400: %s', async (_c, cuerpo) => {

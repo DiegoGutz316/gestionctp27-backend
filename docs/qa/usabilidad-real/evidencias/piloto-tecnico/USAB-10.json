@@ -1,0 +1,7 @@
+{
+  "id": "USAB-10",
+  "estado": "PASS",
+  "problemas": "Directora lee 2 asientos y guarda pie informe. Excel: capa FE.",
+  "evidencia": "USAB-10.json",
+  "at": "2026-11-06T16:45:43.004Z"
+}

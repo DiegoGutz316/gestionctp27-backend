@@ -20,6 +20,7 @@ import { ReportesModule } from './modules/reportes/reportes.module';
 import { ComunicacionModule } from './modules/comunicacion/comunicacion.module';
 import { LandingModule } from './modules/landing/landing.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { QaUsabilidadModule } from './modules/qa-usabilidad/qa-usabilidad.module';
 import { OriginCsrfGuard } from './common/http/origin-csrf.guard';
 import { ThrottlerPorSesionGuard } from './common/throttler/throttler-por-sesion.guard';
 import { MailModule } from './common/mail/mail.module';
@@ -68,6 +69,7 @@ import { MailModule } from './common/mail/mail.module';
     ComunicacionModule,
     LandingModule,
     DashboardModule,
+    QaUsabilidadModule,
   ],
   controllers: [AppController],
   providers: [
