@@ -22,6 +22,7 @@ import {
   servicioSimulado,
   usuarioDePrueba,
 } from '../../../test/helpers/endpoint-app';
+import { fechaDeHoy } from '../../common/validacion/fecha-no-futura.validator';
 import { ModuloSistema } from '../auth/enums/modulo-sistema.enum';
 import { NivelPermiso } from '../auth/enums/nivel-permiso.enum';
 import { RolUsuario } from '../usuarios/enums/rol-usuario.enum';
@@ -62,7 +63,10 @@ describe('AvisoController (endpoints)', () => {
     titulo: 'Feria anual',
     descripcion: 'En el gimnasio',
     categoria: CategoriaAviso.EVENTOS,
-    fecha: '2026-11-05',
+    // Calculada, no escrita: el aviso exige fecha de hoy en adelante, y una
+    // fecha fija termina venciendo. Con '2026-11-05' la prueba empezó a fallar
+    // sola el 6 de noviembre.
+    fecha: fechaDeHoy(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
   };
 
   describe('GET /comunicacion/avisos', () => {
